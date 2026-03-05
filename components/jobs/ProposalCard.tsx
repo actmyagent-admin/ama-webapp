@@ -19,9 +19,9 @@ import { useRouter } from "next/navigation";
 import { useToast } from "@/hooks/use-toast";
 
 const STATUS_CONFIG: Record<ProposalStatus, { label: string; class: string }> = {
-  PENDING: { label: "Pending", class: "bg-gray-800 text-gray-400 border-gray-700" },
-  ACCEPTED: { label: "Accepted", class: "bg-emerald-900/50 text-emerald-300 border-emerald-800" },
-  REJECTED: { label: "Rejected", class: "bg-red-900/50 text-red-300 border-red-800" },
+  PENDING: { label: "Pending", class: "bg-muted text-muted-foreground border-border" },
+  ACCEPTED: { label: "Accepted", class: "bg-emerald-100 text-emerald-700 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-300 dark:border-emerald-800" },
+  REJECTED: { label: "Rejected", class: "bg-red-100 text-red-700 border-red-200 dark:bg-red-900/30 dark:text-red-300 dark:border-red-800" },
 };
 
 interface ProposalCardProps {
@@ -58,21 +58,21 @@ export function ProposalCard({ proposal, isBuyer }: ProposalCardProps) {
 
   return (
     <>
-      <Card className="bg-gray-900 border-gray-800 hover:border-gray-700 transition-all">
+      <Card className="gradient-border-card bg-card hover:shadow-md transition-all">
         <CardContent className="p-5">
           <div className="flex items-start gap-3 mb-4">
             <Avatar className="w-10 h-10 flex-shrink-0">
               {agent?.avatarUrl ? (
                 <img src={agent.avatarUrl} alt={agent.name} />
               ) : (
-                <AvatarFallback className="bg-indigo-700 text-white text-sm">
+                <AvatarFallback className="bg-gradient-to-br from-[#b57e04] to-[#d4a017] text-white text-sm font-bold">
                   {initials}
                 </AvatarFallback>
               )}
             </Avatar>
             <div className="flex-1 min-w-0">
               <div className="flex items-center justify-between gap-2">
-                <p className="text-white font-medium truncate">
+                <p className="text-foreground font-medium truncate font-ui">
                   {agent?.name ?? "Anonymous Agent"}
                 </p>
                 <Badge className={`text-xs border flex-shrink-0 ${status.class}`}>
@@ -80,11 +80,11 @@ export function ProposalCard({ proposal, isBuyer }: ProposalCardProps) {
                 </Badge>
               </div>
               <div className="flex items-center gap-3 mt-1">
-                <span className="flex items-center gap-1 text-emerald-400 text-sm font-medium">
+                <span className="flex items-center gap-1 text-[#b57e04] text-sm font-medium font-ui">
                   <DollarSign className="w-3.5 h-3.5" />
                   {proposal.price} {proposal.currency}
                 </span>
-                <span className="flex items-center gap-1 text-gray-500 text-sm">
+                <span className="flex items-center gap-1 text-muted-foreground text-sm font-ui">
                   <Clock className="w-3.5 h-3.5" />
                   {proposal.estimatedDays} day{proposal.estimatedDays !== 1 ? "s" : ""}
                 </span>
@@ -92,14 +92,14 @@ export function ProposalCard({ proposal, isBuyer }: ProposalCardProps) {
             </div>
           </div>
 
-          <p className="text-gray-400 text-sm leading-relaxed mb-4 line-clamp-3">
+          <p className="text-muted-foreground text-sm leading-relaxed mb-4 line-clamp-3 font-ui">
             {proposal.message}
           </p>
 
           {isBuyer && proposal.status === "PENDING" && (
             <Button
               onClick={() => setConfirmOpen(true)}
-              className="w-full bg-indigo-600 hover:bg-indigo-500 text-white gap-2"
+              className="w-full bg-gradient-to-r from-[#b57e04] to-[#d4a017] hover:from-[#9a6a03] hover:to-[#b57e04] text-white gap-2 font-ui font-medium"
             >
               <CheckCircle className="w-4 h-4" />
               Accept Proposal
@@ -109,13 +109,13 @@ export function ProposalCard({ proposal, isBuyer }: ProposalCardProps) {
       </Card>
 
       <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
-        <DialogContent className="bg-gray-900 border-gray-800">
+        <DialogContent className="bg-card border-border">
           <DialogHeader>
-            <DialogTitle className="text-white">Accept this proposal?</DialogTitle>
-            <DialogDescription className="text-gray-500">
+            <DialogTitle className="text-foreground font-display">Accept this proposal?</DialogTitle>
+            <DialogDescription className="text-muted-foreground font-ui">
               You&apos;re accepting the proposal from{" "}
-              <span className="text-gray-300">{agent?.name}</span> for{" "}
-              <span className="text-emerald-400 font-medium">
+              <span className="text-foreground">{agent?.name}</span> for{" "}
+              <span className="text-[#b57e04] font-medium">
                 ${proposal.price} {proposal.currency}
               </span>{" "}
               · {proposal.estimatedDays} days. A contract will be created.
@@ -125,14 +125,14 @@ export function ProposalCard({ proposal, isBuyer }: ProposalCardProps) {
             <Button
               variant="outline"
               onClick={() => setConfirmOpen(false)}
-              className="border-gray-700 text-gray-300"
+              className="border-border hover:border-[#b57e04] hover:text-[#b57e04] font-ui"
             >
               Cancel
             </Button>
             <Button
               onClick={handleAccept}
               disabled={accepting}
-              className="bg-indigo-600 hover:bg-indigo-500 text-white"
+              className="bg-gradient-to-r from-[#b57e04] to-[#d4a017] hover:from-[#9a6a03] hover:to-[#b57e04] text-white font-ui font-medium"
             >
               {accepting && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
               Confirm & Accept

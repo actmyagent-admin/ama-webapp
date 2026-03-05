@@ -19,33 +19,33 @@ import {
 import { useUser } from "@/hooks/useUser";
 
 const STATUS_CONFIG: Record<JobStatus, { label: string; class: string }> = {
-  OPEN: { label: "Open", class: "bg-blue-900/50 text-blue-300 border-blue-800" },
-  IN_PROGRESS: { label: "In Progress", class: "bg-amber-900/50 text-amber-300 border-amber-800" },
-  COMPLETED: { label: "Completed", class: "bg-emerald-900/50 text-emerald-300 border-emerald-800" },
-  DISPUTED: { label: "Disputed", class: "bg-red-900/50 text-red-300 border-red-800" },
-  CANCELLED: { label: "Cancelled", class: "bg-gray-800 text-gray-400 border-gray-700" },
+  OPEN: { label: "Open", class: "bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-300 dark:border-blue-800" },
+  IN_PROGRESS: { label: "In Progress", class: "bg-amber-100 text-amber-700 border-amber-200 dark:bg-amber-900/30 dark:text-amber-300 dark:border-amber-800" },
+  COMPLETED: { label: "Completed", class: "bg-emerald-100 text-emerald-700 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-300 dark:border-emerald-800" },
+  DISPUTED: { label: "Disputed", class: "bg-red-100 text-red-700 border-red-200 dark:bg-red-900/30 dark:text-red-300 dark:border-red-800" },
+  CANCELLED: { label: "Cancelled", class: "bg-muted text-muted-foreground border-border" },
 };
 
 function StatCard({
   icon: Icon,
   label,
   value,
-  color,
+  iconClass,
 }: {
   icon: React.ElementType;
   label: string;
   value: string | number;
-  color: string;
+  iconClass: string;
 }) {
   return (
-    <Card className="bg-gray-900 border-gray-800">
+    <Card className="gradient-border-card bg-card">
       <CardContent className="p-5 flex items-center gap-4">
-        <div className={`w-10 h-10 rounded-xl flex items-center justify-center bg-opacity-20 ${color}`}>
+        <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${iconClass}`}>
           <Icon className="w-5 h-5" />
         </div>
         <div>
-          <p className="text-gray-500 text-sm">{label}</p>
-          <p className="text-white font-semibold text-xl">{value}</p>
+          <p className="text-muted-foreground text-sm font-ui">{label}</p>
+          <p className="text-foreground font-semibold text-xl font-display">{value}</p>
         </div>
       </CardContent>
     </Card>
@@ -74,11 +74,11 @@ export default function BuyerDashboardPage() {
       {/* Header */}
       <div className="flex items-center justify-between mb-8">
         <div>
-          <h1 className="text-2xl font-bold text-white">Buyer Dashboard</h1>
-          <p className="text-gray-500 mt-1">{user?.email}</p>
+          <h1 className="text-2xl font-display font-bold text-foreground">Buyer Dashboard</h1>
+          <p className="text-muted-foreground mt-1 font-ui text-sm">{user?.email}</p>
         </div>
         <Link href="/post-task">
-          <Button className="bg-indigo-600 hover:bg-indigo-500 text-white gap-2">
+          <Button className="bg-gradient-to-r from-[#b57e04] to-[#d4a017] hover:from-[#9a6a03] hover:to-[#b57e04] text-white gap-2 font-ui font-medium shadow-sm">
             <Plus className="w-4 h-4" />
             Post a Task
           </Button>
@@ -91,34 +91,34 @@ export default function BuyerDashboardPage() {
           icon={Briefcase}
           label="Total Jobs"
           value={isLoading ? "—" : totalJobs}
-          color="bg-indigo-900/20 text-indigo-400"
+          iconClass="bg-[#b57e04]/10 text-[#b57e04]"
         />
         <StatCard
           icon={Clock}
           label="Active Contracts"
           value={isLoading ? "—" : activeContracts}
-          color="bg-amber-900/20 text-amber-400"
+          iconClass="bg-amber-100 text-amber-600 dark:bg-amber-900/20 dark:text-amber-400"
         />
         <StatCard
           icon={CheckCircle}
           label="Completed"
           value={isLoading ? "—" : completed}
-          color="bg-emerald-900/20 text-emerald-400"
+          iconClass="bg-emerald-100 text-emerald-600 dark:bg-emerald-900/20 dark:text-emerald-400"
         />
         <StatCard
           icon={DollarSign}
           label="Total Spent"
           value={isLoading ? "—" : `$${stats?.totalSpent ?? 0}`}
-          color="bg-purple-900/20 text-purple-400"
+          iconClass="bg-purple-100 text-purple-600 dark:bg-purple-900/20 dark:text-purple-400"
         />
       </div>
 
       {/* Jobs table */}
-      <div className="bg-gray-900 border border-gray-800 rounded-2xl overflow-hidden">
-        <div className="px-6 py-4 border-b border-gray-800 flex items-center justify-between">
-          <h2 className="text-white font-semibold">Your Tasks</h2>
+      <div className="bg-card border border-border rounded-2xl overflow-hidden">
+        <div className="px-6 py-4 border-b border-border flex items-center justify-between">
+          <h2 className="text-foreground font-semibold font-ui">Your Tasks</h2>
           <Link href="/post-task">
-            <Button size="sm" variant="ghost" className="text-gray-400 hover:text-white gap-1.5 text-xs">
+            <Button size="sm" variant="ghost" className="text-muted-foreground hover:text-foreground gap-1.5 text-xs font-ui">
               <Plus className="w-3.5 h-3.5" />
               New Task
             </Button>
@@ -128,24 +128,24 @@ export default function BuyerDashboardPage() {
         {isLoading ? (
           <div className="p-6 space-y-3">
             {Array.from({ length: 4 }).map((_, i) => (
-              <Skeleton key={i} className="h-16 bg-gray-800 rounded-lg" />
+              <Skeleton key={i} className="h-16 rounded-lg" />
             ))}
           </div>
         ) : !jobs || jobs.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20 text-center">
-            <div className="w-14 h-14 rounded-2xl bg-gray-800 flex items-center justify-center mb-4">
-              <Briefcase className="w-7 h-7 text-gray-600" />
+            <div className="w-14 h-14 rounded-2xl bg-muted flex items-center justify-center mb-4">
+              <Briefcase className="w-7 h-7 text-muted-foreground" />
             </div>
-            <p className="text-gray-500 mb-4">No tasks yet. Post your first one!</p>
+            <p className="text-muted-foreground mb-4 font-ui">No tasks yet. Post your first one!</p>
             <Link href="/post-task">
-              <Button className="bg-indigo-600 hover:bg-indigo-500 text-white gap-2">
+              <Button className="bg-gradient-to-r from-[#b57e04] to-[#d4a017] hover:from-[#9a6a03] hover:to-[#b57e04] text-white gap-2 font-ui font-medium">
                 <Plus className="w-4 h-4" />
                 Post a Task
               </Button>
             </Link>
           </div>
         ) : (
-          <div className="divide-y divide-gray-800">
+          <div className="divide-y divide-border">
             {jobs.map((job: Job) => {
               const status = STATUS_CONFIG[job.status];
               const actionHref =
@@ -158,19 +158,19 @@ export default function BuyerDashboardPage() {
               return (
                 <div
                   key={job.id}
-                  className="px-6 py-4 flex items-center gap-4 hover:bg-gray-800/50 transition-colors"
+                  className="px-6 py-4 flex items-center gap-4 hover:bg-muted/30 transition-colors"
                 >
                   <div className="flex-1 min-w-0">
-                    <p className="text-white font-medium truncate text-sm">{job.title}</p>
+                    <p className="text-foreground font-medium truncate text-sm font-ui">{job.title}</p>
                     <div className="flex items-center gap-3 mt-1">
-                      <span className="text-gray-600 text-xs capitalize">{job.category}</span>
-                      <span className="text-gray-600 text-xs">
+                      <span className="text-muted-foreground text-xs capitalize font-ui">{job.category}</span>
+                      <span className="text-muted-foreground text-xs font-ui">
                         {new Date(job.createdAt).toLocaleDateString()}
                       </span>
                     </div>
                   </div>
                   {job.proposalCount != null && (
-                    <span className="flex items-center gap-1 text-gray-500 text-xs flex-shrink-0">
+                    <span className="flex items-center gap-1 text-muted-foreground text-xs flex-shrink-0 font-ui">
                       <MessageSquare className="w-3.5 h-3.5" />
                       {job.proposalCount}
                     </span>
@@ -179,7 +179,7 @@ export default function BuyerDashboardPage() {
                     {status.label}
                   </Badge>
                   <Link href={actionHref}>
-                    <Button size="sm" variant="ghost" className="text-gray-400 hover:text-white gap-1 text-xs flex-shrink-0">
+                    <Button size="sm" variant="ghost" className="text-muted-foreground hover:text-[#b57e04] gap-1 text-xs flex-shrink-0 font-ui">
                       {actionLabel}
                       <ArrowRight className="w-3.5 h-3.5" />
                     </Button>

@@ -25,22 +25,22 @@ function StatCard({
   icon: Icon,
   label,
   value,
-  color,
+  iconClass,
 }: {
   icon: React.ElementType;
   label: string;
   value: string | number;
-  color: string;
+  iconClass: string;
 }) {
   return (
-    <Card className="bg-gray-900 border-gray-800">
+    <Card className="gradient-border-card bg-card">
       <CardContent className="p-5 flex items-center gap-4">
-        <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${color}`}>
+        <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${iconClass}`}>
           <Icon className="w-5 h-5" />
         </div>
         <div>
-          <p className="text-gray-500 text-sm">{label}</p>
-          <p className="text-white font-semibold text-xl">{value}</p>
+          <p className="text-muted-foreground text-sm font-ui">{label}</p>
+          <p className="text-foreground font-semibold text-xl font-display">{value}</p>
         </div>
       </CardContent>
     </Card>
@@ -82,12 +82,12 @@ export default function AgentDashboardPage() {
       {/* Header */}
       <div className="flex items-center justify-between mb-8">
         <div>
-          <h1 className="text-2xl font-bold text-white">Agent Dashboard</h1>
-          <p className="text-gray-500 mt-1">{user?.email}</p>
+          <h1 className="text-2xl font-display font-bold text-foreground">Agent Dashboard</h1>
+          <p className="text-muted-foreground mt-1 font-ui text-sm">{user?.email}</p>
         </div>
         {!me?.agentProfile && (
           <Link href="/agent/register">
-            <Button className="bg-indigo-600 hover:bg-indigo-500 text-white gap-2">
+            <Button className="bg-gradient-to-r from-[#b57e04] to-[#d4a017] hover:from-[#9a6a03] hover:to-[#b57e04] text-white gap-2 font-ui font-medium shadow-sm">
               <Cpu className="w-4 h-4" />
               Register Agent
             </Button>
@@ -101,41 +101,41 @@ export default function AgentDashboardPage() {
           icon={Briefcase}
           label="Active Jobs"
           value={stats?.activeContracts ?? "—"}
-          color="bg-amber-900/20 text-amber-400"
+          iconClass="bg-amber-100 text-amber-600 dark:bg-amber-900/20 dark:text-amber-400"
         />
         <StatCard
           icon={CheckCircle}
           label="Completed"
           value={stats?.completed ?? "—"}
-          color="bg-emerald-900/20 text-emerald-400"
+          iconClass="bg-emerald-100 text-emerald-600 dark:bg-emerald-900/20 dark:text-emerald-400"
         />
         <StatCard
           icon={DollarSign}
           label="Total Earned"
           value={stats?.earnings != null ? `$${stats.earnings}` : "—"}
-          color="bg-purple-900/20 text-purple-400"
+          iconClass="bg-[#b57e04]/10 text-[#b57e04]"
         />
         <StatCard
           icon={Star}
           label="Rating"
           value={stats?.rating != null ? `${stats.rating.toFixed(1)} / 5` : "—"}
-          color="bg-indigo-900/20 text-indigo-400"
+          iconClass="bg-purple-100 text-purple-600 dark:bg-purple-900/20 dark:text-purple-400"
         />
       </div>
 
       {/* API Key */}
-      <div className="bg-gray-900 border border-gray-800 rounded-2xl p-5 mb-8">
+      <div className="bg-card border border-border rounded-2xl p-5 mb-8">
         <div className="flex items-center justify-between mb-2">
-          <h2 className="text-white font-semibold">API Key</h2>
-          <Badge className="bg-gray-800 text-gray-400 border-gray-700 text-xs">
+          <h2 className="text-foreground font-semibold font-ui">API Key</h2>
+          <Badge className="bg-muted text-muted-foreground border-border text-xs font-ui">
             Programmatic access
           </Badge>
         </div>
-        <p className="text-gray-500 text-sm mb-4">
+        <p className="text-muted-foreground text-sm mb-4 font-ui">
           Use this key in your webhook server to submit proposals via the Agent SDK.
         </p>
         <div className="flex items-center gap-2">
-          <code className="flex-1 bg-gray-800 border border-gray-700 rounded-lg px-4 py-2.5 text-gray-300 font-mono text-sm select-all overflow-hidden">
+          <code className="flex-1 bg-muted border border-border rounded-lg px-4 py-2.5 text-[#b57e04] font-mono text-sm select-all overflow-hidden">
             {apiKey ?? "Register your agent to get an API key"}
           </code>
           {apiKey && (
@@ -143,11 +143,11 @@ export default function AgentDashboardPage() {
               size="sm"
               variant="outline"
               onClick={copyApiKey}
-              className="border-gray-700 text-gray-300 gap-1.5 flex-shrink-0"
+              className="border-border hover:border-[#b57e04] hover:text-[#b57e04] gap-1.5 flex-shrink-0 font-ui"
             >
               {copied ? (
                 <>
-                  <Check className="w-3.5 h-3.5 text-emerald-400" />
+                  <Check className="w-3.5 h-3.5 text-[#b57e04]" />
                   Copied
                 </>
               ) : (
@@ -159,9 +159,9 @@ export default function AgentDashboardPage() {
             </Button>
           )}
         </div>
-        <p className="text-gray-600 text-xs mt-2">
+        <p className="text-muted-foreground text-xs mt-2 font-ui">
           See the{" "}
-          <Link href="/docs/agent-sdk" className="text-indigo-400 hover:underline">
+          <Link href="/docs/agent-sdk" className="text-[#b57e04] hover:underline">
             Agent SDK docs
           </Link>{" "}
           to learn how to use this key.
@@ -169,23 +169,23 @@ export default function AgentDashboardPage() {
       </div>
 
       {/* Open jobs in my categories */}
-      <div className="bg-gray-900 border border-gray-800 rounded-2xl overflow-hidden">
-        <div className="px-6 py-4 border-b border-gray-800 flex items-center justify-between">
-          <h2 className="text-white font-semibold">Open Tasks in Your Categories</h2>
+      <div className="bg-card border border-border rounded-2xl overflow-hidden">
+        <div className="px-6 py-4 border-b border-border flex items-center justify-between">
+          <h2 className="text-foreground font-semibold font-ui">Open Tasks in Your Categories</h2>
         </div>
 
         {jobsLoading ? (
           <div className="p-6 grid sm:grid-cols-2 gap-4">
             {Array.from({ length: 4 }).map((_, i) => (
-              <Skeleton key={i} className="h-40 bg-gray-800 rounded-xl" />
+              <Skeleton key={i} className="h-40 rounded-xl" />
             ))}
           </div>
         ) : !openJobs || openJobs.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16 text-center">
-            <div className="w-14 h-14 rounded-2xl bg-gray-800 flex items-center justify-center mb-4">
-              <Briefcase className="w-7 h-7 text-gray-600" />
+            <div className="w-14 h-14 rounded-2xl bg-muted flex items-center justify-center mb-4">
+              <Briefcase className="w-7 h-7 text-muted-foreground" />
             </div>
-            <p className="text-gray-500">No open tasks yet. Check back soon!</p>
+            <p className="text-muted-foreground font-ui">No open tasks yet. Check back soon!</p>
           </div>
         ) : (
           <div className="p-6 grid sm:grid-cols-2 gap-4">

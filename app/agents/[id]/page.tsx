@@ -32,8 +32,8 @@ export default function AgentProfilePage() {
   if (isLoading) {
     return (
       <div className="max-w-3xl mx-auto px-4 py-12 space-y-4">
-        <Skeleton className="h-32 bg-gray-800 rounded-2xl" />
-        <Skeleton className="h-40 bg-gray-800 rounded-2xl" />
+        <Skeleton className="h-32 rounded-2xl" />
+        <Skeleton className="h-40 rounded-2xl" />
       </div>
     );
   }
@@ -41,12 +41,12 @@ export default function AgentProfilePage() {
   if (!agent) {
     return (
       <div className="max-w-3xl mx-auto px-4 py-20 text-center">
-        <AlertCircle className="w-12 h-12 text-red-400 mx-auto mb-4" />
-        <p className="text-gray-400">Agent not found.</p>
+        <AlertCircle className="w-12 h-12 text-destructive mx-auto mb-4" />
+        <p className="text-muted-foreground font-ui">Agent not found.</p>
         <Button
           onClick={() => router.back()}
           variant="outline"
-          className="mt-4 border-gray-700 text-gray-300"
+          className="mt-4 border-border hover:border-[#b57e04] hover:text-[#b57e04] font-ui"
         >
           Go back
         </Button>
@@ -60,42 +60,42 @@ export default function AgentProfilePage() {
     <div className="max-w-3xl mx-auto px-4 py-12">
       <button
         onClick={() => router.back()}
-        className="flex items-center gap-2 text-gray-500 hover:text-gray-300 text-sm mb-6 transition-colors"
+        className="flex items-center gap-2 text-muted-foreground hover:text-foreground text-sm mb-6 transition-colors font-ui"
       >
         <ArrowLeft className="w-4 h-4" />
         Back to Agents
       </button>
 
       {/* Agent header */}
-      <Card className="bg-gray-900 border-gray-800 mb-5">
+      <Card className="gradient-border-card bg-card mb-5">
         <CardContent className="p-6">
           <div className="flex items-start gap-5">
             <Avatar className="w-16 h-16 flex-shrink-0">
               {agent.avatarUrl ? (
                 <img src={agent.avatarUrl} alt={agent.name} />
               ) : (
-                <AvatarFallback className="bg-indigo-700 text-white text-xl font-bold">
+                <AvatarFallback className="bg-gradient-to-br from-[#b57e04] to-[#d4a017] text-white text-xl font-bold">
                   {initials}
                 </AvatarFallback>
               )}
             </Avatar>
             <div className="flex-1 min-w-0">
-              <h1 className="text-2xl font-bold text-white mb-1">{agent.name}</h1>
+              <h1 className="text-2xl font-display font-bold text-foreground mb-1">{agent.name}</h1>
               <div className="flex flex-wrap items-center gap-4">
                 {agent.rating != null && (
-                  <span className="flex items-center gap-1 text-amber-400">
-                    <Star className="w-4 h-4 fill-amber-400" />
-                    <span className="font-medium">{agent.rating.toFixed(1)}</span>
+                  <span className="flex items-center gap-1 text-[#b57e04]">
+                    <Star className="w-4 h-4 fill-[#b57e04]" />
+                    <span className="font-medium font-ui">{agent.rating.toFixed(1)}</span>
                   </span>
                 )}
                 {agent.totalJobs != null && (
-                  <span className="flex items-center gap-1 text-gray-500 text-sm">
+                  <span className="flex items-center gap-1 text-muted-foreground text-sm font-ui">
                     <Briefcase className="w-4 h-4" />
                     {agent.totalJobs} completed jobs
                   </span>
                 )}
                 {agent.memberSince && (
-                  <span className="flex items-center gap-1 text-gray-500 text-sm">
+                  <span className="flex items-center gap-1 text-muted-foreground text-sm font-ui">
                     <Calendar className="w-4 h-4" />
                     Member since {new Date(agent.memberSince).toLocaleDateString("en-US", { month: "long", year: "numeric" })}
                   </span>
@@ -108,7 +108,7 @@ export default function AgentProfilePage() {
             {agent.categories.map((cat) => (
               <Badge
                 key={cat}
-                className="bg-indigo-900/50 text-indigo-300 border-indigo-800 capitalize"
+                className="bg-[#b57e04]/10 text-[#b57e04] border border-[#b57e04]/30 capitalize font-ui"
               >
                 {cat}
               </Badge>
@@ -118,38 +118,39 @@ export default function AgentProfilePage() {
       </Card>
 
       {/* Description */}
-      <Card className="bg-gray-900 border-gray-800 mb-5">
+      <Card className="gradient-border-card bg-card mb-5">
         <CardContent className="p-6">
-          <h2 className="text-white font-semibold mb-3">About</h2>
-          <p className="text-gray-400 leading-relaxed">{agent.description}</p>
+          <h2 className="text-foreground font-display font-semibold mb-3">About</h2>
+          <p className="text-muted-foreground leading-relaxed font-ui">{agent.description}</p>
         </CardContent>
       </Card>
 
       {/* Pricing */}
-      <Card className="bg-gray-900 border-gray-800 mb-6">
+      <Card className="gradient-border-card bg-card mb-6">
         <CardContent className="p-6">
-          <h2 className="text-white font-semibold mb-3">Pricing</h2>
+          <h2 className="text-foreground font-display font-semibold mb-3">Pricing</h2>
           <div className="flex items-center gap-2">
-            <DollarSign className="w-5 h-5 text-emerald-400" />
-            <span className="text-2xl font-bold text-white">
+            <DollarSign className="w-5 h-5 text-[#b57e04]" />
+            <span className="text-2xl font-bold text-foreground font-display">
               ${agent.priceFrom}–${agent.priceTo}
             </span>
-            <span className="text-gray-500">{agent.currency ?? "USD"}</span>
+            <span className="text-muted-foreground font-ui">{agent.currency ?? "USD"}</span>
           </div>
-          <p className="text-gray-600 text-sm mt-1">Per task (final price in proposal)</p>
+          <p className="text-muted-foreground text-sm mt-1 font-ui">Per task (final price in proposal)</p>
         </CardContent>
       </Card>
 
       {/* CTA */}
-      <Link
-        href={`/post-task?category=${agent.categories[0] ?? ""}`}
-      >
-        <Button size="lg" className="w-full bg-indigo-600 hover:bg-indigo-500 text-white gap-2">
+      <Link href={`/post-task?category=${agent.categories[0] ?? ""}`}>
+        <Button
+          size="lg"
+          className="w-full bg-gradient-to-r from-[#b57e04] to-[#d4a017] hover:from-[#9a6a03] hover:to-[#b57e04] text-white gap-2 font-ui font-medium"
+        >
           <ExternalLink className="w-4 h-4" />
           Request this Agent
         </Button>
       </Link>
-      <p className="text-center text-gray-600 text-sm mt-3">
+      <p className="text-center text-muted-foreground text-sm mt-3 font-ui">
         Post a task and this agent will receive it to submit a proposal.
       </p>
     </div>

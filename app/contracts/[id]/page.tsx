@@ -74,23 +74,23 @@ function PaymentForm({
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
-      <PaymentElement className="text-white" />
+      <PaymentElement />
       {error && (
-        <p className="text-red-400 text-sm">{error}</p>
+        <p className="text-destructive text-sm font-ui">{error}</p>
       )}
       <div className="flex gap-2 pt-2">
         <Button
           type="button"
           variant="outline"
           onClick={onCancel}
-          className="flex-1 border-gray-700 text-gray-300"
+          className="flex-1 border-border hover:border-[#b57e04] hover:text-[#b57e04] font-ui"
         >
           Cancel
         </Button>
         <Button
           type="submit"
           disabled={loading || !stripe}
-          className="flex-1 bg-indigo-600 hover:bg-indigo-500 text-white"
+          className="flex-1 bg-gradient-to-r from-[#b57e04] to-[#d4a017] hover:from-[#9a6a03] hover:to-[#b57e04] text-white font-ui font-medium"
         >
           {loading && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
           Pay & Secure Escrow
@@ -102,11 +102,11 @@ function PaymentForm({
 
 // ─── Contract status badge ───────────────────────────────────────────────────
 const CONTRACT_STATUS = {
-  PENDING_SIGNATURES: { label: "Awaiting Signatures", class: "bg-amber-900/50 text-amber-300 border-amber-800" },
-  ACTIVE: { label: "Active", class: "bg-blue-900/50 text-blue-300 border-blue-800" },
-  DELIVERED: { label: "Delivered", class: "bg-purple-900/50 text-purple-300 border-purple-800" },
-  COMPLETED: { label: "Completed", class: "bg-emerald-900/50 text-emerald-300 border-emerald-800" },
-  DISPUTED: { label: "Disputed", class: "bg-red-900/50 text-red-300 border-red-800" },
+  PENDING_SIGNATURES: { label: "Awaiting Signatures", class: "bg-amber-100 text-amber-700 border-amber-200 dark:bg-amber-900/30 dark:text-amber-300 dark:border-amber-800" },
+  ACTIVE: { label: "Active", class: "bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-300 dark:border-blue-800" },
+  DELIVERED: { label: "Delivered", class: "bg-purple-100 text-purple-700 border-purple-200 dark:bg-purple-900/30 dark:text-purple-300 dark:border-purple-800" },
+  COMPLETED: { label: "Completed", class: "bg-emerald-100 text-emerald-700 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-300 dark:border-emerald-800" },
+  DISPUTED: { label: "Disputed", class: "bg-red-100 text-red-700 border-red-200 dark:bg-red-900/30 dark:text-red-300 dark:border-red-800" },
 };
 
 // ─── Main page ────────────────────────────────────────────────────────────────
@@ -175,7 +175,7 @@ export default function ContractPage() {
     return (
       <div className="max-w-7xl mx-auto px-4 py-10 grid lg:grid-cols-3 gap-6">
         {[1, 2, 3].map((i) => (
-          <Skeleton key={i} className="h-96 bg-gray-800 rounded-2xl" />
+          <Skeleton key={i} className="h-96 rounded-2xl" />
         ))}
       </div>
     );
@@ -184,8 +184,8 @@ export default function ContractPage() {
   if (!contract) {
     return (
       <div className="max-w-4xl mx-auto px-4 py-20 text-center">
-        <AlertCircle className="w-12 h-12 text-red-400 mx-auto mb-4" />
-        <p className="text-gray-400">Contract not found.</p>
+        <AlertCircle className="w-12 h-12 text-destructive mx-auto mb-4" />
+        <p className="text-muted-foreground font-ui">Contract not found.</p>
       </div>
     );
   }
@@ -196,7 +196,7 @@ export default function ContractPage() {
         {/* Page header */}
         <div className="mb-6">
           <div className="flex items-center justify-between">
-            <h1 className="text-xl font-bold text-white truncate">
+            <h1 className="text-xl font-display font-bold text-foreground truncate">
               {contract.job?.title ?? "Contract"}
             </h1>
             {statusConfig && (
@@ -210,14 +210,14 @@ export default function ContractPage() {
         {/* Mobile: Tabs */}
         <div className="lg:hidden">
           <Tabs defaultValue="contract">
-            <TabsList className="bg-gray-900 border border-gray-800 w-full mb-4">
-              <TabsTrigger value="contract" className="flex-1 gap-1.5 text-xs">
+            <TabsList className="bg-muted border border-border w-full mb-4">
+              <TabsTrigger value="contract" className="flex-1 gap-1.5 text-xs font-ui">
                 <FileText className="w-3.5 h-3.5" /> Contract
               </TabsTrigger>
-              <TabsTrigger value="chat" className="flex-1 gap-1.5 text-xs">
+              <TabsTrigger value="chat" className="flex-1 gap-1.5 text-xs font-ui">
                 <MessageSquare className="w-3.5 h-3.5" /> Chat
               </TabsTrigger>
-              <TabsTrigger value="delivery" className="flex-1 gap-1.5 text-xs">
+              <TabsTrigger value="delivery" className="flex-1 gap-1.5 text-xs font-ui">
                 <Package className="w-3.5 h-3.5" /> Delivery
               </TabsTrigger>
             </TabsList>
@@ -233,12 +233,12 @@ export default function ContractPage() {
               />
             </TabsContent>
             <TabsContent value="chat">
-              <div className="bg-gray-900 border border-gray-800 rounded-2xl h-[500px]">
+              <div className="bg-card border border-border rounded-2xl h-[500px]">
                 <ChatPanel contractId={id} />
               </div>
             </TabsContent>
             <TabsContent value="delivery">
-              <div className="bg-gray-900 border border-gray-800 rounded-2xl h-[500px]">
+              <div className="bg-card border border-border rounded-2xl h-[500px]">
                 <DeliveryPanel
                   contractId={id}
                   isAgent={isAgent}
@@ -253,10 +253,10 @@ export default function ContractPage() {
         {/* Desktop: 3-column */}
         <div className="hidden lg:grid grid-cols-3 gap-5 h-[calc(100vh-12rem)]">
           {/* Left */}
-          <div className="bg-gray-900 border border-gray-800 rounded-2xl overflow-hidden flex flex-col">
-            <div className="px-5 py-4 border-b border-gray-800 flex items-center gap-2">
-              <FileText className="w-4 h-4 text-gray-400" />
-              <span className="text-white font-semibold text-sm">Contract Details</span>
+          <div className="bg-card border border-border rounded-2xl overflow-hidden flex flex-col">
+            <div className="px-5 py-4 border-b border-border flex items-center gap-2">
+              <FileText className="w-4 h-4 text-muted-foreground" />
+              <span className="text-foreground font-semibold text-sm font-ui">Contract Details</span>
             </div>
             <div className="flex-1 overflow-y-auto p-5">
               <ContractDetails
@@ -272,12 +272,12 @@ export default function ContractPage() {
           </div>
 
           {/* Center — Chat */}
-          <div className="bg-gray-900 border border-gray-800 rounded-2xl overflow-hidden flex flex-col">
+          <div className="bg-card border border-border rounded-2xl overflow-hidden flex flex-col">
             <ChatPanel contractId={id} />
           </div>
 
           {/* Right — Delivery */}
-          <div className="bg-gray-900 border border-gray-800 rounded-2xl overflow-hidden flex flex-col">
+          <div className="bg-card border border-border rounded-2xl overflow-hidden flex flex-col">
             <DeliveryPanel
               contractId={id}
               isAgent={isAgent}
@@ -290,20 +290,20 @@ export default function ContractPage() {
 
       {/* Payment modal */}
       <Dialog open={paymentOpen} onOpenChange={setPaymentOpen}>
-        <DialogContent className="bg-gray-900 border-gray-800 max-w-md">
+        <DialogContent className="bg-card border-border max-w-md">
           <DialogHeader>
-            <DialogTitle className="text-white flex items-center gap-2">
-              <Lock className="w-5 h-5 text-indigo-400" />
+            <DialogTitle className="text-foreground font-display flex items-center gap-2">
+              <Lock className="w-5 h-5 text-[#b57e04]" />
               Secure Payment to Escrow
             </DialogTitle>
-            <DialogDescription className="text-gray-500">
+            <DialogDescription className="text-muted-foreground font-ui">
               Funds are held securely and released only after you approve the delivery.
             </DialogDescription>
           </DialogHeader>
           {clientSecret && (
             <Elements
               stripe={getStripe()}
-              options={{ clientSecret, appearance: { theme: "night" } }}
+              options={{ clientSecret, appearance: { theme: "stripe" } }}
             >
               <PaymentForm
                 onSuccess={handlePaymentSuccess}
@@ -343,58 +343,58 @@ function ContractDetails({
     <div className="space-y-5">
       {/* Scope */}
       <div>
-        <p className="text-gray-500 text-xs uppercase tracking-wide mb-2">Scope</p>
-        <p className="text-gray-300 text-sm leading-relaxed whitespace-pre-wrap">
+        <p className="text-muted-foreground text-xs uppercase tracking-wide mb-2 font-ui">Scope</p>
+        <p className="text-foreground text-sm leading-relaxed whitespace-pre-wrap font-ui">
           {contract.scope || contract.job?.description || "—"}
         </p>
       </div>
 
-      <Separator className="bg-gray-800" />
+      <Separator className="bg-border" />
 
       {/* Price & deadline */}
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <p className="text-gray-500 text-xs uppercase tracking-wide mb-1">Price</p>
-          <p className="text-white font-semibold flex items-center gap-1">
-            <DollarSign className="w-4 h-4 text-emerald-400" />
+          <p className="text-muted-foreground text-xs uppercase tracking-wide mb-1 font-ui">Price</p>
+          <p className="text-foreground font-semibold flex items-center gap-1 font-ui">
+            <DollarSign className="w-4 h-4 text-[#b57e04]" />
             {contract.price} {contract.currency}
           </p>
         </div>
         <div>
-          <p className="text-gray-500 text-xs uppercase tracking-wide mb-1">Deadline</p>
-          <p className="text-white font-semibold flex items-center gap-1">
-            <Calendar className="w-4 h-4 text-gray-400" />
+          <p className="text-muted-foreground text-xs uppercase tracking-wide mb-1 font-ui">Deadline</p>
+          <p className="text-foreground font-semibold flex items-center gap-1 font-ui">
+            <Calendar className="w-4 h-4 text-muted-foreground" />
             {new Date(contract.deadline).toLocaleDateString()}
           </p>
         </div>
       </div>
 
-      <Separator className="bg-gray-800" />
+      <Separator className="bg-border" />
 
       {/* Signature status */}
       <div>
-        <p className="text-gray-500 text-xs uppercase tracking-wide mb-3">Signatures</p>
+        <p className="text-muted-foreground text-xs uppercase tracking-wide mb-3 font-ui">Signatures</p>
         <div className="space-y-2">
           <div className="flex items-center justify-between text-sm">
-            <span className="text-gray-400">Client</span>
+            <span className="text-muted-foreground font-ui">Client</span>
             {contract.buyerSigned ? (
-              <span className="flex items-center gap-1.5 text-emerald-400">
+              <span className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400 font-ui">
                 <CheckCircle className="w-4 h-4" /> Signed
               </span>
             ) : (
-              <span className="flex items-center gap-1.5 text-gray-600">
+              <span className="flex items-center gap-1.5 text-muted-foreground font-ui">
                 <Clock className="w-4 h-4" /> Pending
               </span>
             )}
           </div>
           <div className="flex items-center justify-between text-sm">
-            <span className="text-gray-400">Agent</span>
+            <span className="text-muted-foreground font-ui">Agent</span>
             {contract.agentSigned ? (
-              <span className="flex items-center gap-1.5 text-emerald-400">
+              <span className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400 font-ui">
                 <CheckCircle className="w-4 h-4" /> Signed
               </span>
             ) : (
-              <span className="flex items-center gap-1.5 text-gray-600">
+              <span className="flex items-center gap-1.5 text-muted-foreground font-ui">
                 <Clock className="w-4 h-4" /> Pending
               </span>
             )}
@@ -407,7 +407,7 @@ function ContractDetails({
         <Button
           onClick={onSign}
           disabled={signing}
-          className="w-full bg-indigo-600 hover:bg-indigo-500 text-white gap-2"
+          className="w-full bg-gradient-to-r from-[#b57e04] to-[#d4a017] hover:from-[#9a6a03] hover:to-[#b57e04] text-white gap-2 font-ui font-medium"
         >
           {signing ? (
             <Loader2 className="w-4 h-4 animate-spin" />
@@ -422,7 +422,7 @@ function ContractDetails({
       {isBuyer && bothSigned && !contract.escrowPaid && (
         <Button
           onClick={onPay}
-          className="w-full bg-emerald-600 hover:bg-emerald-500 text-white gap-2"
+          className="w-full bg-emerald-600 hover:bg-emerald-500 text-white gap-2 font-ui font-medium"
         >
           <Lock className="w-4 h-4" />
           Pay & Secure Escrow
@@ -430,7 +430,7 @@ function ContractDetails({
       )}
 
       {contract.escrowPaid && (
-        <div className="flex items-center gap-2 bg-emerald-950/30 border border-emerald-900 rounded-lg px-4 py-2.5 text-emerald-400 text-sm">
+        <div className="flex items-center gap-2 bg-emerald-50 border border-emerald-200 dark:bg-emerald-950/30 dark:border-emerald-900 rounded-lg px-4 py-2.5 text-emerald-700 dark:text-emerald-400 text-sm font-ui">
           <CheckCircle className="w-4 h-4 flex-shrink-0" />
           Funds secured in escrow
         </div>
