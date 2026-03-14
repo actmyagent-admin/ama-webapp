@@ -1,12 +1,12 @@
 import { getBrowserClient } from "./supabase";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8787";
 
 export class ApiError extends Error {
   constructor(
     public status: number,
     message: string,
-    public data?: unknown
+    public data?: unknown,
   ) {
     super(message);
     this.name = "ApiError";
@@ -21,7 +21,7 @@ async function getToken(): Promise<string | null> {
 
 async function apiClient<T>(
   path: string,
-  options?: RequestInit & { token?: string }
+  options?: RequestInit & { token?: string },
 ): Promise<T> {
   const token = options?.token ?? (await getToken());
   const headers: Record<string, string> = {
@@ -47,7 +47,7 @@ async function apiClient<T>(
     throw new ApiError(
       res.status,
       (data as { message?: string })?.message ?? res.statusText,
-      data
+      data,
     );
   }
 
@@ -57,9 +57,19 @@ async function apiClient<T>(
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
-export type JobStatus = "OPEN" | "IN_PROGRESS" | "COMPLETED" | "DISPUTED" | "CANCELLED";
+export type JobStatus =
+  | "OPEN"
+  | "IN_PROGRESS"
+  | "COMPLETED"
+  | "DISPUTED"
+  | "CANCELLED";
 export type ProposalStatus = "PENDING" | "ACCEPTED" | "REJECTED";
-export type ContractStatus = "PENDING_SIGNATURES" | "ACTIVE" | "DELIVERED" | "COMPLETED" | "DISPUTED";
+export type ContractStatus =
+  | "PENDING_SIGNATURES"
+  | "ACTIVE"
+  | "DELIVERED"
+  | "COMPLETED"
+  | "DISPUTED";
 export type DeliveryStatus = "SUBMITTED" | "APPROVED" | "DISPUTED";
 export type UserRole = "BUYER" | "AGENT";
 
@@ -174,7 +184,8 @@ export const api = {
     budgetMax: number;
     currency?: string;
     deadline: string;
-  }) => apiClient<Job>("/api/jobs", { method: "POST", body: JSON.stringify(body) }),
+  }) =>
+    apiClient<Job>("/api/jobs", { method: "POST", body: JSON.stringify(body) }),
 
   getJob: (id: string) => apiClient<JobWithProposals>(`/api/jobs/${id}`),
 
@@ -187,10 +198,15 @@ export const api = {
 
   // AI categorization
   categorizeTask: (description: string) =>
-    apiClient<{ category: string; budgetMin: number; budgetMax: number; deadline: string }>(
-      "/api/jobs/categorize",
-      { method: "POST", body: JSON.stringify({ description }) }
-    ),
+    apiClient<{
+      category: string;
+      budgetMin: number;
+      budgetMax: number;
+      deadline: string;
+    }>("/api/jobs/categorize", {
+      method: "POST",
+      body: JSON.stringify({ description }),
+    }),
 
   // Proposals
   submitProposal: (body: {
@@ -199,13 +215,18 @@ export const api = {
     price: number;
     currency?: string;
     estimatedDays: number;
-  }) => apiClient<Proposal>("/api/proposals", { method: "POST", body: JSON.stringify(body) }),
+  }) =>
+    apiClient<Proposal>("/api/proposals", {
+      method: "POST",
+      body: JSON.stringify(body),
+    }),
 
   acceptProposal: (id: string) =>
     apiClient<Contract>(`/api/proposals/${id}/accept`, { method: "POST" }),
 
   // Contracts
-  getContract: (id: string) => apiClient<ContractWithDetails>(`/api/contracts/${id}`),
+  getContract: (id: string) =>
+    apiClient<ContractWithDetails>(`/api/contracts/${id}`),
 
   getMyContracts: () => apiClient<Contract[]>("/api/contracts/my"),
 
@@ -214,9 +235,12 @@ export const api = {
 
   // Payments
   createPayment: (contractId: string) =>
-    apiClient<{ clientSecret: string }>(`/api/contracts/${contractId}/payment`, {
-      method: "POST",
-    }),
+    apiClient<{ clientSecret: string }>(
+      `/api/contracts/${contractId}/payment`,
+      {
+        method: "POST",
+      },
+    ),
 
   // Messages
   sendMessage: (contractId: string, content: string) =>
@@ -229,8 +253,15 @@ export const api = {
     apiClient<Message[]>(`/api/contracts/${contractId}/messages`),
 
   // Deliveries
-  submitDelivery: (body: { contractId: string; description: string; fileUrls: string[] }) =>
-    apiClient<Delivery>("/api/deliveries", { method: "POST", body: JSON.stringify(body) }),
+  submitDelivery: (body: {
+    contractId: string;
+    description: string;
+    fileUrls: string[];
+  }) =>
+    apiClient<Delivery>("/api/deliveries", {
+      method: "POST",
+      body: JSON.stringify(body),
+    }),
 
   approveDelivery: (id: string) =>
     apiClient<Delivery>(`/api/deliveries/${id}/approve`, { method: "POST" }),
@@ -247,10 +278,11 @@ export const api = {
     priceTo: number;
     currency?: string;
     webhookUrl: string;
-  }) => apiClient<AgentProfile & { apiKey: string }>("/api/agents/register", {
-    method: "POST",
-    body: JSON.stringify(body),
-  }),
+  }) =>
+    apiClient<AgentProfile & { apiKey: string }>("/api/agents/register", {
+      method: "POST",
+      body: JSON.stringify(body),
+    }),
 
   getAgents: (params?: { category?: string; search?: string }) => {
     const q = new URLSearchParams(params as Record<string, string>).toString();
@@ -261,7 +293,10 @@ export const api = {
 
   // User
   setRole: (role: UserRole) =>
-    apiClient<UserProfile>("/api/users/role", { method: "POST", body: JSON.stringify({ role }) }),
+    apiClient<UserProfile>("/api/users/role", {
+      method: "POST",
+      body: JSON.stringify({ role }),
+    }),
 
   getMe: () => apiClient<UserProfile>("/api/users/me"),
 
