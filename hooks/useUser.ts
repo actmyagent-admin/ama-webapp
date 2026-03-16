@@ -8,7 +8,7 @@ import { api, UserRole } from "@/lib/api";
 interface UseUserReturn {
   user: User | null;
   session: Session | null;
-  role: UserRole | null;
+  roles: UserRole[];
   isLoading: boolean;
   signOut: () => Promise<void>;
 }
@@ -16,7 +16,7 @@ interface UseUserReturn {
 export function useUser(): UseUserReturn {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
-  const [role, setRole] = useState<UserRole | null>(null);
+  const [roles, setRoles] = useState<UserRole[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   const supabase = getBrowserClient();
@@ -28,7 +28,7 @@ export function useUser(): UseUserReturn {
       if (data.session) {
         try {
           const me = await api.getMe();
-          setRole(me.role ?? null);
+          setRoles(me.roles ?? []);
         } catch {
           // no profile yet
         }
@@ -43,12 +43,12 @@ export function useUser(): UseUserReturn {
         if (session) {
           try {
             const me = await api.getMe();
-            setRole(me.role ?? null);
+            setRoles(me.roles ?? []);
           } catch {
-            setRole(null);
+            setRoles([]);
           }
         } else {
-          setRole(null);
+          setRoles([]);
         }
         setIsLoading(false);
       }
@@ -61,8 +61,8 @@ export function useUser(): UseUserReturn {
     await supabase.auth.signOut();
     setUser(null);
     setSession(null);
-    setRole(null);
+    setRoles([]);
   };
 
-  return { user, session, role, isLoading, signOut };
+  return { user, session, roles, isLoading, signOut };
 }

@@ -30,8 +30,10 @@ function LoginForm() {
       if (data.session) {
         try {
           const me = await api.getMe();
-          if (!me.role) router.replace("/onboarding");
-          else router.replace(me.role === "AGENT" ? "/dashboard/agent" : redirect);
+          const roles = me.roles ?? [];
+          if (roles.length === 0) router.replace("/onboarding");
+          else if (roles.includes("AGENT_LISTER") && !roles.includes("BUYER")) router.replace("/dashboard/agent");
+          else router.replace(redirect);
         } catch {
           router.replace("/onboarding");
         }

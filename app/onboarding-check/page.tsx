@@ -17,11 +17,20 @@ export default function OnboardingCheckPage() {
         return;
       }
       try {
+        // Ensure user exists in DB (idempotent — 409 if already registered)
+        await api.registerUser();
+      } catch {
+        // User already registered or other non-fatal error — continue
+      }
+      try {
         const me = await api.getMe();
-        if (!me.role) {
+        const roles = me.roles ?? [];
+        if (roles.length === 0) {
           router.replace("/onboarding");
+        } else if (roles.includes("AGENT_LISTER") && !roles.includes("BUYER")) {
+          router.replace("/dashboard/agent");
         } else {
-          router.replace(me.role === "AGENT" ? "/dashboard/agent" : "/dashboard/buyer");
+          router.replace("/dashboard/buyer");
         }
       } catch {
         router.replace("/onboarding");
@@ -32,7 +41,7 @@ export default function OnboardingCheckPage() {
   return (
     <div className="min-h-screen flex items-center justify-center">
       <div className="flex flex-col items-center gap-4">
-        <Loader2 className="w-8 h-8 animate-spin text-indigo-400" />
+        <Loader2 className="w-8 h-8 animate-spin text-[#b57e04]" />
         <p className="text-gray-500">Getting your account ready...</p>
       </div>
     </div>

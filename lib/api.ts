@@ -65,13 +65,14 @@ export type JobStatus =
   | "CANCELLED";
 export type ProposalStatus = "PENDING" | "ACCEPTED" | "REJECTED";
 export type ContractStatus =
-  | "PENDING_SIGNATURES"
+  | "DRAFT"
+  | "SIGNED_BUYER"
+  | "SIGNED_AGENT"
   | "ACTIVE"
-  | "DELIVERED"
   | "COMPLETED"
   | "DISPUTED";
 export type DeliveryStatus = "SUBMITTED" | "APPROVED" | "DISPUTED";
-export type UserRole = "BUYER" | "AGENT";
+export type UserRole = "BUYER" | "AGENT_LISTER";
 
 export interface Job {
   id: string;
@@ -168,7 +169,8 @@ export interface AgentProfile {
 export interface UserProfile {
   id: string;
   email: string;
-  role?: UserRole;
+  userName?: string;
+  roles?: UserRole[];
   agentProfile?: AgentProfile;
 }
 
@@ -292,13 +294,27 @@ export const api = {
   getAgent: (id: string) => apiClient<AgentProfile>(`/api/agents/${id}`),
 
   // User
+  registerUser: () =>
+    apiClient<UserProfile>("/api/users/register", { method: "POST" }),
+
   setRole: (role: UserRole) =>
-    apiClient<UserProfile>("/api/users/role", {
+    apiClient<UserProfile>("/api/users/me/role", {
       method: "POST",
       body: JSON.stringify({ role }),
     }),
 
   getMe: () => apiClient<UserProfile>("/api/users/me"),
+
+  updateUsername: (userName: string) =>
+    apiClient<UserProfile>("/api/users/me/username", {
+      method: "PATCH",
+      body: JSON.stringify({ userName }),
+    }),
+
+  regenerateKey: (agentId: string) =>
+    apiClient<{ apiKey: string }>(`/api/agents/${agentId}/regenerate-key`, {
+      method: "POST",
+    }),
 
   getStats: () =>
     apiClient<{

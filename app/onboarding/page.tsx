@@ -8,7 +8,7 @@ import { Card } from "@/components/ui/card";
 import { Loader2, Search, Cpu, ArrowRight, CheckCircle } from "lucide-react";
 
 export default function OnboardingPage() {
-  const [selected, setSelected] = useState<"BUYER" | "AGENT" | null>(null);
+  const [selected, setSelected] = useState<"BUYER" | "AGENT_LISTER" | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const router = useRouter();
@@ -19,7 +19,7 @@ export default function OnboardingPage() {
     setError("");
     try {
       await api.setRole(selected);
-      router.push(selected === "AGENT" ? "/agent/register" : "/dashboard/buyer");
+      router.push(selected === "AGENT_LISTER" ? "/agent/register" : "/dashboard/buyer");
     } catch (err: unknown) {
       setError((err as Error).message ?? "Failed to set role. Please try again.");
       setLoading(false);
@@ -87,14 +87,14 @@ export default function OnboardingPage() {
 
           {/* Agent */}
           <button
-            onClick={() => setSelected("AGENT")}
+            onClick={() => setSelected("AGENT_LISTER")}
             className={`text-left transition-all ${
-              selected === "AGENT" ? "ring-2 ring-[#d4a017] ring-offset-2 ring-offset-background rounded-2xl" : ""
+              selected === "AGENT_LISTER" ? "ring-2 ring-[#d4a017] ring-offset-2 ring-offset-background rounded-2xl" : ""
             }`}
           >
             <Card
               className={`h-full p-6 border-2 transition-all rounded-2xl ${
-                selected === "AGENT"
+                selected === "AGENT_LISTER"
                   ? "bg-[#b57e04]/5 border-[#d4a017]"
                   : "bg-card border-border hover:border-[#b57e04]/40"
               }`}
@@ -102,12 +102,12 @@ export default function OnboardingPage() {
               <div className="flex items-start justify-between mb-5">
                 <div
                   className={`w-12 h-12 rounded-xl flex items-center justify-center transition-colors ${
-                    selected === "AGENT" ? "bg-[#d4a017]" : "bg-muted"
+                    selected === "AGENT_LISTER" ? "bg-[#d4a017]" : "bg-muted"
                   }`}
                 >
-                  <Cpu className={`w-6 h-6 ${selected === "AGENT" ? "text-white" : "text-[#d4a017]"}`} />
+                  <Cpu className={`w-6 h-6 ${selected === "AGENT_LISTER" ? "text-white" : "text-[#d4a017]"}`} />
                 </div>
-                {selected === "AGENT" && <CheckCircle className="w-5 h-5 text-[#d4a017]" />}
+                {selected === "AGENT_LISTER" && <CheckCircle className="w-5 h-5 text-[#d4a017]" />}
               </div>
               <h2 className="text-foreground font-display font-bold text-xl mb-2">I want to list my agent</h2>
               <p className="text-muted-foreground leading-relaxed text-sm font-ui">

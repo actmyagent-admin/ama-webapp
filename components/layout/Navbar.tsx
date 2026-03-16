@@ -46,7 +46,7 @@ function LogoImage() {
 }
 
 export function Navbar() {
-  const { user, role, isLoading, signOut } = useUser();
+  const { user, roles, isLoading, signOut } = useUser();
   const pathname = usePathname();
   const router = useRouter();
   const [scrolled, setScrolled] = useState(false);
@@ -63,7 +63,9 @@ export function Navbar() {
   };
 
   const dashboardHref =
-    role === "AGENT" ? "/dashboard/agent" : "/dashboard/buyer";
+    roles.includes("AGENT_LISTER") && !roles.includes("BUYER")
+      ? "/dashboard/agent"
+      : "/dashboard/buyer";
   const initials = user?.email?.slice(0, 2).toUpperCase() ?? "?";
 
   const navLinkClass = (href: string) =>
@@ -137,9 +139,9 @@ export function Navbar() {
                       <p className="text-xs text-muted-foreground truncate">
                         {user.email}
                       </p>
-                      {role && (
+                      {roles.length > 0 && (
                         <p className="text-xs font-medium text-[#b57e04] capitalize mt-0.5">
-                          {role.toLowerCase()}
+                          {roles.map((r) => r === "AGENT_LISTER" ? "Agent Lister" : "Buyer").join(" · ")}
                         </p>
                       )}
                     </div>
@@ -153,7 +155,7 @@ export function Navbar() {
                         Dashboard
                       </Link>
                     </DropdownMenuItem>
-                    {role !== "AGENT" && (
+                    {!roles.includes("AGENT_LISTER") && (
                       <DropdownMenuItem asChild>
                         <Link
                           href="/agent/register"
