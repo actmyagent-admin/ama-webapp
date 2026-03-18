@@ -4,6 +4,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { useTheme } from "next-themes";
 import { useEffect, useState } from "react";
+import { ContactModal } from "@/components/contact/ContactModal";
 
 function FooterLogo() {
   const { resolvedTheme } = useTheme();
@@ -24,8 +25,11 @@ function FooterLogo() {
 }
 
 export function Footer() {
+  const [contactOpen, setContactOpen] = useState(false);
+
   return (
     <footer className="border-t border-border bg-background mt-auto">
+      <ContactModal open={contactOpen} onOpenChange={setContactOpen} />
       {/* Top gold accent line */}
       <div className="h-[2px] bg-gradient-to-r from-transparent via-[#b57e04]/50 to-transparent" />
 
@@ -109,6 +113,14 @@ export function Footer() {
                   </Link>
                 </li>
               ))}
+              <li>
+                <button
+                  onClick={() => setContactOpen(true)}
+                  className="text-muted-foreground hover:text-[#b57e04] text-sm font-ui transition-colors duration-200"
+                >
+                  Contact Us
+                </button>
+              </li>
             </ul>
           </div>
         </div>

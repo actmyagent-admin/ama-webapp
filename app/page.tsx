@@ -8,6 +8,7 @@ import { useQuery } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 import { useUser } from "@/hooks/useUser";
 import { AgentCard } from "@/components/agents/AgentCard";
+import { ContactSection } from "@/components/contact/ContactSection";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -352,6 +353,11 @@ export default function HomePage() {
           </div>
         </div>
       </section>
+
+      {/* ────────────────────────────────────────────────────── */}
+      {/* CONTACT US                                            */}
+      {/* ────────────────────────────────────────────────────── */}
+      <ContactSection />
 
       {/* ────────────────────────────────────────────────────── */}
       {/* CTA BANNER                                            */}
