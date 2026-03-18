@@ -38,6 +38,7 @@ type FieldErrors = {
   name?: string;
   email?: string;
   phone?: string;
+  subject?: string;
   message?: string;
 };
 
@@ -74,6 +75,9 @@ export function ContactFormContent({ onSuccess }: Props) {
     if (phone.trim() && phone.length > LIMITS.phone)
       errs.phone = `Phone must be ${LIMITS.phone} characters or fewer.`;
 
+    if (!resolvedSubject)
+      errs.subject = "Please select or enter a subject.";
+
     if (!message.trim())
       errs.message = "Message is required.";
     else if (message.length > LIMITS.message)
@@ -98,7 +102,7 @@ export function ContactFormContent({ onSuccess }: Props) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     // Mark all fields touched so errors show
-    setTouched({ name: true, email: true, phone: true, message: true });
+    setTouched({ name: true, email: true, phone: true, subject: true, message: true });
     if (hasErrors || !resolvedSubject) return;
 
     setStatus("loading");
@@ -161,14 +165,9 @@ export function ContactFormContent({ onSuccess }: Props) {
       <div className="grid sm:grid-cols-2 gap-4">
         {/* Name */}
         <div className="space-y-1.5">
-          <div className="flex items-center justify-between">
-            <Label htmlFor="contact-name" className="font-ui text-sm font-medium">
-              Name <span className="text-[#b57e04]">*</span>
-            </Label>
-            <span className={`text-xs font-ui tabular-nums ${name.length > LIMITS.name ? "text-destructive" : "text-muted-foreground"}`}>
-              {name.length}/{LIMITS.name}
-            </span>
-          </div>
+          <Label htmlFor="contact-name" className="font-ui text-sm font-medium">
+            Name <span className="text-[#b57e04]">*</span>
+          </Label>
           <Input
             id="contact-name"
             value={name}
@@ -187,14 +186,9 @@ export function ContactFormContent({ onSuccess }: Props) {
 
         {/* Email */}
         <div className="space-y-1.5">
-          <div className="flex items-center justify-between">
-            <Label htmlFor="contact-email" className="font-ui text-sm font-medium">
-              Email <span className="text-[#b57e04]">*</span>
-            </Label>
-            <span className={`text-xs font-ui tabular-nums ${email.length > LIMITS.email ? "text-destructive" : "text-muted-foreground"}`}>
-              {email.length}/{LIMITS.email}
-            </span>
-          </div>
+          <Label htmlFor="contact-email" className="font-ui text-sm font-medium">
+            Email <span className="text-[#b57e04]">*</span>
+          </Label>
           <Input
             id="contact-email"
             type="email"
@@ -215,15 +209,10 @@ export function ContactFormContent({ onSuccess }: Props) {
 
       {/* Phone */}
       <div className="space-y-1.5">
-        <div className="flex items-center justify-between">
-          <Label htmlFor="contact-phone" className="font-ui text-sm font-medium">
-            Phone{" "}
-            <span className="text-muted-foreground font-normal text-xs">(optional)</span>
-          </Label>
-          <span className={`text-xs font-ui tabular-nums ${phone.length > LIMITS.phone ? "text-destructive" : "text-muted-foreground"}`}>
-            {phone.length}/{LIMITS.phone}
-          </span>
-        </div>
+        <Label htmlFor="contact-phone" className="font-ui text-sm font-medium">
+          Phone{" "}
+          <span className="text-muted-foreground font-normal text-xs">(optional)</span>
+        </Label>
         <Input
           id="contact-phone"
           type="tel"
@@ -251,9 +240,12 @@ export function ContactFormContent({ onSuccess }: Props) {
             <Input
               value={customSubject}
               onChange={(e) => setCustomSubject(e.target.value)}
+              onBlur={() => touch("subject")}
               placeholder="Describe your subject…"
               autoFocus
-              className="font-ui bg-background border-border focus:border-[#b57e04] focus:ring-[#b57e04]/20 flex-1"
+              className={`font-ui bg-background border-border focus:border-[#b57e04] focus:ring-[#b57e04]/20 flex-1 ${
+                touched.subject && errors.subject ? "border-destructive focus:border-destructive focus:ring-destructive/20" : ""
+              }`}
             />
             <Button
               type="button"
@@ -266,8 +258,15 @@ export function ContactFormContent({ onSuccess }: Props) {
             </Button>
           </div>
         ) : (
-          <Select value={subject} onValueChange={setSubject}>
-            <SelectTrigger className="font-ui bg-background border-border focus:border-[#b57e04] focus:ring-[#b57e04]/20 data-[state=open]:border-[#b57e04]">
+          <Select
+            value={subject}
+            onValueChange={(val) => { setSubject(val); touch("subject"); }}
+          >
+            <SelectTrigger
+              className={`font-ui bg-background border-border focus:border-[#b57e04] focus:ring-[#b57e04]/20 data-[state=open]:border-[#b57e04] ${
+                touched.subject && errors.subject ? "border-destructive focus:border-destructive" : ""
+              }`}
+            >
               <SelectValue placeholder="Select a subject…" />
             </SelectTrigger>
             <SelectContent>
@@ -279,18 +278,18 @@ export function ContactFormContent({ onSuccess }: Props) {
             </SelectContent>
           </Select>
         )}
+        {touched.subject && errors.subject && (
+          <p className="text-destructive text-xs font-ui flex items-center gap-1">
+            <AlertCircle className="w-3 h-3 shrink-0" />{errors.subject}
+          </p>
+        )}
       </div>
 
       {/* Message */}
       <div className="space-y-1.5">
-        <div className="flex items-center justify-between">
-          <Label htmlFor="contact-message" className="font-ui text-sm font-medium">
-            Message <span className="text-[#b57e04]">*</span>
-          </Label>
-          <span className={`text-xs font-ui tabular-nums ${message.length > LIMITS.message ? "text-destructive" : "text-muted-foreground"}`}>
-            {message.length}/{LIMITS.message}
-          </span>
-        </div>
+        <Label htmlFor="contact-message" className="font-ui text-sm font-medium">
+          Message <span className="text-[#b57e04]">*</span>
+        </Label>
         <Textarea
           id="contact-message"
           value={message}
