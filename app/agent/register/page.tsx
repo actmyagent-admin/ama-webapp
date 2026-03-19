@@ -35,6 +35,8 @@ export default function AgentRegisterPage() {
   const [apiKey, setApiKey] = useState("");
   const [copied, setCopied] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [descriptionTouched, setDescriptionTouched] = useState(false);
+  const [webhookTouched, setWebhookTouched] = useState(false);
   const { toast } = useToast();
   const router = useRouter();
 
@@ -50,7 +52,7 @@ export default function AgentRegisterPage() {
     setSubmitting(true);
     try {
       const result = await api.registerAgent({
-        name: form.name, description: form.description, categories: form.categories,
+        name: form.name, description: form.description, categorySlugs: form.categories,
         priceFrom: Number(form.priceFrom), priceTo: Number(form.priceTo),
         currency: form.currency, webhookUrl: form.webhookUrl,
       });
@@ -71,7 +73,8 @@ export default function AgentRegisterPage() {
 
   const canStep2 = form.name.length >= 3 && form.description.length >= 20 && form.categories.length > 0;
   const canStep3 = form.priceFrom && form.priceTo && Number(form.priceTo) >= Number(form.priceFrom);
-  const canStep4 = form.webhookUrl.startsWith("https://") || form.webhookUrl.startsWith("http://");
+  const isValidWebhookUrl = (url: string) => { try { const p = new URL(url); return (p.protocol === "https:" || p.protocol === "http:") && p.hostname.length > 0; } catch { return false; } };
+  const canStep4 = isValidWebhookUrl(form.webhookUrl);
   const STEPS = ["Details", "Pricing", "Webhook", "Review", "Done"];
 
   return (
@@ -126,9 +129,15 @@ export default function AgentRegisterPage() {
             <div>
               <Label className="text-foreground text-sm font-medium mb-2 block font-ui">Description *</Label>
               <Textarea placeholder="Describe what your agent does..."
-                value={form.description} onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
-                className="resize-none min-h-[120px] focus-visible:ring-[#b57e04] font-ui" />
-              <p className="text-muted-foreground text-xs mt-1 font-ui">{form.description.length} / 500 chars</p>
+                value={form.description}
+                onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
+                onBlur={() => setDescriptionTouched(true)}
+                className={`resize-none min-h-[120px] focus-visible:ring-[#b57e04] font-ui ${descriptionTouched && form.description.length < 20 ? "border-destructive" : ""}`} />
+              {descriptionTouched && form.description.length < 20 ? (
+                <p className="text-destructive text-xs mt-1 font-ui">Minimum 20 characters required ({form.description.length}/20)</p>
+              ) : (
+                <p className="text-muted-foreground text-xs mt-1 font-ui">{form.description.length} / 500 chars</p>
+              )}
             </div>
             <div>
               <Label className="text-foreground text-sm font-medium mb-3 block font-ui">
@@ -146,7 +155,7 @@ export default function AgentRegisterPage() {
                 })}
               </div>
             </div>
-            <Button onClick={() => setStep(2)} disabled={!canStep2} className={`w-full gap-2 ${GOLD_BTN}`}>
+            <Button onClick={() => { setDescriptionTouched(true); if (canStep2) setStep(2); }} className={`w-full gap-2 ${GOLD_BTN}`}>
               Next: Pricing <ArrowRight className="w-4 h-4" />
             </Button>
           </CardContent>
@@ -197,11 +206,17 @@ export default function AgentRegisterPage() {
             <div>
               <Label className="text-foreground text-sm font-medium mb-2 block font-ui">Webhook URL *</Label>
               <Input type="url" placeholder="https://my-agent.example.com/webhook"
-                value={form.webhookUrl} onChange={(e) => setForm((f) => ({ ...f, webhookUrl: e.target.value }))}
-                className="font-mono focus-visible:ring-[#b57e04]" />
-              <p className="text-muted-foreground text-xs mt-1.5 font-ui">Must be a publicly accessible HTTPS URL</p>
+                value={form.webhookUrl}
+                onChange={(e) => setForm((f) => ({ ...f, webhookUrl: e.target.value }))}
+                onBlur={() => setWebhookTouched(true)}
+                className={`font-mono focus-visible:ring-[#b57e04] ${webhookTouched && !canStep4 ? "border-destructive" : ""}`} />
+              {webhookTouched && !canStep4 ? (
+                <p className="text-destructive text-xs mt-1.5 font-ui">Enter a valid URL (e.g. https://my-agent.example.com/webhook)</p>
+              ) : (
+                <p className="text-muted-foreground text-xs mt-1.5 font-ui">Must be a publicly accessible HTTPS URL</p>
+              )}
             </div>
-            <Button onClick={() => setStep(4)} disabled={!canStep4} className={`w-full gap-2 ${GOLD_BTN}`}>
+            <Button onClick={() => { setWebhookTouched(true); if (canStep4) setStep(4); }} className={`w-full gap-2 ${GOLD_BTN}`}>
               Next: Review <ArrowRight className="w-4 h-4" />
             </Button>
           </CardContent>

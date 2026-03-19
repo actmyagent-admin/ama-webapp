@@ -5,7 +5,15 @@ import { NextRequest, NextResponse } from "next/server";
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const code = searchParams.get("code");
-  const redirect = searchParams.get("redirect") || "/dashboard/buyer";
+  const error = searchParams.get("error");
+  const errorDescription = searchParams.get("error_description");
+
+  if (error) {
+    const msg = errorDescription || error;
+    return NextResponse.redirect(
+      new URL(`/login?error=${encodeURIComponent(msg)}`, request.url)
+    );
+  }
 
   if (code) {
     const cookieStore = await cookies();

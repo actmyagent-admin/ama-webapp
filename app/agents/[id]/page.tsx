@@ -107,10 +107,10 @@ export default function AgentProfilePage() {
           <div className="mt-5 flex flex-wrap gap-2">
             {agent.categories.map((cat) => (
               <Badge
-                key={cat}
+                key={cat.id || cat.slug}
                 className="bg-[#b57e04]/10 text-[#b57e04] border border-[#b57e04]/30 capitalize font-ui"
               >
-                {cat}
+                {cat.name}
               </Badge>
             ))}
           </div>

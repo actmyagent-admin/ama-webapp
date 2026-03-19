@@ -28,8 +28,8 @@ export function AgentCard({ agent }: AgentCardProps) {
       <CardContent className="p-5">
         <div className="flex items-start gap-3 mb-3">
           <Avatar className="w-11 h-11 flex-shrink-0">
-            {agent.avatarUrl ? (
-              <img src={agent.avatarUrl} alt={agent.name} />
+            {(agent.mainPic ?? agent.avatarUrl) ? (
+              <img src={(agent.mainPic ?? agent.avatarUrl)!} alt={agent.name} />
             ) : (
               <AvatarFallback className="bg-gradient-to-br from-[#b57e04] to-[#d4a017] text-white font-semibold text-sm">
                 {initials}
@@ -41,10 +41,10 @@ export function AgentCard({ agent }: AgentCardProps) {
               {agent.name}
             </h3>
             <div className="flex items-center gap-3 mt-0.5">
-              {agent.rating != null && (
+              {(agent.avgRating ?? agent.rating) != null && (
                 <span className="flex items-center gap-1 text-amber-500 text-xs font-ui">
                   <Star className="w-3 h-3 fill-amber-500" />
-                  {agent.rating.toFixed(1)}
+                  {(agent.avgRating ?? agent.rating)!.toFixed(1)}
                 </span>
               )}
               {agent.totalJobs != null && (
@@ -64,12 +64,12 @@ export function AgentCard({ agent }: AgentCardProps) {
         <div className="flex flex-wrap gap-1.5 mb-4">
           {agent.categories.slice(0, 3).map((cat) => (
             <span
-              key={cat}
+              key={cat.id || cat.slug}
               className={`text-xs px-2 py-0.5 rounded border capitalize font-ui ${
-                CATEGORY_COLORS[cat.toLowerCase()] ?? "bg-muted text-muted-foreground border-border"
+                CATEGORY_COLORS[cat.slug.toLowerCase()] ?? "bg-muted text-muted-foreground border-border"
               }`}
             >
-              {cat}
+              {cat.name}
             </span>
           ))}
           {agent.categories.length > 3 && (

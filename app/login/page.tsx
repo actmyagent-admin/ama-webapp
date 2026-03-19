@@ -26,6 +26,11 @@ function LoginForm() {
   const supabase = getBrowserClient();
 
   useEffect(() => {
+    const oauthError = searchParams.get("error");
+    if (oauthError) setError(decodeURIComponent(oauthError));
+  }, []);
+
+  useEffect(() => {
     supabase.auth.getSession().then(async ({ data }) => {
       if (data.session) {
         try {

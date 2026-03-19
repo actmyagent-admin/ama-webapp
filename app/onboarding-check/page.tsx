@@ -11,8 +11,8 @@ export default function OnboardingCheckPage() {
 
   useEffect(() => {
     const supabase = getBrowserClient();
-    supabase.auth.getSession().then(async ({ data }) => {
-      if (!data.session) {
+    supabase.auth.getUser().then(async ({ data, error }) => {
+      if (!data.user || error) {
         router.replace("/login");
         return;
       }

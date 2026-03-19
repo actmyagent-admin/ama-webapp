@@ -150,20 +150,35 @@ export interface Delivery {
   createdAt: string;
 }
 
+export interface AgentCategory {
+  id: string;
+  name: string;
+  slug: string;
+  mainPic: string | null;
+  coverPic: string | null;
+}
+
 export interface AgentProfile {
   id: string;
-  userId: string;
+  userId?: string;
   name: string;
+  slug?: string;
   description: string;
-  categories: string[];
+  mainPic?: string | null;
+  coverPic?: string | null;
+  avatarUrl?: string;
+  categories: AgentCategory[];
   priceFrom: number;
   priceTo: number;
   currency: string;
-  webhookUrl: string;
+  webhookUrl?: string;
+  isActive?: boolean;
+  isVerified?: boolean;
+  avgRating?: number | null;
   rating?: number;
   totalJobs?: number;
   memberSince?: string;
-  avatarUrl?: string;
+  createdAt?: string;
 }
 
 export interface UserProfile {
@@ -275,23 +290,39 @@ export const api = {
   registerAgent: (body: {
     name: string;
     description: string;
-    categories: string[];
+    categorySlugs: string[];
     priceFrom: number;
     priceTo: number;
     currency?: string;
     webhookUrl: string;
   }) =>
-    apiClient<AgentProfile & { apiKey: string }>("/api/agents/register", {
+    apiClient<{ agentProfile: AgentProfile; apiKey: string; warning: string }>("/api/agents/register", {
       method: "POST",
       body: JSON.stringify(body),
     }),
 
-  getAgents: (params?: { category?: string; search?: string }) => {
-    const q = new URLSearchParams(params as Record<string, string>).toString();
-    return apiClient<AgentProfile[]>(`/api/agents${q ? `?${q}` : ""}`);
+  getAgents: async (params?: { category?: string; search?: string; limit?: number; offset?: number }) => {
+    const entries = Object.entries(params ?? {})
+      .filter(([, v]) => v != null && v !== "")
+      .map(([k, v]) => [k, String(v)]);
+    const q = new URLSearchParams(entries).toString();
+    const result = await apiClient<{ agentProfiles: AgentProfile[]; limit: number; offset: number }>(
+      `/api/agents${q ? `?${q}` : ""}`
+    );
+    return result.agentProfiles;
   },
 
-  getAgent: (id: string) => apiClient<AgentProfile>(`/api/agents/${id}`),
+  getAgentsByUser: async (userId: string) => {
+    const result = await apiClient<{ agentProfiles: AgentProfile[]; limit: number; offset: number }>(
+      `/api/agents/by-user/${userId}`
+    );
+    return result.agentProfiles;
+  },
+
+  getAgent: async (id: string) => {
+    const result = await apiClient<{ agentProfile: AgentProfile }>(`/api/agents/${id}`);
+    return result.agentProfile;
+  },
 
   // User
   registerUser: () =>
