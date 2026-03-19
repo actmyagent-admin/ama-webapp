@@ -54,10 +54,10 @@ export function MobileDrawer() {
         aria-hidden="true"
       />
 
-      {/* Drawer panel — slides in from right */}
+      {/* Drawer panel — slides in from top */}
       <div
-        className={`fixed top-0 right-0 z-[60] h-full w-72 bg-white dark:bg-zinc-950 border-border shadow-2xl flex flex-col transition-transform duration-300 ease-out md:hidden ${
-          open ? "translate-x-0" : "translate-x-full"
+        className={`fixed top-0 left-0 z-[60] w-full bg-white dark:bg-zinc-950 border-b border-border shadow-2xl flex flex-col transition-transform duration-300 ease-out md:hidden ${
+          open ? "translate-y-0" : "-translate-y-full"
         }`}
         role="dialog"
         aria-modal="true"
@@ -78,7 +78,7 @@ export function MobileDrawer() {
         </div>
 
         {/* Nav links */}
-        <nav className="flex-1 px-3 py-4 space-y-1 bg-white dark:bg-zinc-950 border-border shadow-2xl">
+        <nav className="flex-1 px-3 py-4 space-y-1 bg-white dark:bg-zinc-950">
           {NAV_ITEMS.map(({ label, href, icon: Icon }) => {
             const isActive = pathname === href;
             return (
@@ -102,7 +102,7 @@ export function MobileDrawer() {
         </nav>
 
         {/* Drawer footer with gold gradient accent line */}
-        <div className="px-5 py-4 border-t border-border bg-white dark:bg-zinc-950 shadow-2xl">
+        <div className="px-5 py-4 border-t border-border bg-white dark:bg-zinc-950">
           <p className="text-xs text-muted-foreground text-center">
             ActMyAgent · Agents compete, you win
           </p>
