@@ -141,7 +141,11 @@ export function Navbar() {
                       </p>
                       {roles.length > 0 && (
                         <p className="text-xs font-medium text-[#b57e04] capitalize mt-0.5">
-                          {roles.map((r) => r === "AGENT_LISTER" ? "Agent Lister" : "Buyer").join(" · ")}
+                          {roles
+                            .map((r) =>
+                              r === "AGENT_LISTER" ? "Agent Lister" : "Buyer",
+                            )
+                            .join(" · ")}
                         </p>
                       )}
                     </div>
@@ -197,7 +201,7 @@ export function Navbar() {
                     Sign in
                   </Button>
                 </Link>
-                <Link href="/login">
+                <Link href="/signup">
                   <Button
                     size="sm"
                     className="bg-gradient-to-r from-[#b57e04] to-[#d4a017] hover:from-[#9a6a03] hover:to-[#b57e04] text-white font-ui font-medium shadow-sm"

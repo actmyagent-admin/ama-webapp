@@ -16,12 +16,19 @@ export default function OnboardingCheckPage() {
         router.replace("/login");
         return;
       }
+      let isNewUser = false;
       try {
-        // Ensure user exists in DB (idempotent — 409 if already registered)
-        await api.registerUser();
+        const result = await api.registerUser();
+        isNewUser = result.isNew;
       } catch {
-        // User already registered or other non-fatal error — continue
+        // 409 = already registered — continue to role check
       }
+
+      if (isNewUser) {
+        router.replace("/onboarding");
+        return;
+      }
+
       try {
         const me = await api.getMe();
         const roles = me.roles ?? [];

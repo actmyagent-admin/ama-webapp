@@ -19,6 +19,16 @@ async function getToken(): Promise<string | null> {
   return data.session?.access_token ?? null;
 }
 
+async function apiRaw(path: string, options?: RequestInit): Promise<Response> {
+  const token = await getToken();
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+    ...(options?.headers as Record<string, string>),
+  };
+  if (token) headers["Authorization"] = `Bearer ${token}`;
+  return fetch(`${API_URL}${path}`, { ...options, headers });
+}
+
 async function apiClient<T>(
   path: string,
   options?: RequestInit & { token?: string },
@@ -325,8 +335,16 @@ export const api = {
   },
 
   // User
-  registerUser: () =>
-    apiClient<UserProfile>("/api/users/register", { method: "POST" }),
+  registerUser: async () => {
+    const res = await apiRaw("/api/users/register", { method: "POST" });
+    if (!res.ok) {
+      let data: unknown;
+      try { data = await res.json(); } catch { data = null; }
+      throw new ApiError(res.status, (data as { message?: string })?.message ?? res.statusText, data);
+    }
+    const profile = res.status === 204 ? undefined : await res.json() as UserProfile;
+    return { isNew: res.status === 201, profile };
+  },
 
   setRole: (role: UserRole) =>
     apiClient<UserProfile>("/api/users/me/role", {

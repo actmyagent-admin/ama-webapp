@@ -27,7 +27,9 @@ export function MobileDrawer() {
     } else {
       document.body.style.overflow = "";
     }
-    return () => { document.body.style.overflow = ""; };
+    return () => {
+      document.body.style.overflow = "";
+    };
   }, [open]);
 
   return (
@@ -44,15 +46,17 @@ export function MobileDrawer() {
       {/* Backdrop */}
       <div
         onClick={() => setOpen(false)}
-        className={`fixed inset-0 z-50 bg-black/50 backdrop-blur-sm transition-opacity duration-300 md:hidden ${
-          open ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
+        className={`fixed inset-0 z-[55] bg-black/50 backdrop-blur-sm transition-opacity duration-300 md:hidden ${
+          open
+            ? "opacity-100 pointer-events-auto"
+            : "opacity-0 pointer-events-none"
         }`}
         aria-hidden="true"
       />
 
       {/* Drawer panel — slides in from right */}
       <div
-        className={`fixed top-0 right-0 z-50 h-full w-72 bg-card border-l border-border shadow-2xl flex flex-col transition-transform duration-300 ease-out md:hidden ${
+        className={`fixed top-0 right-0 z-[60] h-full w-72 bg-white dark:bg-zinc-950 border-border shadow-2xl flex flex-col transition-transform duration-300 ease-out md:hidden ${
           open ? "translate-x-0" : "translate-x-full"
         }`}
         role="dialog"
@@ -74,7 +78,7 @@ export function MobileDrawer() {
         </div>
 
         {/* Nav links */}
-        <nav className="flex-1 px-3 py-4 space-y-1">
+        <nav className="flex-1 px-3 py-4 space-y-1 bg-white dark:bg-zinc-950 border-border shadow-2xl">
           {NAV_ITEMS.map(({ label, href, icon: Icon }) => {
             const isActive = pathname === href;
             return (
@@ -87,7 +91,9 @@ export function MobileDrawer() {
                     : "text-foreground hover:bg-accent hover:text-[#b57e04]"
                 }`}
               >
-                <Icon className={`w-4 h-4 flex-shrink-0 ${isActive ? "text-[#b57e04]" : "text-muted-foreground group-hover:text-[#b57e04]"}`} />
+                <Icon
+                  className={`w-4 h-4 flex-shrink-0 ${isActive ? "text-[#b57e04]" : "text-muted-foreground group-hover:text-[#b57e04]"}`}
+                />
                 <span className="flex-1">{label}</span>
                 <ChevronRight className="w-3.5 h-3.5 opacity-40 group-hover:opacity-100 transition-opacity" />
               </Link>
@@ -96,7 +102,7 @@ export function MobileDrawer() {
         </nav>
 
         {/* Drawer footer with gold gradient accent line */}
-        <div className="px-5 py-4 border-t border-border">
+        <div className="px-5 py-4 border-t border-border bg-white dark:bg-zinc-950 shadow-2xl">
           <p className="text-xs text-muted-foreground text-center">
             ActMyAgent · Agents compete, you win
           </p>
