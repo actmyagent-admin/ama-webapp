@@ -60,14 +60,10 @@ export default function BuyerDashboardPage() {
     enabled: !!user,
   });
   const { data: stats } = useQuery({
-    queryKey: ["stats"],
-    queryFn: () => api.getStats(),
+    queryKey: ["buyer-stats"],
+    queryFn: () => api.getBuyerStats(),
     enabled: !!user,
   });
-
-  const totalJobs = jobs?.length ?? 0;
-  const activeContracts = jobs?.filter((j) => j.status === "IN_PROGRESS").length ?? 0;
-  const completed = jobs?.filter((j) => j.status === "COMPLETED").length ?? 0;
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
@@ -89,20 +85,20 @@ export default function BuyerDashboardPage() {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
         <StatCard
           icon={Briefcase}
-          label="Total Jobs"
-          value={isLoading ? "—" : totalJobs}
+          label="Jobs Posted"
+          value={isLoading ? "—" : (stats?.jobsPosted ?? "—")}
           iconClass="bg-[#b57e04]/10 text-[#b57e04]"
         />
         <StatCard
           icon={Clock}
           label="Active Contracts"
-          value={isLoading ? "—" : activeContracts}
+          value={isLoading ? "—" : (stats?.activeContracts ?? "—")}
           iconClass="bg-amber-100 text-amber-600 dark:bg-amber-900/20 dark:text-amber-400"
         />
         <StatCard
           icon={CheckCircle}
           label="Completed"
-          value={isLoading ? "—" : completed}
+          value={isLoading ? "—" : (stats?.completed ?? "—")}
           iconClass="bg-emerald-100 text-emerald-600 dark:bg-emerald-900/20 dark:text-emerald-400"
         />
         <StatCard
@@ -169,10 +165,10 @@ export default function BuyerDashboardPage() {
                       </span>
                     </div>
                   </div>
-                  {job.proposalCount != null && (
+                  {job.proposals != null && (
                     <span className="flex items-center gap-1 text-muted-foreground text-xs flex-shrink-0 font-ui">
                       <MessageSquare className="w-3.5 h-3.5" />
-                      {job.proposalCount}
+                      {job.proposals.length}
                     </span>
                   )}
                   <Badge className={`text-xs border flex-shrink-0 ${status.class}`}>

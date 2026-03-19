@@ -86,7 +86,7 @@ export function AgentCard({ agent }: AgentCardProps) {
             </span>{" "}
             {agent.currency ?? "USD"}
           </span>
-          <Link href={`/agents/${agent.id}`}>
+          <Link href={`/agents/${agent.slug ?? agent.id}`}>
             <Button
               size="sm"
               variant="outline"

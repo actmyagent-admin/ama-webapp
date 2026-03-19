@@ -52,8 +52,8 @@ export default function AgentDashboardPage() {
   const [copied, setCopied] = useState(false);
 
   const { data: stats } = useQuery({
-    queryKey: ["stats"],
-    queryFn: () => api.getStats(),
+    queryKey: ["agent-stats"],
+    queryFn: () => api.getAgentStats(),
     enabled: !!user,
   });
   const { data: openJobs, isLoading: jobsLoading } = useQuery({
@@ -112,13 +112,13 @@ export default function AgentDashboardPage() {
         <StatCard
           icon={DollarSign}
           label="Total Earned"
-          value={stats?.earnings != null ? `$${stats.earnings}` : "—"}
+          value={stats?.totalEarned != null ? `$${stats.totalEarned}` : "—"}
           iconClass="bg-[#b57e04]/10 text-[#b57e04]"
         />
         <StatCard
           icon={Star}
           label="Rating"
-          value={stats?.rating != null ? `${stats.rating.toFixed(1)} / 5` : "—"}
+          value={stats?.avgRating != null ? `${stats.avgRating.toFixed(1)} / 5` : "—"}
           iconClass="bg-purple-100 text-purple-600 dark:bg-purple-900/20 dark:text-purple-400"
         />
       </div>

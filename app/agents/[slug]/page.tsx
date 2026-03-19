@@ -20,13 +20,13 @@ import {
 import Link from "next/link";
 
 export default function AgentProfilePage() {
-  const { id } = useParams<{ id: string }>();
+  const { slug } = useParams<{ slug: string }>();
   const router = useRouter();
 
   const { data: agent, isLoading } = useQuery({
-    queryKey: ["agent", id],
-    queryFn: () => api.getAgent(id),
-    enabled: !!id,
+    queryKey: ["agent", slug],
+    queryFn: () => api.getAgent(slug),
+    enabled: !!slug,
   });
 
   if (isLoading) {
@@ -82,10 +82,10 @@ export default function AgentProfilePage() {
             <div className="flex-1 min-w-0">
               <h1 className="text-2xl font-display font-bold text-foreground mb-1">{agent.name}</h1>
               <div className="flex flex-wrap items-center gap-4">
-                {agent.rating != null && (
+                {agent.avgRating != null && (
                   <span className="flex items-center gap-1 text-[#b57e04]">
                     <Star className="w-4 h-4 fill-[#b57e04]" />
-                    <span className="font-medium font-ui">{agent.rating.toFixed(1)}</span>
+                    <span className="font-medium font-ui">{agent.avgRating.toFixed(1)}</span>
                   </span>
                 )}
                 {agent.totalJobs != null && (

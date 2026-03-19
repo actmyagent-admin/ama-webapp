@@ -3,7 +3,7 @@
 import { Suspense } from "react";
 import { useState, useEffect, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { api } from "@/lib/api";
+import { api, JobAnalysis } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -15,25 +15,28 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
   ArrowLeft, ArrowRight, Loader2, Sparkles, CheckCircle,
-  DollarSign, Calendar, Tag,
+  DollarSign, Calendar, Tag, Bot, Clock, ListChecks,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 const CATEGORIES = ["development","design","copywriting","video","data","marketing","legal","travel"];
-
 const GOLD_BTN = "bg-gradient-to-r from-[#b57e04] to-[#d4a017] hover:from-[#9a6a03] hover:to-[#b57e04] text-white font-ui font-medium shadow-sm";
 
 interface FormState {
-  description: string; category: string;
-  budgetMin: string; budgetMax: string; deadline: string;
+  title: string;
+  description: string;
+  category: string;
+  budget: string;
+  deadline: string;
 }
 
 function PostTaskContent() {
   const [step, setStep] = useState(1);
-  const [form, setForm] = useState<FormState>({ description: "", category: "", budgetMin: "", budgetMax: "", deadline: "" });
+  const [form, setForm] = useState<FormState>({ title: "", description: "", category: "", budget: "", deadline: "" });
   const [aiLoading, setAiLoading] = useState(false);
-  const [aiResult, setAiResult] = useState<{ category?: string; budgetMin?: number; budgetMax?: number; deadline?: string } | null>(null);
+  const [aiResult, setAiResult] = useState<{ category?: string; estimatedBudget?: number; deadline?: string } | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [successData, setSuccessData] = useState<{ jobId: string; broadcastCount: number; analysis: JobAnalysis } | null>(null);
   const { toast } = useToast();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -53,13 +56,16 @@ function PostTaskContent() {
       setAiLoading(true);
       try {
         const result = await api.categorizeTask(text);
-        setAiResult(result);
+        setAiResult({
+          category: result.category,
+          estimatedBudget: result.budgetMin,
+          deadline: result.deadline,
+        });
         setForm((f) => ({
           ...f,
-          category:  f.category  || result.category || f.category,
-          budgetMin: f.budgetMin || String(result.budgetMin || ""),
-          budgetMax: f.budgetMax || String(result.budgetMax || ""),
-          deadline:  f.deadline  || result.deadline?.slice(0, 10) || "",
+          category: f.category || result.category || "",
+          budget:   f.budget   || String(result.budgetMin || ""),
+          deadline: f.deadline || result.deadline?.slice(0, 10) || "",
         }));
       } catch { /* ignore */ } finally { setAiLoading(false); }
     }, 800);
@@ -74,21 +80,26 @@ function PostTaskContent() {
   const handleSubmit = async () => {
     setSubmitting(true);
     try {
-      const job = await api.createJob({
-        title: form.description.slice(0, 100), description: form.description,
-        category: form.category, budgetMin: Number(form.budgetMin) || 0,
-        budgetMax: Number(form.budgetMax) || 0, deadline: new Date(form.deadline).toISOString(),
+      const res = await api.createJob({
+        title: form.title,
+        description: form.description,
+        ...(form.category && { category: form.category }),
+        ...(form.budget   && { budget: Number(form.budget) }),
+        ...(form.deadline && { deadline: new Date(form.deadline).toISOString() }),
       });
-      toast({ title: "Task posted!", description: "Your task has been broadcast to agents." });
-      router.push(`/jobs/${job.id}`);
+      setSuccessData({
+        jobId: res.job.id,
+        broadcastCount: res.broadcastCount,
+        analysis: res.analysis,
+      });
+      setStep(4);
     } catch (err: unknown) {
       toast({ title: "Error", description: (err as Error).message ?? "Failed to post task", variant: "destructive" });
       setSubmitting(false);
     }
   };
 
-  const canStep2 = form.description.length >= 20;
-  const canStep3 = form.category && form.budgetMin && form.budgetMax && form.deadline;
+  const canStep2 = form.title.trim().length > 0 && form.description.length >= 20;
 
   const StepDot = ({ s }: { s: number }) => (
     <div className="flex items-center gap-2">
@@ -115,24 +126,37 @@ function PostTaskContent() {
         <p className="text-muted-foreground font-ui text-sm">Free to post · Agents compete for your job</p>
       </div>
 
-      <div className="flex items-center gap-2 mb-8">
-        {[1, 2, 3].map((s) => <StepDot key={s} s={s} />)}
-      </div>
+      {step < 4 && (
+        <div className="flex items-center gap-2 mb-8">
+          {[1, 2, 3].map((s) => <StepDot key={s} s={s} />)}
+        </div>
+      )}
 
-      {/* STEP 1 */}
+      {/* STEP 1 — Describe */}
       {step === 1 && (
         <Card className="gradient-border-card bg-card">
           <CardContent className="p-6 space-y-5">
             <div>
-              <Label className="text-foreground text-sm font-medium mb-2 block font-ui">What do you need done?</Label>
-              <Textarea autoFocus value={form.description} onChange={handleDescriptionChange}
-                placeholder="Describe your task in detail. e.g. 'Edit my 5-minute product demo — add captions, color grade, cut to under 3 minutes'"
-                className="min-h-[160px] resize-none focus-visible:ring-[#b57e04] font-ui" />
+              <Label className="text-foreground text-sm font-medium mb-2 block font-ui">Task title</Label>
+              <Input
+                autoFocus
+                value={form.title}
+                onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
+                placeholder="e.g. Edit my 10-min YouTube video"
+                className="focus-visible:ring-[#b57e04] font-ui"
+              />
+            </div>
+
+            <div>
+              <Label className="text-foreground text-sm font-medium mb-2 block font-ui">Describe what you need done</Label>
+              <Textarea value={form.description} onChange={handleDescriptionChange}
+                placeholder="Give as much detail as possible — scope, style, references, expected outcome..."
+                className="min-h-[140px] resize-none focus-visible:ring-[#b57e04] font-ui" />
               <div className="flex items-center justify-between mt-2">
-                <p className="text-muted-foreground text-xs font-ui">{form.description.length} characters</p>
+                <p className="text-muted-foreground text-xs font-ui">{form.description.length} characters (min 20)</p>
                 {aiLoading && (
                   <span className="flex items-center gap-1.5 text-[#b57e04] text-xs font-ui">
-                    <Loader2 className="w-3 h-3 animate-spin" /> Analyzing task...
+                    <Loader2 className="w-3 h-3 animate-spin" /> Analyzing...
                   </span>
                 )}
               </div>
@@ -150,9 +174,9 @@ function PostTaskContent() {
                       <Tag className="w-3 h-3" />{aiResult.category}
                     </Badge>
                   )}
-                  {aiResult.budgetMin && aiResult.budgetMax && (
+                  {aiResult.estimatedBudget && (
                     <Badge className="bg-muted text-muted-foreground border-border gap-1 font-ui">
-                      <DollarSign className="w-3 h-3" />~${aiResult.budgetMin}–${aiResult.budgetMax}
+                      <DollarSign className="w-3 h-3" />~${aiResult.estimatedBudget}
                     </Badge>
                   )}
                   {aiResult.deadline && (
@@ -165,21 +189,26 @@ function PostTaskContent() {
             )}
 
             <Button onClick={() => setStep(2)} disabled={!canStep2} className={`w-full gap-2 ${GOLD_BTN}`}>
-              Next: Confirm Details <ArrowRight className="w-4 h-4" />
+              Next: Add Details <ArrowRight className="w-4 h-4" />
             </Button>
           </CardContent>
         </Card>
       )}
 
-      {/* STEP 2 */}
+      {/* STEP 2 — Details (all optional, AI fills in missing) */}
       {step === 2 && (
         <Card className="gradient-border-card bg-card">
           <CardContent className="p-6 space-y-5">
+            <div className="bg-muted/50 rounded-lg px-3 py-2 text-muted-foreground text-xs font-ui flex items-center gap-2">
+              <Sparkles className="w-3.5 h-3.5 text-[#b57e04] flex-shrink-0" />
+              All fields below are optional — our AI will fill in anything you leave blank.
+            </div>
+
             <div>
-              <Label className="text-foreground text-sm font-medium mb-2 block font-ui">Category</Label>
+              <Label className="text-foreground text-sm font-medium mb-2 block font-ui">Category <span className="text-muted-foreground font-normal">(optional)</span></Label>
               <Select value={form.category} onValueChange={(v) => setForm((f) => ({ ...f, category: v }))}>
                 <SelectTrigger className="focus:ring-[#b57e04] font-ui">
-                  <SelectValue placeholder="Select a category" />
+                  <SelectValue placeholder="Let AI decide" />
                 </SelectTrigger>
                 <SelectContent>
                   {CATEGORIES.map((cat) => (
@@ -191,32 +220,20 @@ function PostTaskContent() {
               </Select>
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <Label className="text-foreground text-sm font-medium mb-2 block font-ui">Min Budget (USD)</Label>
-                <Input type="number" placeholder="50" value={form.budgetMin}
-                  onChange={(e) => setForm((f) => ({ ...f, budgetMin: e.target.value }))}
-                  className="focus-visible:ring-[#b57e04] font-ui" />
-              </div>
-              <div>
-                <Label className="text-foreground text-sm font-medium mb-2 block font-ui">Max Budget (USD)</Label>
-                <Input type="number" placeholder="500" value={form.budgetMax}
-                  onChange={(e) => setForm((f) => ({ ...f, budgetMax: e.target.value }))}
-                  className="focus-visible:ring-[#b57e04] font-ui" />
-              </div>
+            <div>
+              <Label className="text-foreground text-sm font-medium mb-2 block font-ui">Budget (USD) <span className="text-muted-foreground font-normal">(optional)</span></Label>
+              <Input type="number" placeholder="e.g. 200"
+                value={form.budget}
+                onChange={(e) => setForm((f) => ({ ...f, budget: e.target.value }))}
+                className="focus-visible:ring-[#b57e04] font-ui" />
             </div>
 
             <div>
-              <Label className="text-foreground text-sm font-medium mb-2 block font-ui">Deadline</Label>
+              <Label className="text-foreground text-sm font-medium mb-2 block font-ui">Deadline <span className="text-muted-foreground font-normal">(optional)</span></Label>
               <Input type="date" value={form.deadline}
                 onChange={(e) => setForm((f) => ({ ...f, deadline: e.target.value }))}
                 className="focus-visible:ring-[#b57e04] font-ui"
                 min={new Date().toISOString().slice(0, 10)} />
-            </div>
-
-            <div className="bg-muted/50 rounded-lg p-3 text-muted-foreground text-sm font-ui">
-              Your task will be sent to agents in the{" "}
-              <span className="text-foreground font-medium capitalize">{form.category || "selected"}</span> category.
             </div>
 
             <div className="flex gap-3">
@@ -224,7 +241,7 @@ function PostTaskContent() {
                 className="flex-1 border-border text-foreground hover:border-[#b57e04] hover:text-[#b57e04] font-ui">
                 <ArrowLeft className="w-4 h-4 mr-2" /> Back
               </Button>
-              <Button onClick={() => setStep(3)} disabled={!canStep3} className={`flex-1 gap-2 ${GOLD_BTN}`}>
+              <Button onClick={() => setStep(3)} className={`flex-1 gap-2 ${GOLD_BTN}`}>
                 Review & Post <ArrowRight className="w-4 h-4" />
               </Button>
             </div>
@@ -232,25 +249,29 @@ function PostTaskContent() {
         </Card>
       )}
 
-      {/* STEP 3 */}
+      {/* STEP 3 — Review */}
       {step === 3 && (
         <Card className="gradient-border-card bg-card">
           <CardContent className="p-6 space-y-5">
             <h2 className="text-foreground font-display font-semibold text-lg">Review your task</h2>
             <div className="space-y-3">
               <div className="bg-muted/50 rounded-xl p-4">
+                <p className="text-muted-foreground text-xs uppercase tracking-wide mb-1 font-ui">Title</p>
+                <p className="text-foreground font-medium font-ui">{form.title}</p>
+              </div>
+              <div className="bg-muted/50 rounded-xl p-4">
                 <p className="text-muted-foreground text-xs uppercase tracking-wide mb-1 font-ui">Description</p>
                 <p className="text-foreground leading-relaxed font-ui">{form.description}</p>
               </div>
               <div className="grid grid-cols-3 gap-3">
                 {[
-                  { label: "Category", value: <span className="capitalize">{form.category}</span> },
-                  { label: "Budget",   value: `$${form.budgetMin}–$${form.budgetMax}` },
-                  { label: "Deadline", value: new Date(form.deadline).toLocaleDateString() },
+                  { label: "Category", value: form.category ? <span className="capitalize">{form.category}</span> : <span className="text-muted-foreground italic">AI will decide</span> },
+                  { label: "Budget",   value: form.budget ? `$${form.budget}` : <span className="text-muted-foreground italic">AI will estimate</span> },
+                  { label: "Deadline", value: form.deadline ? new Date(form.deadline).toLocaleDateString() : <span className="text-muted-foreground italic">AI will suggest</span> },
                 ].map(({ label, value }) => (
                   <div key={label} className="bg-muted/50 rounded-xl p-4">
                     <p className="text-muted-foreground text-xs uppercase tracking-wide mb-1 font-ui">{label}</p>
-                    <p className="text-foreground font-medium font-ui">{value}</p>
+                    <p className="text-foreground font-medium font-ui text-sm">{value}</p>
                   </div>
                 ))}
               </div>
@@ -270,6 +291,73 @@ function PostTaskContent() {
                 Post Task
               </Button>
             </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* STEP 4 — Success */}
+      {step === 4 && successData && (
+        <Card className="gradient-border-card bg-card">
+          <CardContent className="p-6 space-y-5">
+            <div className="flex flex-col items-center text-center py-2">
+              <div className="w-14 h-14 rounded-2xl bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center mb-4">
+                <CheckCircle className="w-7 h-7 text-emerald-600 dark:text-emerald-400" />
+              </div>
+              <h2 className="text-foreground font-display font-bold text-xl mb-1">Task Posted!</h2>
+              <p className="text-muted-foreground font-ui text-sm flex items-center gap-1.5">
+                <Bot className="w-4 h-4 text-[#b57e04]" />
+                <span><span className="text-[#b57e04] font-semibold">{successData.broadcastCount}</span> agent{successData.broadcastCount !== 1 ? "s" : ""} notified</span>
+              </p>
+            </div>
+
+            {successData.analysis && (
+              <div className="bg-muted/50 rounded-xl p-4 space-y-3">
+                <div className="flex items-center gap-2 mb-1">
+                  <Sparkles className="w-4 h-4 text-[#b57e04]" />
+                  <span className="text-foreground text-sm font-semibold font-ui">AI Analysis</span>
+                </div>
+
+                <div className="flex flex-wrap gap-2">
+                  {successData.analysis.suggestedCategory && (
+                    <Badge className="bg-[#b57e04]/10 text-[#b57e04] border border-[#b57e04]/30 gap-1 font-ui capitalize">
+                      <Tag className="w-3 h-3" />{successData.analysis.suggestedCategory}
+                    </Badge>
+                  )}
+                  {successData.analysis.estimatedBudget != null && (
+                    <Badge className="bg-muted text-muted-foreground border-border gap-1 font-ui">
+                      <DollarSign className="w-3 h-3" />${successData.analysis.estimatedBudget} estimated
+                    </Badge>
+                  )}
+                  {successData.analysis.estimatedTimeline && (
+                    <Badge className="bg-muted text-muted-foreground border-border gap-1 font-ui">
+                      <Clock className="w-3 h-3" />{successData.analysis.estimatedTimeline}
+                    </Badge>
+                  )}
+                </div>
+
+                {successData.analysis.keyDeliverables && successData.analysis.keyDeliverables.length > 0 && (
+                  <div>
+                    <p className="text-muted-foreground text-xs font-ui flex items-center gap-1.5 mb-2">
+                      <ListChecks className="w-3.5 h-3.5" /> Key deliverables
+                    </p>
+                    <ul className="space-y-1">
+                      {successData.analysis.keyDeliverables.map((d, i) => (
+                        <li key={i} className="text-foreground text-sm font-ui flex items-start gap-2">
+                          <span className="text-[#b57e04] mt-0.5">·</span>{d}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </div>
+            )}
+
+            <Button
+              onClick={() => router.push(`/jobs/${successData.jobId}`)}
+              className={`w-full gap-2 ${GOLD_BTN}`}
+            >
+              View Task & Proposals <ArrowRight className="w-4 h-4" />
+            </Button>
           </CardContent>
         </Card>
       )}

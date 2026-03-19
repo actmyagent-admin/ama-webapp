@@ -65,6 +65,13 @@ async function apiClient<T>(
   return res.json() as Promise<T>;
 }
 
+export interface JobAnalysis {
+  suggestedCategory?: string;
+  estimatedBudget?: number;
+  estimatedTimeline?: string;
+  keyDeliverables?: string[];
+}
+
 // ─── Types ───────────────────────────────────────────────────────────────────
 
 export type JobStatus =
@@ -84,18 +91,30 @@ export type ContractStatus =
 export type DeliveryStatus = "SUBMITTED" | "APPROVED" | "DISPUTED";
 export type UserRole = "BUYER" | "AGENT_LISTER";
 
+export interface MyJobProposal {
+  id: string;
+  status: ProposalStatus;
+  price: number;
+  currency: string;
+  estimatedDays: number;
+}
+
 export interface Job {
   id: string;
   title: string;
   description: string;
   category: string;
-  budgetMin: number;
-  budgetMax: number;
+  budgetMin?: number;
+  budgetMax?: number;
+  budget?: number;
   currency: string;
   deadline: string;
   status: JobStatus;
   buyerId: string;
+  isActive?: boolean;
   proposalCount?: number;
+  proposals?: MyJobProposal[];
+  contract?: Contract | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -195,6 +214,7 @@ export interface UserProfile {
   id: string;
   email: string;
   userName?: string;
+  name?: string;
   roles?: UserRole[];
   agentProfile?: AgentProfile;
 }
@@ -206,21 +226,33 @@ export const api = {
   createJob: (body: {
     title: string;
     description: string;
-    category: string;
-    budgetMin: number;
-    budgetMax: number;
+    category?: string;
+    budget?: number;
     currency?: string;
-    deadline: string;
+    deadline?: string;
   }) =>
-    apiClient<Job>("/api/jobs", { method: "POST", body: JSON.stringify(body) }),
+    apiClient<{ job: Job; broadcastCount: number; analysis: JobAnalysis }>(
+      "/api/jobs",
+      { method: "POST", body: JSON.stringify(body) },
+    ),
 
   getJob: (id: string) => apiClient<JobWithProposals>(`/api/jobs/${id}`),
 
-  getMyJobs: () => apiClient<Job[]>("/api/jobs/my"),
+  getMyJobs: (params?: { status?: JobStatus; limit?: number; offset?: number }) => {
+    const entries = Object.entries(params ?? {})
+      .filter(([, v]) => v != null)
+      .map(([k, v]) => [k, String(v)]);
+    const q = new URLSearchParams(entries).toString();
+    return apiClient<{ jobs: Job[]; limit: number; offset: number }>(
+      `/api/jobs/my${q ? `?${q}` : ""}`
+    ).then((res) => res.jobs);
+  },
 
   getOpenJobs: (params?: { category?: string; search?: string }) => {
     const q = new URLSearchParams(params as Record<string, string>).toString();
-    return apiClient<Job[]>(`/api/jobs${q ? `?${q}` : ""}`);
+    return apiClient<{ jobs: Job[]; limit: number; offset: number }>(
+      `/api/jobs${q ? `?${q}` : ""}`
+    ).then((res) => res.jobs);
   },
 
   // AI categorization
@@ -352,7 +384,10 @@ export const api = {
       body: JSON.stringify({ role }),
     }),
 
-  getMe: () => apiClient<UserProfile>("/api/users/me"),
+  getMe: async () => {
+    const res = await apiClient<{ user: UserProfile }>("/api/users/me");
+    return res.user;
+  },
 
   updateUsername: (userName: string) =>
     apiClient<UserProfile>("/api/users/me/username", {
@@ -365,13 +400,21 @@ export const api = {
       method: "POST",
     }),
 
-  getStats: () =>
+  getBuyerStats: () =>
     apiClient<{
-      totalJobs?: number;
-      activeContracts?: number;
-      completed?: number;
-      totalSpent?: number;
-      earnings?: number;
-      rating?: number;
-    }>("/api/users/stats"),
+      jobsPosted: number;
+      activeContracts: number;
+      completed: number;
+      totalSpent: number;
+    }>("/api/users/me/stats/buyer"),
+
+  getAgentStats: () =>
+    apiClient<{
+      totalJobs: number;
+      activeContracts: number;
+      completed: number;
+      totalEarned: number;
+      pendingProposals: number;
+      avgRating: number;
+    }>("/api/users/me/stats/agent"),
 };
