@@ -16,16 +16,9 @@ import {
   Megaphone,
   Trophy,
   CheckCircle,
-  Code2,
-  Paintbrush,
-  FileText,
-  Video,
-  Database,
-  TrendingUp,
-  Scale,
-  MapPin,
   Sparkles,
 } from "lucide-react";
+import { getCategoryMeta } from "@/lib/categories";
 
 // Three.js scene — client-only, no SSR
 const RoboticScene = dynamic(
@@ -34,16 +27,6 @@ const RoboticScene = dynamic(
   { ssr: false }
 );
 
-const CATEGORIES = [
-  { label: "Development",    icon: Code2,       value: "development", color: "text-emerald-500" },
-  { label: "Design",         icon: Paintbrush,  value: "design",      color: "text-pink-500"    },
-  { label: "Copywriting",    icon: FileText,    value: "copywriting", color: "text-blue-500"    },
-  { label: "Video Editing",  icon: Video,       value: "video",       color: "text-purple-500"  },
-  { label: "Data Research",  icon: Database,    value: "data",        color: "text-cyan-500"    },
-  { label: "Marketing",      icon: TrendingUp,  value: "marketing",   color: "text-orange-500"  },
-  { label: "Legal",          icon: Scale,       value: "legal",       color: "text-yellow-600"  },
-  { label: "Travel Planning",icon: MapPin,      value: "travel",      color: "text-teal-500"    },
-];
 
 const HOW_IT_WORKS = [
   {
@@ -74,6 +57,12 @@ export default function HomePage() {
   const [selectedCategory, setSelectedCategory] = useState("");
   const router = useRouter();
   const { user } = useUser();
+
+  const { data: categories } = useQuery({
+    queryKey: ["categories"],
+    queryFn: () => api.getCategories(),
+    staleTime: Infinity,
+  });
 
   const { data: agents, isLoading: agentsLoading } = useQuery({
     queryKey: ["agents", "featured"],
@@ -162,23 +151,22 @@ export default function HomePage() {
 
           {/* Category chips */}
           <div className="animate-fade-in-up delay-500 flex flex-wrap justify-center gap-2 max-w-2xl mx-auto">
-            {CATEGORIES.map((cat) => {
-              const Icon = cat.icon;
-              const isSelected = selectedCategory === cat.value;
+            {(categories ?? []).map((cat) => {
+              const meta = getCategoryMeta(cat.slug);
+              const Icon = meta?.icon;
+              const isSelected = selectedCategory === cat.slug;
               return (
                 <button
-                  key={cat.value}
-                  onClick={() => handleCategoryClick(cat.value)}
+                  key={cat.slug}
+                  onClick={() => handleCategoryClick(cat.slug)}
                   className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-ui border transition-all duration-200 ${
                     isSelected
                       ? "bg-[#b57e04] border-[#b57e04] text-white shadow-[0_2px_12px_rgba(181,126,4,0.35)]"
                       : "bg-card border-border text-muted-foreground hover:border-[#b57e04]/50 hover:text-foreground hover:bg-accent"
                   }`}
                 >
-                  <Icon
-                    className={`w-3.5 h-3.5 ${isSelected ? "text-white" : cat.color}`}
-                  />
-                  {cat.label}
+                  {Icon && <Icon className={`w-3.5 h-3.5 ${isSelected ? "text-white" : meta?.iconColor}`} />}
+                  {meta?.label ?? cat.name}
                 </button>
               );
             })}
@@ -331,21 +319,22 @@ export default function HomePage() {
           </div>
 
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-            {CATEGORIES.map((cat) => {
-              const Icon = cat.icon;
+            {(categories ?? []).map((cat) => {
+              const meta = getCategoryMeta(cat.slug);
+              const Icon = meta?.icon;
               return (
                 <Link
-                  key={cat.value}
-                  href={`/agents?category=${cat.value}`}
+                  key={cat.slug}
+                  href={`/agents?category=${cat.slug}`}
                   className="gradient-border-card gradient-border-card-hover bg-card rounded-xl p-5 flex flex-col items-center gap-3 text-center group transition-all duration-200 hover:shadow-md hover:-translate-y-0.5"
                 >
                   <div className="w-11 h-11 rounded-lg bg-accent flex items-center justify-center group-hover:bg-[#b57e04]/10 transition-colors duration-200">
-                    <Icon
-                      className={`w-5 h-5 ${cat.color} group-hover:scale-110 transition-transform duration-200`}
-                    />
+                    {Icon && (
+                      <Icon className={`w-5 h-5 ${meta?.iconColor} group-hover:scale-110 transition-transform duration-200`} />
+                    )}
                   </div>
                   <span className="text-foreground group-hover:text-[#b57e04] text-sm font-ui font-medium transition-colors duration-200">
-                    {cat.label}
+                    {meta?.label ?? cat.name}
                   </span>
                 </Link>
               );

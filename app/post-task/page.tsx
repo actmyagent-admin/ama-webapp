@@ -1,9 +1,11 @@
 "use client";
 
 import { Suspense } from "react";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { useQuery } from "@tanstack/react-query";
 import { api, JobAnalysis } from "@/lib/api";
+import { getCategoryMeta } from "@/lib/categories";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -19,7 +21,6 @@ import {
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
-const CATEGORIES = ["development","design","copywriting","video","data","marketing","legal","travel"];
 const GOLD_BTN = "bg-gradient-to-r from-[#b57e04] to-[#d4a017] hover:from-[#9a6a03] hover:to-[#b57e04] text-white font-ui font-medium shadow-sm";
 
 interface FormState {
@@ -33,49 +34,23 @@ interface FormState {
 function PostTaskContent() {
   const [step, setStep] = useState(1);
   const [form, setForm] = useState<FormState>({ title: "", description: "", category: "", budget: "", deadline: "" });
-  const [aiLoading, setAiLoading] = useState(false);
-  const [aiResult, setAiResult] = useState<{ category?: string; estimatedBudget?: number; deadline?: string } | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [successData, setSuccessData] = useState<{ jobId: string; broadcastCount: number; analysis: JobAnalysis } | null>(null);
   const { toast } = useToast();
   const router = useRouter();
   const searchParams = useSearchParams();
-  const debounceRef = useRef<NodeJS.Timeout | null>(null);
+
+  const { data: categories } = useQuery({
+    queryKey: ["categories"],
+    queryFn: () => api.getCategories(),
+    staleTime: Infinity,
+  });
 
   useEffect(() => {
     const desc = searchParams.get("description") || "";
     const cat  = searchParams.get("category")    || "";
     setForm((f) => ({ ...f, description: desc, category: cat }));
-    if (desc) triggerCategorize(desc);
   }, []);
-
-  const triggerCategorize = (text: string) => {
-    if (debounceRef.current) clearTimeout(debounceRef.current);
-    if (text.length < 20) return;
-    debounceRef.current = setTimeout(async () => {
-      setAiLoading(true);
-      try {
-        const result = await api.categorizeTask(text);
-        setAiResult({
-          category: result.category,
-          estimatedBudget: result.budgetMin,
-          deadline: result.deadline,
-        });
-        setForm((f) => ({
-          ...f,
-          category: f.category || result.category || "",
-          budget:   f.budget   || String(result.budgetMin || ""),
-          deadline: f.deadline || result.deadline?.slice(0, 10) || "",
-        }));
-      } catch { /* ignore */ } finally { setAiLoading(false); }
-    }, 800);
-  };
-
-  const handleDescriptionChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    const val = e.target.value;
-    setForm((f) => ({ ...f, description: val }));
-    triggerCategorize(val);
-  };
 
   const handleSubmit = async () => {
     setSubmitting(true);
@@ -149,44 +124,14 @@ function PostTaskContent() {
 
             <div>
               <Label className="text-foreground text-sm font-medium mb-2 block font-ui">Describe what you need done</Label>
-              <Textarea value={form.description} onChange={handleDescriptionChange}
+              <Textarea
+                value={form.description}
+                onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
                 placeholder="Give as much detail as possible — scope, style, references, expected outcome..."
-                className="min-h-[140px] resize-none focus-visible:ring-[#b57e04] font-ui" />
-              <div className="flex items-center justify-between mt-2">
-                <p className="text-muted-foreground text-xs font-ui">{form.description.length} characters (min 20)</p>
-                {aiLoading && (
-                  <span className="flex items-center gap-1.5 text-[#b57e04] text-xs font-ui">
-                    <Loader2 className="w-3 h-3 animate-spin" /> Analyzing...
-                  </span>
-                )}
-              </div>
+                className="min-h-[140px] resize-none focus-visible:ring-[#b57e04] font-ui"
+              />
+              <p className="text-muted-foreground text-xs font-ui mt-2">{form.description.length} characters (min 20)</p>
             </div>
-
-            {aiResult && !aiLoading && (
-              <div className="bg-[#b57e04]/8 border border-[#b57e04]/20 rounded-xl p-4">
-                <div className="flex items-center gap-2 mb-3">
-                  <Sparkles className="w-4 h-4 text-[#b57e04]" />
-                  <span className="text-[#b57e04] text-sm font-medium font-ui">AI detected</span>
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  {aiResult.category && (
-                    <Badge className="bg-[#b57e04]/10 text-[#b57e04] border border-[#b57e04]/30 gap-1 font-ui">
-                      <Tag className="w-3 h-3" />{aiResult.category}
-                    </Badge>
-                  )}
-                  {aiResult.estimatedBudget && (
-                    <Badge className="bg-muted text-muted-foreground border-border gap-1 font-ui">
-                      <DollarSign className="w-3 h-3" />~${aiResult.estimatedBudget}
-                    </Badge>
-                  )}
-                  {aiResult.deadline && (
-                    <Badge className="bg-muted text-muted-foreground border-border gap-1 font-ui">
-                      <Calendar className="w-3 h-3" />~{new Date(aiResult.deadline).toLocaleDateString()}
-                    </Badge>
-                  )}
-                </div>
-              </div>
-            )}
 
             <Button onClick={() => setStep(2)} disabled={!canStep2} className={`w-full gap-2 ${GOLD_BTN}`}>
               Next: Add Details <ArrowRight className="w-4 h-4" />
@@ -211,11 +156,18 @@ function PostTaskContent() {
                   <SelectValue placeholder="Let AI decide" />
                 </SelectTrigger>
                 <SelectContent>
-                  {CATEGORIES.map((cat) => (
-                    <SelectItem key={cat} value={cat} className="capitalize font-ui">
-                      {cat.charAt(0).toUpperCase() + cat.slice(1)}
-                    </SelectItem>
-                  ))}
+                  {(categories ?? []).map((cat) => {
+                    const meta = getCategoryMeta(cat.slug);
+                    const Icon = meta?.icon;
+                    return (
+                      <SelectItem key={cat.slug} value={cat.slug} className="font-ui">
+                        <span className="flex items-center gap-2">
+                          {Icon && <Icon className={`w-3.5 h-3.5 ${meta.iconColor}`} />}
+                          {meta?.label ?? cat.name}
+                        </span>
+                      </SelectItem>
+                    );
+                  })}
                 </SelectContent>
               </Select>
             </div>

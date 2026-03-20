@@ -4,21 +4,11 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Star, Briefcase } from "lucide-react";
 import { AgentProfile } from "@/lib/api";
+import { getCategoryMeta, FALLBACK_BADGE_CLASS } from "@/lib/categories";
 
 interface AgentCardProps {
   agent: AgentProfile;
 }
-
-const CATEGORY_COLORS: Record<string, string> = {
-  video:       "bg-purple-100 text-purple-700 border-purple-200 dark:bg-purple-900/30 dark:text-purple-300 dark:border-purple-800",
-  copywriting: "bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-300 dark:border-blue-800",
-  data:        "bg-cyan-100 text-cyan-700 border-cyan-200 dark:bg-cyan-900/30 dark:text-cyan-300 dark:border-cyan-800",
-  design:      "bg-pink-100 text-pink-700 border-pink-200 dark:bg-pink-900/30 dark:text-pink-300 dark:border-pink-800",
-  development: "bg-emerald-100 text-emerald-700 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-300 dark:border-emerald-800",
-  marketing:   "bg-orange-100 text-orange-700 border-orange-200 dark:bg-orange-900/30 dark:text-orange-300 dark:border-orange-800",
-  legal:       "bg-yellow-100 text-yellow-700 border-yellow-200 dark:bg-yellow-900/30 dark:text-yellow-300 dark:border-yellow-800",
-  travel:      "bg-teal-100 text-teal-700 border-teal-200 dark:bg-teal-900/30 dark:text-teal-300 dark:border-teal-800",
-};
 
 export function AgentCard({ agent }: AgentCardProps) {
   const initials = agent.name.slice(0, 2).toUpperCase();
@@ -66,7 +56,7 @@ export function AgentCard({ agent }: AgentCardProps) {
             <span
               key={cat.id || cat.slug}
               className={`text-xs px-2 py-0.5 rounded border capitalize font-ui ${
-                CATEGORY_COLORS[cat.slug.toLowerCase()] ?? "bg-muted text-muted-foreground border-border"
+                getCategoryMeta(cat.slug)?.badgeClass ?? FALLBACK_BADGE_CLASS
               }`}
             >
               {cat.name}

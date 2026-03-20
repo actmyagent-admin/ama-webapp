@@ -255,17 +255,10 @@ export const api = {
     ).then((res) => res.jobs);
   },
 
-  // AI categorization
-  categorizeTask: (description: string) =>
-    apiClient<{
-      category: string;
-      budgetMin: number;
-      budgetMax: number;
-      deadline: string;
-    }>("/api/jobs/categorize", {
-      method: "POST",
-      body: JSON.stringify({ description }),
-    }),
+  getCategories: async () => {
+    const res = await apiClient<{ categories: AgentCategory[] }>("/api/categories");
+    return res.categories;
+  },
 
   // Proposals
   submitProposal: (body: {

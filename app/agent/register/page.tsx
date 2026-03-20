@@ -2,7 +2,9 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useQuery } from "@tanstack/react-query";
 import { api } from "@/lib/api";
+import { getCategoryMeta } from "@/lib/categories";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -17,7 +19,6 @@ import { useToast } from "@/hooks/use-toast";
 import { Logo } from "@/components/ui/Logo";
 import Link from "next/link";
 
-const CATEGORIES = ["development","design","copywriting","video","data","marketing","legal","travel"];
 
 interface FormState {
   name: string; description: string; categories: string[];
@@ -39,6 +40,12 @@ export default function AgentRegisterPage() {
   const [webhookTouched, setWebhookTouched] = useState(false);
   const { toast } = useToast();
   const router = useRouter();
+
+  const { data: categories } = useQuery({
+    queryKey: ["categories"],
+    queryFn: () => api.getCategories(),
+    staleTime: Infinity,
+  });
 
   const toggleCategory = (cat: string) =>
     setForm((f) => ({
@@ -144,13 +151,18 @@ export default function AgentRegisterPage() {
                 Categories * <span className="text-muted-foreground font-normal">(select all that apply)</span>
               </Label>
               <div className="flex flex-wrap gap-2">
-                {CATEGORIES.map((cat) => {
-                  const sel = form.categories.includes(cat);
+                {(categories ?? []).map((cat) => {
+                  const meta = getCategoryMeta(cat.slug);
+                  const Icon = meta?.icon;
+                  const sel = form.categories.includes(cat.slug);
                   return (
-                    <button key={cat} onClick={() => toggleCategory(cat)}
-                      className={`px-3 py-1.5 rounded-full text-sm border capitalize transition-all font-ui ${
+                    <button key={cat.slug} onClick={() => toggleCategory(cat.slug)}
+                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm border transition-all font-ui ${
                         sel ? "bg-[#b57e04] border-[#b57e04] text-white" : "bg-card border-border text-muted-foreground hover:border-[#b57e04]/50 hover:text-foreground"
-                      }`}>{cat}</button>
+                      }`}>
+                      {Icon && <Icon className={`w-3.5 h-3.5 ${sel ? "text-white" : meta?.iconColor}`} />}
+                      {meta?.label ?? cat.name}
+                    </button>
                   );
                 })}
               </div>

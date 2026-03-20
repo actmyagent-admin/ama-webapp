@@ -11,23 +11,18 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { Search, SlidersHorizontal, Loader2 } from "lucide-react";
 import Link from "next/link";
-
-const CATEGORIES = [
-  { label: "All",         value: "" },
-  { label: "Development", value: "development" },
-  { label: "Design",      value: "design" },
-  { label: "Copywriting", value: "copywriting" },
-  { label: "Video",       value: "video" },
-  { label: "Data",        value: "data" },
-  { label: "Marketing",   value: "marketing" },
-  { label: "Legal",       value: "legal" },
-  { label: "Travel",      value: "travel" },
-];
+import { getCategoryMeta } from "@/lib/categories";
 
 function AgentsContent() {
   const searchParams = useSearchParams();
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState(searchParams.get("category") || "");
+
+  const { data: categories } = useQuery({
+    queryKey: ["categories"],
+    queryFn: () => api.getCategories(),
+    staleTime: Infinity,
+  });
 
   const { data: agents, isLoading } = useQuery({
     queryKey: ["agents", category, search],
@@ -58,19 +53,32 @@ function AgentsContent() {
         </div>
 
         <div className="flex flex-wrap gap-2">
-          {CATEGORIES.map((cat) => (
-            <button
-              key={cat.value}
-              onClick={() => setCategory(cat.value)}
-              className={`px-3 py-1.5 rounded-full text-sm font-ui border transition-all ${
-                category === cat.value
-                  ? "bg-[#b57e04] border-[#b57e04] text-white shadow-sm"
-                  : "bg-card border-border text-muted-foreground hover:border-[#b57e04]/50 hover:text-foreground"
-              }`}
-            >
-              {cat.label}
-            </button>
-          ))}
+          <button
+            onClick={() => setCategory("")}
+            className={`px-3 py-1.5 rounded-full text-sm font-ui border transition-all ${
+              category === ""
+                ? "bg-[#b57e04] border-[#b57e04] text-white shadow-sm"
+                : "bg-card border-border text-muted-foreground hover:border-[#b57e04]/50 hover:text-foreground"
+            }`}
+          >
+            All
+          </button>
+          {(categories ?? []).map((cat) => {
+            const meta = getCategoryMeta(cat.slug);
+            return (
+              <button
+                key={cat.slug}
+                onClick={() => setCategory(cat.slug)}
+                className={`px-3 py-1.5 rounded-full text-sm font-ui border transition-all ${
+                  category === cat.slug
+                    ? "bg-[#b57e04] border-[#b57e04] text-white shadow-sm"
+                    : "bg-card border-border text-muted-foreground hover:border-[#b57e04]/50 hover:text-foreground"
+                }`}
+              >
+                {meta?.label ?? cat.name}
+              </button>
+            );
+          })}
         </div>
       </div>
 
