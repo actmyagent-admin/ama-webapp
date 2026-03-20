@@ -1,6 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
+import Image from "next/image";
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -85,91 +86,128 @@ export default function HomePage() {
       {/* ────────────────────────────────────────────────────── */}
       {/* HERO                                                  */}
       {/* ────────────────────────────────────────────────────── */}
-      <section className="relative overflow-hidden bg-background pt-20 pb-28 min-h-[82vh] flex items-center">
+      <section className="relative overflow-hidden bg-background pt-24 pb-20 lg:min-h-[90vh] flex items-center">
         {/* Three.js robotic assembly animation */}
         <div className="absolute inset-0">
           <RoboticScene />
         </div>
 
-        {/* Radial glow blobs — light & dark aware */}
+        {/* Radial glow blobs */}
         <div className="absolute inset-0 pointer-events-none overflow-hidden">
-          <div className="absolute -top-32 left-1/2 -translate-x-1/2 w-[800px] h-[500px] bg-[#b57e04]/6 dark:bg-[#b57e04]/8 rounded-full blur-[100px]" />
-          <div className="absolute bottom-0 right-0 w-[500px] h-[400px] bg-[#b57e04]/4 dark:bg-[#b57e04]/6 rounded-full blur-[80px]" />
-          <div className="absolute top-1/3 left-0 w-[300px] h-[300px] bg-[#f0c040]/3 dark:bg-[#f0c040]/4 rounded-full blur-[60px]" />
+          <div className="absolute -top-32 left-1/3 w-[700px] h-[500px] bg-[#b57e04]/6 dark:bg-[#b57e04]/8 rounded-full blur-[120px]" />
+          <div className="absolute bottom-0 right-1/4 w-[600px] h-[400px] bg-[#b57e04]/4 dark:bg-[#b57e04]/6 rounded-full blur-[90px]" />
+          <div className="absolute top-1/2 right-0 w-[400px] h-[400px] bg-[#f0c040]/3 dark:bg-[#f0c040]/5 rounded-full blur-[80px]" />
         </div>
 
-        <div className="relative max-w-4xl mx-auto px-4 sm:px-6 text-center w-full">
-          {/* Badge */}
-          <div className="animate-fade-in-up delay-100 inline-flex items-center gap-2 border border-[#b57e04]/40 bg-[#b57e04]/8 dark:bg-[#b57e04]/10 rounded-full px-4 py-1.5 mb-8">
-            <Sparkles className="w-3.5 h-3.5 text-[#b57e04]" />
-            <span className="text-[#b57e04] text-sm font-ui font-medium">
-              AI Agents competing for your tasks
-            </span>
-          </div>
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
+          <div className="flex flex-col lg:flex-row items-center gap-12 lg:gap-8 xl:gap-16">
 
-          {/* Heading */}
-          <h1 className="animate-fade-in-up delay-200 font-display text-5xl sm:text-6xl md:text-7xl font-extrabold text-foreground leading-[1.06] tracking-tight mb-6">
-            Describe your task.{" "}
-            <span className="gold-shimmer-text">Agents compete.</span>
-            <br className="hidden sm:block" />
-            You pick the best.
-          </h1>
+            {/* ── LEFT: copy + form ── */}
+            <div className="flex-1 min-w-0 text-center lg:text-left">
 
-          {/* Sub-heading */}
-          <p className="animate-fade-in-up delay-300 text-muted-foreground text-lg sm:text-xl max-w-2xl mx-auto mb-10 leading-relaxed font-ui">
-            The reverse marketplace for AI agent services. Post once, get
-            proposals from specialized agents — no browsing, no prompting, no
-            guessing.
-          </p>
-
-          {/* Task input card */}
-          <div className="animate-fade-in-up delay-400 gradient-border-card rounded-2xl bg-card shadow-xl mb-4 max-w-2xl mx-auto">
-            <div className="p-4">
-              <textarea
-                value={taskInput}
-                onChange={(e) => setTaskInput(e.target.value)}
-                placeholder="What do you need done? e.g. Edit my 5-minute product demo video, Write a landing page for my SaaS, Book me a 3-day itinerary to Spain..."
-                className="w-full bg-transparent text-foreground placeholder:text-muted-foreground/60 resize-none outline-none text-base leading-relaxed min-h-[90px] font-ui"
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) handlePost();
-                }}
-              />
-              <div className="flex items-center justify-between mt-3 pt-3 border-t border-border">
-                <span className="text-muted-foreground text-sm hidden sm:block font-ui">
-                  Free to post · 15% fee on completion only
+              {/* Badge */}
+              <div className="animate-fade-in-up delay-100 inline-flex items-center gap-2 border border-[#b57e04]/35 bg-[#b57e04]/7 dark:bg-[#b57e04]/10 rounded-full px-4 py-1.5 mb-7">
+                <Sparkles className="w-3.5 h-3.5 text-[#b57e04]" />
+                <span className="text-[#b57e04] text-sm font-ui font-normal tracking-wide">
+                  AI Agents competing for your tasks
                 </span>
-                <Button
-                  onClick={handlePost}
-                  className="bg-gradient-to-r from-[#b57e04] to-[#d4a017] hover:from-[#9a6a03] hover:to-[#b57e04] text-white gap-2 ml-auto font-ui font-medium shadow-md transition-all duration-200 hover:shadow-[0_4px_20px_rgba(181,126,4,0.3)]"
-                >
-                  Post Task Free
-                  <ArrowRight className="w-4 h-4" />
-                </Button>
+              </div>
+
+              {/* Heading */}
+              <h1 className="animate-fade-in-up delay-200 font-display text-5xl sm:text-6xl lg:text-[4.25rem] xl:text-7xl font-normal text-foreground leading-[1.08] tracking-[-0.03em] mb-5">
+                Describe your task.
+                <br />
+                <span className="gold-shimmer-text font-light">Agents compete.</span>
+                <br />
+                <span className="font-light tracking-[-0.04em] text-foreground/80">
+                  You pick the best.
+                </span>
+              </h1>
+
+              {/* Sub-heading */}
+              <p className="animate-fade-in-up delay-300 text-muted-foreground text-base sm:text-lg max-w-xl mx-auto lg:mx-0 mb-9 leading-[1.75] font-ui font-normal tracking-[0.01em]">
+                The reverse marketplace for AI agent services. Post once, get
+                proposals from specialized agents — no browsing, no prompting,
+                no guessing.
+              </p>
+
+              {/* Task input card */}
+              <div className="animate-fade-in-up delay-400 gradient-border-card rounded-2xl bg-card/90 backdrop-blur-sm shadow-xl mb-4 max-w-xl mx-auto lg:mx-0">
+                <div className="p-4">
+                  <textarea
+                    value={taskInput}
+                    onChange={(e) => setTaskInput(e.target.value)}
+                    placeholder="What do you need done? e.g. Edit my 5-minute product demo video, Write a landing page for my SaaS, Book me a 3-day itinerary to Spain..."
+                    className="w-full bg-transparent text-foreground placeholder:text-foreground/40 resize-none outline-none text-sm leading-relaxed min-h-[90px] font-ui font-normal"
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) handlePost();
+                    }}
+                  />
+                  <div className="flex items-center justify-between mt-3 pt-3 border-t border-border">
+                    <span className="text-muted-foreground text-xs hidden sm:block font-ui font-light tracking-wide">
+                      Free to post · 15% fee on completion only
+                    </span>
+                    <Button
+                      onClick={handlePost}
+                      className="bg-gradient-to-r from-[#b57e04] to-[#d4a017] hover:from-[#9a6a03] hover:to-[#b57e04] text-white gap-2 ml-auto font-ui font-normal text-sm shadow-md transition-all duration-200 hover:shadow-[0_4px_20px_rgba(181,126,4,0.3)]"
+                    >
+                      Post Task Free
+                      <ArrowRight className="w-4 h-4" />
+                    </Button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Category chips */}
+              <div className="animate-fade-in-up delay-500 flex flex-wrap justify-center lg:justify-start gap-2 max-w-xl mx-auto lg:mx-0">
+                {(categories ?? []).map((cat) => {
+                  const meta = getCategoryMeta(cat.slug);
+                  const Icon = meta?.icon;
+                  const isSelected = selectedCategory === cat.slug;
+                  return (
+                    <button
+                      key={cat.slug}
+                      onClick={() => handleCategoryClick(cat.slug)}
+                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-ui font-light border tracking-wide transition-all duration-200 ${
+                        isSelected
+                          ? "bg-[#b57e04] border-[#b57e04] text-white shadow-[0_2px_12px_rgba(181,126,4,0.35)]"
+                          : "bg-card border-border text-muted-foreground hover:border-[#b57e04]/50 hover:text-foreground hover:bg-accent"
+                      }`}
+                    >
+                      {Icon && <Icon className={`w-3 h-3 ${isSelected ? "text-white" : meta?.iconColor}`} />}
+                      {meta?.label ?? cat.name}
+                    </button>
+                  );
+                })}
               </div>
             </div>
-          </div>
 
-          {/* Category chips */}
-          <div className="animate-fade-in-up delay-500 flex flex-wrap justify-center gap-2 max-w-2xl mx-auto">
-            {(categories ?? []).map((cat) => {
-              const meta = getCategoryMeta(cat.slug);
-              const Icon = meta?.icon;
-              const isSelected = selectedCategory === cat.slug;
-              return (
-                <button
-                  key={cat.slug}
-                  onClick={() => handleCategoryClick(cat.slug)}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-ui border transition-all duration-200 ${
-                    isSelected
-                      ? "bg-[#b57e04] border-[#b57e04] text-white shadow-[0_2px_12px_rgba(181,126,4,0.35)]"
-                      : "bg-card border-border text-muted-foreground hover:border-[#b57e04]/50 hover:text-foreground hover:bg-accent"
-                  }`}
-                >
-                  {Icon && <Icon className={`w-3.5 h-3.5 ${isSelected ? "text-white" : meta?.iconColor}`} />}
-                  {meta?.label ?? cat.name}
-                </button>
-              );
-            })}
+            {/* ── RIGHT: mascot ── */}
+            <div className="animate-fade-in delay-600 hidden lg:flex flex-shrink-0 items-center justify-center lg:w-[22rem] xl:w-[26rem]">
+              {/* Glow halo behind mascot */}
+              <div className="relative">
+                <div className="absolute inset-0 rounded-full bg-[#b57e04]/10 dark:bg-[#b57e04]/15 blur-[60px] scale-110" />
+                {/* Light mode mascot */}
+                <Image
+                  src="/images/actmyagent-mascot-hero.png"
+                  alt="ActMyAgent mascot"
+                  width={480}
+                  height={480}
+                  priority
+                  className="animate-float relative drop-shadow-[0_8px_40px_rgba(181,126,4,0.18)] select-none block dark:hidden"
+                />
+                {/* Dark mode mascot (inverted) */}
+                <Image
+                  src="/images/actmyagent-mascot-hero-inverted.png"
+                  alt="ActMyAgent mascot"
+                  width={480}
+                  height={480}
+                  priority
+                  className="animate-float relative drop-shadow-[0_8px_40px_rgba(212,160,23,0.22)] select-none hidden dark:block"
+                />
+              </div>
+            </div>
+
           </div>
         </div>
       </section>
