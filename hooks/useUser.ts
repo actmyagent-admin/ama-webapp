@@ -23,20 +23,20 @@ export function useUser(): UseUserReturn {
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (_event, session) => {
+      (_event, session) => {
         setSession(session);
         setUser(session?.user ?? null);
-        if (session) {
-          try {
-            const me = await api.getMe();
-            setRoles(me.roles ?? []);
-          } catch {
-            setRoles([]);
-          }
+        if (session?.access_token) {
+          // Pass token directly — do NOT call any supabase.auth.* methods here,
+          // as the auth lock is held during this callback and re-entering it causes a deadlock.
+          api.getMe(session.access_token)
+            .then((me) => setRoles(me.roles ?? []))
+            .catch(() => setRoles([]))
+            .finally(() => setIsLoading(false));
         } else {
           setRoles([]);
+          setIsLoading(false);
         }
-        setIsLoading(false);
       }
     );
 

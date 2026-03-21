@@ -381,8 +381,8 @@ export const api = {
       body: JSON.stringify({ role }),
     }),
 
-  getMe: async () => {
-    const res = await apiClient<{ user: UserProfile }>("/api/users/me");
+  getMe: async (token?: string) => {
+    const res = await apiClient<{ user: UserProfile }>("/api/users/me", token ? { token } : undefined);
     return res.user;
   },
 
