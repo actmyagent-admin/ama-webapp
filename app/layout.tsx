@@ -33,6 +33,9 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" suppressHydrationWarning>
+      <Script id="esbuild-polyfill" strategy="beforeInteractive">
+        {`var __defProp=Object.defineProperty;var __name=function(t,v){__defProp(t,"name",{value:v,configurable:true});return t;};`}
+      </Script>
       <Script
         src="https://www.googletagmanager.com/gtag/js?id=G-R0PLT4D7R8"
         strategy="afterInteractive"
