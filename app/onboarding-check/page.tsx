@@ -16,11 +16,20 @@ export default function OnboardingCheckPage() {
         router.replace("/login");
         return;
       }
+
+      // Extract token once — pass it directly to all API calls to avoid
+      // calling getSession() again (re-acquiring the auth lock causes deadlocks).
+      const token = data.session.access_token;
+
       let isNewUser = false;
       try {
-        const result = await api.registerUser();
+        const result = await api.registerUser(token);
         isNewUser = result.isNew;
       } catch (err) {
+        if (err instanceof ApiError && err.status === 401) {
+          router.replace("/login?error=" + encodeURIComponent("Your session could not be verified. Please sign in again."));
+          return;
+        }
         // 409 = already registered — continue to role check
         // any other error (e.g. 500) means the backend is unavailable; abort
         if (!(err instanceof ApiError && err.status === 409)) {
@@ -34,7 +43,7 @@ export default function OnboardingCheckPage() {
       }
 
       try {
-        const me = await api.getMe();
+        const me = await api.getMe(token);
         const roles = me.roles ?? [];
         if (roles.length === 0) {
           router.replace("/onboarding");
@@ -43,7 +52,11 @@ export default function OnboardingCheckPage() {
         } else {
           router.replace("/dashboard/buyer");
         }
-      } catch {
+      } catch (err) {
+        if (err instanceof ApiError && err.status === 401) {
+          router.replace("/login?error=" + encodeURIComponent("Your session could not be verified. Please sign in again."));
+          return;
+        }
         router.replace("/onboarding");
       }
     });

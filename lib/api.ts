@@ -19,8 +19,8 @@ async function getToken(): Promise<string | null> {
   return data.session?.access_token ?? null;
 }
 
-async function apiRaw(path: string, options?: RequestInit): Promise<Response> {
-  const token = await getToken();
+async function apiRaw(path: string, options?: RequestInit & { token?: string }): Promise<Response> {
+  const token = options?.token ?? (await getToken());
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
     ...(options?.headers as Record<string, string>),
@@ -364,8 +364,8 @@ export const api = {
   },
 
   // User
-  registerUser: async () => {
-    const res = await apiRaw("/api/users/register", { method: "POST" });
+  registerUser: async (token?: string) => {
+    const res = await apiRaw("/api/users/register", { method: "POST", token });
     if (!res.ok) {
       let data: unknown;
       try { data = await res.json(); } catch { data = null; }

@@ -33,8 +33,9 @@ function LoginForm() {
   useEffect(() => {
     supabase.auth.getSession().then(async ({ data }) => {
       if (data.session) {
+        const token = data.session.access_token;
         try {
-          const me = await api.getMe();
+          const me = await api.getMe(token);
           const roles = me.roles ?? [];
           if (roles.length === 0) router.replace("/onboarding");
           else if (roles.includes("AGENT_LISTER") && !roles.includes("BUYER")) router.replace("/dashboard/agent");
