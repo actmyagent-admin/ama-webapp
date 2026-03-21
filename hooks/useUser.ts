@@ -22,20 +22,6 @@ export function useUser(): UseUserReturn {
   const supabase = getBrowserClient();
 
   useEffect(() => {
-    supabase.auth.getSession().then(async ({ data }) => {
-      setSession(data.session);
-      setUser(data.session?.user ?? null);
-      if (data.session) {
-        try {
-          const me = await api.getMe();
-          setRoles(me.roles ?? []);
-        } catch {
-          // no profile yet
-        }
-      }
-      setIsLoading(false);
-    });
-
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (_event, session) => {
         setSession(session);
