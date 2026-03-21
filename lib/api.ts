@@ -54,6 +54,10 @@ async function apiClient<T>(
     } catch {
       data = null;
     }
+    if (res.status === 401) {
+      const supabase = getBrowserClient();
+      await supabase.auth.signOut();
+    }
     throw new ApiError(
       res.status,
       (data as { message?: string })?.message ?? res.statusText,
