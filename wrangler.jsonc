@@ -20,4 +20,5 @@
   "vars": {
     "NEXT_PUBLIC_API_URL": "https://api.contextgrade.com",
   },
+  "keep_names": false,
 }
