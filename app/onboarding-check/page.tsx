@@ -2,7 +2,7 @@
 
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { api } from "@/lib/api";
+import { api, ApiError } from "@/lib/api";
 import { getBrowserClient } from "@/lib/supabase";
 import { Loader2 } from "lucide-react";
 
@@ -20,8 +20,12 @@ export default function OnboardingCheckPage() {
       try {
         const result = await api.registerUser();
         isNewUser = result.isNew;
-      } catch {
+      } catch (err) {
         // 409 = already registered — continue to role check
+        // any other error (e.g. 500) means the backend is unavailable; abort
+        if (!(err instanceof ApiError && err.status === 409)) {
+          return;
+        }
       }
 
       if (isNewUser) {
