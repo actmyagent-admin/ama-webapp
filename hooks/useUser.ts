@@ -22,6 +22,24 @@ export function useUser(): UseUserReturn {
   const supabase = getBrowserClient();
 
   useEffect(() => {
+    // Eagerly load the current session so the Navbar renders its final auth
+    // state in the same paint as hydration, preventing attribute mismatches.
+    // We pass the token directly to api.getMe to avoid re-acquiring the auth
+    // lock (calling getSession() inside onAuthStateChange deadlocks).
+    supabase.auth.getSession().then(({ data }) => {
+      const token = data.session?.access_token;
+      setSession(data.session);
+      setUser(data.session?.user ?? null);
+      if (token) {
+        api.getMe(token)
+          .then((me) => setRoles(me.roles ?? []))
+          .catch(() => setRoles([]))
+          .finally(() => setIsLoading(false));
+      } else {
+        setIsLoading(false);
+      }
+    });
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (_event, session) => {
         setSession(session);
