@@ -58,7 +58,10 @@ async function apiClient<T>(
       // Defer signOut so it never runs while the Supabase auth lock is held
       // (e.g. when apiClient is called from inside an onAuthStateChange callback).
       // Calling supabase.auth.signOut() synchronously here would deadlock.
-      setTimeout(() => getBrowserClient().auth.signOut(), 0);
+      setTimeout(() => {
+        getBrowserClient().auth.signOut();
+        window.location.href = "/login";
+      }, 0);
     }
     throw new ApiError(
       res.status,
