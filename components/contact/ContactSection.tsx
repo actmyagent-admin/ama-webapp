@@ -1,13 +1,8 @@
 "use client";
 
-import dynamic from "next/dynamic";
+import Image from "next/image";
 import { Mail, MessageSquare } from "lucide-react";
 import { ContactFormContent } from "./ContactFormContent";
-
-const ContactRoboticScene = dynamic(
-  () => import("./ContactRoboticScene").then((m) => m.ContactRoboticScene),
-  { ssr: false }
-);
 
 export function ContactSection() {
   return (
@@ -36,11 +31,34 @@ export function ContactSection() {
 
         {/* Two-column layout */}
         <div className="grid lg:grid-cols-2 gap-10 items-start">
-          {/* Left – Three.js robot + contact info */}
+          {/* Left – mascot image + contact info */}
           <div className="flex flex-col gap-6">
-            {/* Three.js canvas — no card background, floats on section bg */}
-            <div className="relative h-[320px] sm:h-[400px]">
-              <ContactRoboticScene />
+            {/* Mascot with gold afterglow */}
+            <div className="relative flex items-center justify-center h-[280px] sm:h-[360px]">
+              {/* Gold radial glow behind image */}
+              <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                <div className="w-[260px] h-[260px] sm:w-[320px] sm:h-[320px] rounded-full bg-[#b57e04]/20 dark:bg-[#b57e04]/25 blur-[60px]" />
+              </div>
+              <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                <div className="w-[160px] h-[160px] sm:w-[200px] sm:h-[200px] rounded-full bg-[#f0c040]/15 dark:bg-[#f0c040]/20 blur-[30px]" />
+              </div>
+
+              {/* Light mode image */}
+              <Image
+                src="/images/actmyagent-contact-us.png"
+                alt="ActMyAgent contact"
+                width={320}
+                height={320}
+                className="relative drop-shadow-[0_8px_32px_rgba(181,126,4,0.22)] select-none block dark:hidden object-contain h-full w-auto"
+              />
+              {/* Dark mode image */}
+              <Image
+                src="/images/actmyagent-contact-us-dark.png"
+                alt="ActMyAgent contact"
+                width={320}
+                height={320}
+                className="relative drop-shadow-[0_8px_40px_rgba(212,160,23,0.35)] select-none hidden dark:block object-contain h-full w-auto"
+              />
             </div>
 
             {/* Contact info cards */}
