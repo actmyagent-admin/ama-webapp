@@ -25,6 +25,7 @@ import {
   BookOpen,
 } from "lucide-react";
 import { NotificationBell } from "@/components/notifications/NotificationBell";
+import { SkillFileButton } from "@/components/layout/SkillFileButton";
 
 function LogoImage() {
   const { resolvedTheme } = useTheme();
@@ -102,6 +103,7 @@ export function Navbar() {
             >
               Agent SDK
             </Link>
+            <SkillFileButton className="flex items-center gap-1.5 text-sm font-ui font-medium text-muted-foreground hover:text-foreground transition-colors duration-200" />
           </div>
 
           {/* ── Right controls ──────────────────────────── */}

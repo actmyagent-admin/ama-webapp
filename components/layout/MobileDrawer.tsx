@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Menu, X, Bot, BookOpen, ChevronRight, Home } from "lucide-react";
+import { SkillFileButton } from "@/components/layout/SkillFileButton";
 
 const NAV_ITEMS = [
   { label: "Home", href: "/", icon: Home },
@@ -99,6 +100,7 @@ export function MobileDrawer() {
               </Link>
             );
           })}
+          <SkillFileButton className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-foreground hover:bg-accent hover:text-[#b57e04] transition-all" />
         </nav>
 
         {/* Drawer footer with gold gradient accent line */}

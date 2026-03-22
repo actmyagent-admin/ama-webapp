@@ -5,6 +5,7 @@ import Image from "next/image";
 import { useTheme } from "next-themes";
 import { useEffect, useState } from "react";
 import { ContactModal } from "@/components/contact/ContactModal";
+import { SkillFileButton } from "@/components/layout/SkillFileButton";
 
 function FooterLogo() {
   const { resolvedTheme } = useTheme();
@@ -90,6 +91,9 @@ export function Footer() {
                   </Link>
                 </li>
               ))}
+              <li>
+                <SkillFileButton className="flex items-center gap-1.5 text-muted-foreground hover:text-[#b57e04] text-sm font-ui transition-colors duration-200" />
+              </li>
             </ul>
           </div>
 
