@@ -119,6 +119,12 @@ export default function ContractPage() {
   const [signing, setSigning] = useState(false);
   const [paymentOpen, setPaymentOpen] = useState(false);
   const [clientSecret, setClientSecret] = useState<string | null>(null);
+  const [paymentBreakdown, setPaymentBreakdown] = useState<{
+    amountTotal: number;
+    amountPlatformFee: number;
+    amountAgentReceives: number;
+    currency: string;
+  } | null>(null);
 
   const { data: contract, isLoading } = useQuery({
     queryKey: ["contract", id],
@@ -154,8 +160,14 @@ export default function ContractPage() {
   const handleOpenPayment = async () => {
     if (!id) return;
     try {
-      const { clientSecret } = await api.createPayment(id);
-      setClientSecret(clientSecret);
+      const data = await api.createPayment(id);
+      setClientSecret(data.clientSecret);
+      setPaymentBreakdown({
+        amountTotal: data.amountTotal,
+        amountPlatformFee: data.amountPlatformFee,
+        amountAgentReceives: data.amountAgentReceives,
+        currency: data.currency,
+      });
       setPaymentOpen(true);
     } catch (err: unknown) {
       toast({
@@ -301,6 +313,37 @@ export default function ContractPage() {
               Funds are held securely and released only after you approve the delivery.
             </DialogDescription>
           </DialogHeader>
+          {paymentBreakdown && (
+            <div className="bg-muted/50 border border-border rounded-xl px-4 py-3 space-y-2 text-sm font-ui">
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">You pay</span>
+                <span className="text-foreground font-semibold">
+                  {new Intl.NumberFormat("en-US", {
+                    style: "currency",
+                    currency: paymentBreakdown.currency.toUpperCase(),
+                  }).format(paymentBreakdown.amountTotal / 100)}
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Agent receives</span>
+                <span className="text-emerald-600 dark:text-emerald-400">
+                  {new Intl.NumberFormat("en-US", {
+                    style: "currency",
+                    currency: paymentBreakdown.currency.toUpperCase(),
+                  }).format(paymentBreakdown.amountAgentReceives / 100)}
+                </span>
+              </div>
+              <div className="flex justify-between border-t border-border pt-2">
+                <span className="text-muted-foreground">Platform fee (15%)</span>
+                <span className="text-muted-foreground">
+                  {new Intl.NumberFormat("en-US", {
+                    style: "currency",
+                    currency: paymentBreakdown.currency.toUpperCase(),
+                  }).format(paymentBreakdown.amountPlatformFee / 100)}
+                </span>
+              </div>
+            </div>
+          )}
           {clientSecret && (
             <Elements
               stripe={getStripe()}

@@ -98,6 +98,7 @@ export type ContractStatus =
   | "COMPLETED"
   | "DISPUTED";
 export type DeliveryStatus = "SUBMITTED" | "APPROVED" | "DISPUTED";
+export type PaymentStatus = "PENDING" | "ESCROWED" | "RELEASED" | "REFUNDED";
 export type UserRole = "BUYER" | "AGENT_LISTER";
 
 export interface MyJobProposal {
@@ -167,6 +168,7 @@ export interface ContractWithDetails extends Contract {
   proposal: Proposal;
   agentProfile?: AgentProfile;
   delivery?: Delivery;
+  payment?: Payment;
   messages?: Message[];
 }
 
@@ -192,10 +194,40 @@ export interface Delivery {
   id: string;
   contractId: string;
   description: string;
-  fileUrls: string[];
+  fileUrls?: string[];       // legacy
+  fileNames: string[];
+  fileSizes: number[];       // bytes
   status: DeliveryStatus;
+  submittedAt: string;
+  reviewDeadline: string | null;
+  approvedAt: string | null;
+  disputedAt: string | null;
+  disputeReason: string | null;
   createdAt: string;
 }
+
+export interface DeliveryFile {
+  url: string;       // signed S3 URL, expires in 1 hour
+  filename: string;
+  size: number;      // bytes
+}
+
+export interface Payment {
+  id: string;
+  contractId: string;
+  stripePaymentIntentId: string;
+  amountTotal: number;          // cents
+  amountPlatformFee: number;    // cents
+  amountAgentReceives: number;  // cents
+  currency: string;
+  agentStripeAccountId: string;
+  status: PaymentStatus;
+  capturedAt: string | null;
+  releasedAt: string | null;
+  refundedAt: string | null;
+  createdAt: string;
+}
+
 
 export interface AgentCategory {
   id: string;
@@ -305,12 +337,16 @@ export const api = {
 
   // Payments
   createPayment: (contractId: string) =>
-    apiClient<{ clientSecret: string }>(
-      `/api/contracts/${contractId}/payment`,
-      {
-        method: "POST",
-      },
-    ),
+    apiClient<{
+      clientSecret: string;
+      amountTotal: number;
+      amountPlatformFee: number;
+      amountAgentReceives: number;
+      currency: string;
+    }>("/api/payments/create", {
+      method: "POST",
+      body: JSON.stringify({ contractId }),
+    }),
 
   // Messages
   sendMessage: (contractId: string, content: string) =>
@@ -338,21 +374,41 @@ export const api = {
     apiClient<{ webhookUrl: string }>(`/api/agents/${agentId}/webhook-url`),
 
   // Deliveries
-  submitDelivery: (body: {
+  getDeliveryUploadUrl: (body: {
     contractId: string;
-    description: string;
-    fileUrls: string[];
+    filename: string;
+    mimeType: string;
+    fileSize: number;
   }) =>
-    apiClient<Delivery>("/api/deliveries", {
+    apiClient<{ uploadUrl: string; key: string }>("/api/deliveries/upload-url", {
       method: "POST",
       body: JSON.stringify(body),
     }),
 
-  approveDelivery: (id: string) =>
-    apiClient<Delivery>(`/api/deliveries/${id}/approve`, { method: "POST" }),
+  submitDelivery: (body: {
+    contractId: string;
+    description: string;
+    files: { key: string; filename: string; size: number }[];
+  }) =>
+    apiClient<{ delivery: Delivery }>("/api/deliveries", {
+      method: "POST",
+      body: JSON.stringify(body),
+    }),
 
-  disputeDelivery: (id: string) =>
-    apiClient<Delivery>(`/api/deliveries/${id}/dispute`, { method: "POST" }),
+  getDeliveryFiles: (contractId: string) =>
+    apiClient<{ files: DeliveryFile[] }>(`/api/deliveries/${contractId}/files`),
+
+  approveDelivery: (deliveryId: string) =>
+    apiClient<{ message: string }>(`/api/deliveries/${deliveryId}/approve`, {
+      method: "POST",
+    }),
+
+  disputeDelivery: (deliveryId: string, reason: string) =>
+    apiClient<{ message: string }>(`/api/deliveries/${deliveryId}/dispute`, {
+      method: "POST",
+      body: JSON.stringify({ reason }),
+    }),
+
 
   // Agents
   registerAgent: (body: {
