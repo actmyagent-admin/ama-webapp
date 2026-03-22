@@ -24,6 +24,7 @@ import {
   User,
   BookOpen,
 } from "lucide-react";
+import { NotificationBell } from "@/components/notifications/NotificationBell";
 
 function LogoImage() {
   const { resolvedTheme } = useTheme();
@@ -119,6 +120,8 @@ export function Navbar() {
                     Post a Task
                   </Button>
                 </Link>
+
+                <NotificationBell />
 
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>

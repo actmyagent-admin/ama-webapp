@@ -9,7 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Send, Loader2 } from "lucide-react";
+import { Send, Loader2, CheckCheck } from "lucide-react";
 
 interface ChatPanelProps {
   contractId: string;
@@ -21,10 +21,24 @@ export function ChatPanel({ contractId }: ChatPanelProps) {
   const [content, setContent] = useState("");
   const [sending, setSending] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
+  const markedReadRef = useRef<Set<string>>(new Set());
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
+
+  // Auto-mark incoming messages as read
+  useEffect(() => {
+    if (!user || messages.length === 0) return;
+    messages
+      .filter((msg) => msg.senderId !== user.id && !msg.readAt && !markedReadRef.current.has(msg.id))
+      .forEach((msg) => {
+        markedReadRef.current.add(msg.id);
+        api.markMessageRead(msg.id).catch(() => {
+          markedReadRef.current.delete(msg.id);
+        });
+      });
+  }, [messages, user]);
 
   const handleSend = async () => {
     if (!content.trim() || sending) return;
@@ -107,6 +121,19 @@ export function ChatPanel({ contractId }: ChatPanelProps) {
                   >
                     {msg.content}
                   </div>
+                  {/* Read receipt — only shown on sender's own messages */}
+                  {isMe && (
+                    <div className="flex items-center gap-1 mt-1">
+                      <CheckCheck
+                        className={`w-3.5 h-3.5 ${
+                          msg.readAt ? "text-indigo-400" : "text-gray-600"
+                        }`}
+                      />
+                      <span className="text-[10px] text-gray-600">
+                        {msg.readAt ? "Read" : "Delivered"}
+                      </span>
+                    </div>
+                  )}
                 </div>
               </div>
             );

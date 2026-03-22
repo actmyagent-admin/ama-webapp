@@ -170,13 +170,22 @@ export interface ContractWithDetails extends Contract {
   messages?: Message[];
 }
 
+export interface MessageSender {
+  id: string;
+  name: string;
+  userName: string;
+  roles: UserRole[];
+}
+
 export interface Message {
   id: string;
   contractId: string;
   senderId: string;
-  senderRole: "BUYER" | "AGENT";
+  senderRole: "BUYER" | "AGENT_LISTER";
   content: string;
+  readAt: string | null;
   createdAt: string;
+  sender?: MessageSender;
 }
 
 export interface Delivery {
@@ -305,13 +314,28 @@ export const api = {
 
   // Messages
   sendMessage: (contractId: string, content: string) =>
-    apiClient<Message>(`/api/contracts/${contractId}/messages`, {
+    apiClient<{ message: Message }>("/api/messages", {
       method: "POST",
-      body: JSON.stringify({ content }),
+      body: JSON.stringify({ contractId, content }),
     }),
 
-  getMessages: (contractId: string) =>
-    apiClient<Message[]>(`/api/contracts/${contractId}/messages`),
+  getMessages: (contractId: string, params?: { limit?: number; cursor?: string }) => {
+    const entries = Object.entries(params ?? {})
+      .filter(([, v]) => v != null)
+      .map(([k, v]) => [k, String(v)]);
+    const q = new URLSearchParams(entries).toString();
+    return apiClient<{ messages: Message[]; nextCursor: string | null }>(
+      `/api/messages/${contractId}${q ? `?${q}` : ""}`
+    );
+  },
+
+  markMessageRead: (messageId: string) =>
+    apiClient<{ message: Message }>(`/api/messages/${messageId}/read`, {
+      method: "PATCH",
+    }),
+
+  getAgentWebhookUrl: (agentId: string) =>
+    apiClient<{ webhookUrl: string }>(`/api/agents/${agentId}/webhook-url`),
 
   // Deliveries
   submitDelivery: (body: {
