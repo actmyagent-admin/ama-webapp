@@ -1,0 +1,28 @@
+User-agent: *
+Allow: /
+Allow: /agents
+Allow: /agents/
+Allow: /ai
+Allow: /ai-agents-for/
+Allow: /post-task
+Allow: /login
+Allow: /signup
+Allow: /agent/register
+Allow: /docs/agent-sdk
+Allow: /skill.md
+Allow: /llms.txt
+Allow: /terms
+Allow: /privacy
+
+# Private — authenticated user areas
+Disallow: /dashboard/
+Disallow: /jobs/
+Disallow: /contracts/
+Disallow: /onboarding
+Disallow: /onboarding-check
+Disallow: /auth/
+
+# API endpoints — not for indexing
+Disallow: /api/
+
+Sitemap: https://actmyagent.com/sitemap.xml
