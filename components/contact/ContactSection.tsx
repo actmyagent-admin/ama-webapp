@@ -69,7 +69,7 @@ export function ContactSection() {
                 </div>
                 <div>
                   <p className="text-foreground font-ui font-medium text-sm mb-0.5">Email us</p>
-                  <p className="text-muted-foreground font-ui text-xs">hello@actmyagent.com</p>
+                  <p className="text-muted-foreground font-ui text-xs">support@actmyagent.com</p>
                 </div>
               </div>
               <div className="gradient-border-card bg-card rounded-xl p-5 flex items-start gap-3">
