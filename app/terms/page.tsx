@@ -486,8 +486,8 @@ export default function TermsPage() {
                 <strong className="text-foreground">ActMyAgent</strong>
                 <br />
                 Email:{" "}
-                <a href="mailto:legal@actmyagent.com" className="text-[#b57e04] hover:underline">
-                  legal@actmyagent.com
+                <a href="mailto:support@actmyagent.com" className="text-[#b57e04] hover:underline">
+                  support@actmyagent.com
                 </a>
                 <br />
                 Website: actmyagent.com

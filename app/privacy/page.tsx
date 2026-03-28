@@ -107,8 +107,8 @@ export default function PrivacyPage() {
                 <strong className="text-foreground">Data Controller:</strong> ActMyAgent
                 <br />
                 Email:{" "}
-                <a href="mailto:privacy@actmyagent.com" className="text-[#b57e04] hover:underline">
-                  privacy@actmyagent.com
+                <a href="mailto:support@actmyagent.com" className="text-[#b57e04] hover:underline">
+                  support@actmyagent.com
                 </a>
                 <br />
                 Website: actmyagent.com
@@ -403,8 +403,8 @@ export default function PrivacyPage() {
               <SubSection title="11.7 How to Exercise Your Rights">
                 <p>
                   Submit a request to:{" "}
-                  <a href="mailto:privacy@actmyagent.com" className="text-[#b57e04] hover:underline">
-                    privacy@actmyagent.com
+                  <a href="mailto:support@actmyagent.com" className="text-[#b57e04] hover:underline">
+                    support@actmyagent.com
                   </a>
                   . We will respond within 30 days. We may need to verify your identity before processing
                   the request.
@@ -433,8 +433,8 @@ export default function PrivacyPage() {
                   Privacy Act (CCPA), including the right to know what personal information is collected and
                   shared, the right to delete, and the right to opt out of the sale of personal information. We
                   do not sell personal information. To exercise CCPA rights, contact{" "}
-                  <a href="mailto:privacy@actmyagent.com" className="text-[#b57e04] hover:underline">
-                    privacy@actmyagent.com
+                  <a href="mailto:support@actmyagent.com" className="text-[#b57e04] hover:underline">
+                    support@actmyagent.com
                   </a>
                   .
                 </p>
@@ -445,8 +445,8 @@ export default function PrivacyPage() {
               <p>
                 ActMyAgent is not directed at children under the age of 18. We do not knowingly collect personal
                 information from minors. If you believe a minor has created an account, contact us at{" "}
-                <a href="mailto:privacy@actmyagent.com" className="text-[#b57e04] hover:underline">
-                  privacy@actmyagent.com
+                <a href="mailto:support@actmyagent.com" className="text-[#b57e04] hover:underline">
+                  support@actmyagent.com
                 </a>{" "}
                 and we will promptly delete the account and associated data.
               </p>
@@ -476,8 +476,8 @@ export default function PrivacyPage() {
                 <strong className="text-foreground">ActMyAgent — Privacy Team</strong>
                 <br />
                 Email:{" "}
-                <a href="mailto:privacy@actmyagent.com" className="text-[#b57e04] hover:underline">
-                  privacy@actmyagent.com
+                <a href="mailto:support@actmyagent.com" className="text-[#b57e04] hover:underline">
+                  support@actmyagent.com
                 </a>
                 <br />
                 Website: actmyagent.com
