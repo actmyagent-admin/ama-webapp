@@ -12,9 +12,24 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { Camera, Loader2, Save } from "lucide-react";
+import { InstagramIcon, FacebookIcon, XIcon, DiscordIcon } from "@/components/ui/SocialIcons";
 import Image from "next/image";
 
 const BUCKET = "profile-pics";
+
+const SOCIAL_BASE: Record<string, string> = {
+  instagram: "https://instagram.com/",
+  facebook:  "https://facebook.com/",
+  x:         "https://x.com/",
+  discord:   "https://discord.gg/",
+};
+
+function normalizeSocial(key: string, value: string): string | null {
+  const v = value.trim();
+  if (!v) return null;
+  if (v.startsWith("http://") || v.startsWith("https://")) return v;
+  return `${SOCIAL_BASE[key]}${v}`;
+}
 
 function DefaultAvatar({ name, size = 80 }: { name?: string | null; size?: number }) {
   const initials = name
@@ -61,6 +76,10 @@ export default function SettingsPage() {
     bioDetail: "",
     mainPic: null as string | null,
     coverPic: null as string | null,
+    instagram: "",
+    facebook: "",
+    x: "",
+    discord: "",
   });
   const [initialized, setInitialized] = useState(false);
   const [uploading, setUploading] = useState<"main" | "cover" | null>(null);
@@ -81,6 +100,10 @@ export default function SettingsPage() {
         bioDetail: settings.bioDetail ?? "",
         mainPic: settings.mainPic,
         coverPic: settings.coverPic,
+        instagram: settings.instagram ?? "",
+        facebook: settings.facebook ?? "",
+        x: settings.x ?? "",
+        discord: settings.discord ?? "",
       });
       setInitialized(true);
     }
@@ -95,6 +118,10 @@ export default function SettingsPage() {
         coverPic: form.coverPic,
         bioBrief: form.bioBrief || undefined,
         bioDetail: form.bioDetail || undefined,
+        instagram: normalizeSocial("instagram", form.instagram),
+        facebook:  normalizeSocial("facebook",  form.facebook),
+        x:         normalizeSocial("x",         form.x),
+        discord:   normalizeSocial("discord",   form.discord),
       }),
     onSuccess: (updated: UserSettings) => {
       qc.setQueryData(["settings"], updated);
@@ -279,6 +306,33 @@ export default function SettingsPage() {
               onChange={(e) => setForm((f) => ({ ...f, bioDetail: e.target.value }))}
               className="resize-none min-h-[120px] focus-visible:ring-[#b57e04] font-ui"
             />
+          </div>
+
+          {/* Social links */}
+          <div>
+            <Label className="text-foreground text-sm font-medium mb-3 block font-ui">Social Links</Label>
+            <div className="space-y-3">
+              {[
+                { key: "instagram", Icon: InstagramIcon, placeholder: "https://instagram.com/yourhandle", label: "Instagram" },
+                { key: "facebook",  Icon: FacebookIcon,  placeholder: "https://facebook.com/yourpage",   label: "Facebook"  },
+                { key: "x",         Icon: XIcon,         placeholder: "https://x.com/yourhandle",        label: "X"         },
+                { key: "discord",   Icon: DiscordIcon,   placeholder: "https://discord.gg/invite/...",   label: "Discord"   },
+              ].map(({ key, Icon, placeholder, label }) => (
+                <div key={key} className="relative">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
+                    <Icon size={15} />
+                  </span>
+                  <Input
+                    type="url"
+                    placeholder={placeholder}
+                    aria-label={label}
+                    value={form[key as keyof typeof form] as string}
+                    onChange={(e) => setForm((f) => ({ ...f, [key]: e.target.value }))}
+                    className="pl-8 focus-visible:ring-[#b57e04] font-ui text-sm"
+                  />
+                </div>
+              ))}
+            </div>
           </div>
 
           <Button

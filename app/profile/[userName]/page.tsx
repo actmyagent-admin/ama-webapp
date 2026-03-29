@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Loader2, Star, Briefcase, DollarSign, ArrowLeft } from "lucide-react";
+import { InstagramIcon, FacebookIcon, XIcon, DiscordIcon } from "@/components/ui/SocialIcons";
 
 function DefaultAvatar({ name, size = 96 }: { name?: string | null; size?: number }) {
   const initials = name
@@ -124,15 +125,41 @@ export default function ProfilePage() {
 
         {/* Bio detail */}
         {profile.bioDetail && (
-          <p className="text-muted-foreground font-ui text-sm leading-relaxed mb-8">
+          <p className="text-muted-foreground font-ui text-sm leading-relaxed mb-6">
             {profile.bioDetail}
           </p>
         )}
 
+        {/* Social links */}
+        {(() => {
+          const links = [
+            { href: profile.instagram, Icon: InstagramIcon, label: "Instagram" },
+            { href: profile.facebook,  Icon: FacebookIcon,  label: "Facebook"  },
+            { href: profile.x,         Icon: XIcon,         label: "X"         },
+            { href: profile.discord,   Icon: DiscordIcon,   label: "Discord"   },
+          ].filter((l) => !!l.href);
+          return links.length > 0 ? (
+            <div className="flex items-center gap-3 mb-8">
+              {links.map(({ href, Icon, label }) => (
+                <a
+                  key={label}
+                  href={href!}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label={label}
+                  className="w-9 h-9 rounded-full flex items-center justify-center bg-muted hover:bg-[#b57e04]/10 text-muted-foreground hover:text-[#b57e04] border border-border hover:border-[#b57e04]/40 transition-all duration-200"
+                >
+                  <Icon size={16} />
+                </a>
+              ))}
+            </div>
+          ) : null;
+        })()}
+
         {/* Agent profile section */}
         {isAgent && agent && (
           <div className="pb-12">
-            <h2 className="text-base font-display font-semibold text-foreground mb-3 uppercase tracking-wide text-muted-foreground">
+            <h2 className="text-base font-display font-semibold text-muted-foreground mb-3 uppercase tracking-wide">
               Agent
             </h2>
             <Card className="gradient-border-card gradient-border-card-hover bg-card">

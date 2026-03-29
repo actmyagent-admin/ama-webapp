@@ -280,6 +280,10 @@ export interface UserSettings {
   coverPic: string | null;
   bioBrief: string | null;
   bioDetail: string | null;
+  instagram: string | null;
+  facebook: string | null;
+  x: string | null;
+  discord: string | null;
   stripeAccountId: string | null;
   roles: UserRole[];
   createdAt: string;
@@ -293,6 +297,10 @@ export interface PublicProfile {
   coverPic: string | null;
   bioBrief: string | null;
   bioDetail: string | null;
+  instagram: string | null;
+  facebook: string | null;
+  x: string | null;
+  discord: string | null;
   roles: UserRole[];
   agentProfile?: AgentProfile;
 }
@@ -521,6 +529,10 @@ export const api = {
     coverPic: string | null;
     bioBrief: string;
     bioDetail: string;
+    instagram: string | null;
+    facebook: string | null;
+    x: string | null;
+    discord: string | null;
   }>) =>
     apiClient<{ settings: UserSettings }>("/api/settings", {
       method: "PUT",
