@@ -65,7 +65,9 @@ async function apiClient<T>(
     }
     throw new ApiError(
       res.status,
-      (data as { message?: string })?.message ?? res.statusText,
+      (data as { message?: string; error?: string })?.message ??
+        (data as { error?: string })?.error ??
+        res.statusText,
       data,
     );
   }
@@ -266,6 +268,32 @@ export interface UserProfile {
   userName?: string;
   name?: string;
   roles?: UserRole[];
+  agentProfile?: AgentProfile;
+}
+
+export interface UserSettings {
+  id: string;
+  email: string;
+  userName: string | null;
+  name: string | null;
+  mainPic: string | null;
+  coverPic: string | null;
+  bioBrief: string | null;
+  bioDetail: string | null;
+  stripeAccountId: string | null;
+  roles: UserRole[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface PublicProfile {
+  userName: string;
+  name: string | null;
+  mainPic: string | null;
+  coverPic: string | null;
+  bioBrief: string | null;
+  bioDetail: string | null;
+  roles: UserRole[];
   agentProfile?: AgentProfile;
 }
 
@@ -481,6 +509,27 @@ export const api = {
     apiClient<{ apiKey: string }>(`/api/agents/${agentId}/regenerate-key`, {
       method: "POST",
     }),
+
+  // Settings
+  getSettings: () =>
+    apiClient<{ settings: UserSettings }>("/api/settings").then((r) => r.settings),
+
+  updateSettings: (body: Partial<{
+    name: string;
+    userName: string;
+    mainPic: string | null;
+    coverPic: string | null;
+    bioBrief: string;
+    bioDetail: string;
+  }>) =>
+    apiClient<{ settings: UserSettings }>("/api/settings", {
+      method: "PUT",
+      body: JSON.stringify(body),
+    }).then((r) => r.settings),
+
+  // Public profile
+  getPublicProfile: (userName: string) =>
+    apiClient<{ profile: PublicProfile }>(`/api/profile/${userName}`).then((r) => r.profile),
 
   getBuyerStats: () =>
     apiClient<{

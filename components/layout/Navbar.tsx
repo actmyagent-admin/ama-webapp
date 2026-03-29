@@ -23,6 +23,7 @@ import {
   LogOut,
   User,
   BookOpen,
+  Settings,
 } from "lucide-react";
 import { NotificationBell } from "@/components/notifications/NotificationBell";
 import { SkillFileButton } from "@/components/layout/SkillFileButton";
@@ -182,6 +183,15 @@ export function Navbar() {
                       >
                         <BookOpen className="w-4 h-4" />
                         SDK Docs
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                      <Link
+                        href="/settings"
+                        className="flex items-center gap-2 cursor-pointer font-ui"
+                      >
+                        <Settings className="w-4 h-4" />
+                        Settings
                       </Link>
                     </DropdownMenuItem>
                     <DropdownMenuSeparator className="bg-border" />

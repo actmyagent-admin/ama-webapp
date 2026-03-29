@@ -7,6 +7,7 @@ const PROTECTED_ROUTES = [
   "/jobs",
   "/contracts",
   "/agent/register",
+  "/settings",
 ];
 
 const AUTH_ROUTES = ["/login", "/onboarding"];
