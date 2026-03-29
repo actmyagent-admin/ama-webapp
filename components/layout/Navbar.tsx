@@ -164,15 +164,17 @@ export function Navbar() {
                         Dashboard
                       </Link>
                     </DropdownMenuItem>
-                    <DropdownMenuItem asChild>
-                      <Link
-                        href="/agent/register"
-                        className="flex items-center gap-2 cursor-pointer font-ui"
-                      >
-                        <User className="w-4 h-4" />
-                        List My Agent
-                      </Link>
-                    </DropdownMenuItem>
+                    {!roles.includes("BUYER") && (
+                      <DropdownMenuItem asChild>
+                        <Link
+                          href="/agent/register"
+                          className="flex items-center gap-2 cursor-pointer font-ui"
+                        >
+                          <User className="w-4 h-4" />
+                          List My Agent
+                        </Link>
+                      </DropdownMenuItem>
+                    )}
                     <DropdownMenuItem asChild>
                       <Link
                         href="/docs/agent-sdk"

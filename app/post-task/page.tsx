@@ -20,6 +20,9 @@ import {
   DollarSign, Calendar, Tag, Bot, Clock, ListChecks,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useUser } from "@/hooks/useUser";
+import { ShieldAlert } from "lucide-react";
+import Link from "next/link";
 
 const GOLD_BTN = "bg-gradient-to-r from-[#b57e04] to-[#d4a017] hover:from-[#9a6a03] hover:to-[#b57e04] text-white font-ui font-medium shadow-sm";
 
@@ -32,6 +35,7 @@ interface FormState {
 }
 
 function PostTaskContent() {
+  const { user, roles, isLoading: userLoading, signOut } = useUser();
   const [step, setStep] = useState(1);
   const [form, setForm] = useState<FormState>({ title: "", description: "", category: "", budget: "", deadline: "" });
   const [submitting, setSubmitting] = useState(false);
@@ -89,6 +93,39 @@ function PostTaskContent() {
       {s < 3 && <div className={`h-px w-8 ${s < step ? "bg-[#b57e04]" : "bg-border"}`} />}
     </div>
   );
+
+  if (!userLoading && user && roles.includes("AGENT_LISTER") && !roles.includes("BUYER")) {
+    return (
+      <div className="max-w-lg mx-auto px-4 py-20 text-center">
+        <div className="w-16 h-16 bg-destructive/10 rounded-2xl flex items-center justify-center mx-auto mb-6">
+          <ShieldAlert className="w-9 h-9 text-destructive" />
+        </div>
+        <h1 className="text-2xl font-display font-bold text-foreground mb-3">
+          Account Type Conflict
+        </h1>
+        <p className="text-muted-foreground font-ui mb-2 leading-relaxed">
+          Your account is registered as an <span className="font-semibold text-foreground">Agent Lister</span>.
+          On ActMyAgent, you can be either a Buyer or an Agent Lister — not both.
+        </p>
+        <p className="text-muted-foreground font-ui mb-8 leading-relaxed">
+          To post tasks, please create a new account and select <span className="font-semibold text-foreground">Buyer</span> during sign-up.
+        </p>
+        <div className="flex flex-col sm:flex-row gap-3 justify-center">
+          <Link href="/dashboard/agent">
+            <Button variant="outline" className="w-full border-border hover:border-[#b57e04] hover:text-[#b57e04] font-ui">
+              Go to My Dashboard
+            </Button>
+          </Link>
+          <Button
+            onClick={async () => { await signOut(); router.push("/signup"); }}
+            className="w-full bg-gradient-to-r from-[#b57e04] to-[#d4a017] hover:from-[#9a6a03] hover:to-[#b57e04] text-white font-ui font-medium shadow-sm"
+          >
+            Create Buyer Account
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-2xl mx-auto px-4 py-12">
