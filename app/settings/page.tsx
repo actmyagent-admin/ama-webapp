@@ -176,15 +176,15 @@ export default function SettingsPage() {
 
   if (userLoading || isLoading) {
     return (
-      <div className="flex justify-center items-center min-h-[60vh]">
+      <div className="flex justify-center items-center py-16">
         <Loader2 className="w-6 h-6 animate-spin text-[#b57e04]" />
       </div>
     );
   }
 
   return (
-    <div className="max-w-2xl mx-auto px-4 py-12">
-      <h1 className="text-2xl font-display font-bold text-foreground mb-1">Settings</h1>
+    <div className="max-w-2xl">
+      <h2 className="text-xl font-display font-bold text-foreground mb-1">Profile</h2>
       <p className="text-muted-foreground font-ui text-sm mb-8">Manage your public profile</p>
 
       {/* Cover + Avatar section */}

@@ -310,6 +310,14 @@ export interface PublicProfile {
   agentProfile?: AgentProfile;
 }
 
+export interface StripeConnectStatus {
+  connected: boolean;
+  chargesEnabled: boolean;
+  payoutsEnabled: boolean;
+  detailsSubmitted: boolean;
+  accountId: string | null;
+}
+
 // ─── API Functions ────────────────────────────────────────────────────────────
 
 export const api = {
@@ -547,6 +555,21 @@ export const api = {
   // Public profile
   getPublicProfile: (userName: string) =>
     apiClient<{ profile: PublicProfile }>(`/api/profile/${userName}`).then((r) => r.profile),
+
+  // Stripe Connect
+  getStripeConnectStatus: () =>
+    apiClient<StripeConnectStatus>("/api/stripe/connect/status"),
+
+  getStripeConnectOnboardingUrl: () =>
+    apiClient<{ url: string }>("/api/stripe/connect/onboarding-url"),
+
+  getStripeConnectDashboardUrl: () =>
+    apiClient<{ url: string }>("/api/stripe/connect/dashboard-url"),
+
+  disconnectStripe: () =>
+    apiClient<{ disconnected: boolean }>("/api/stripe/connect/disconnect", {
+      method: "DELETE",
+    }),
 
   getBuyerStats: () =>
     apiClient<{

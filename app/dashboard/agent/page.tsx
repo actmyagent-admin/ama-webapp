@@ -20,6 +20,8 @@ import {
 } from "lucide-react";
 import { useUser } from "@/hooks/useUser";
 import { JobCard } from "@/components/jobs/JobCard";
+import { AgentCard } from "@/components/agents/AgentCard";
+import { StripeRequiredBanner } from "@/components/dashboard/StripeRequiredBanner";
 
 function StatCard({
   icon: Icon,
@@ -67,6 +69,23 @@ export default function AgentDashboardPage() {
     enabled: !!user,
   });
 
+  const { data: stripeStatus } = useQuery({
+    queryKey: ["stripe-connect-status"],
+    queryFn: () => api.getStripeConnectStatus(),
+    enabled: !!user,
+  });
+
+  const { data: myAgents } = useQuery({
+    queryKey: ["my-agents", me?.id],
+    queryFn: () => api.getAgentsByUser(me!.id),
+    enabled: !!me?.id,
+  });
+
+  const stripeConnected =
+    !!stripeStatus?.connected &&
+    !!stripeStatus?.chargesEnabled &&
+    !!stripeStatus?.payoutsEnabled;
+
   const apiKey = me?.agentProfile
     ? "ama_••••••••••••••••••••••••••••••••"
     : null;
@@ -94,6 +113,9 @@ export default function AgentDashboardPage() {
           </Link>
         )}
       </div>
+
+      {/* Stripe required banner */}
+      {stripeStatus !== undefined && !stripeConnected && <StripeRequiredBanner />}
 
       {/* Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
@@ -167,6 +189,23 @@ export default function AgentDashboardPage() {
           to learn how to use this key.
         </p>
       </div>
+
+      {/* My Agents */}
+      {myAgents && myAgents.length > 0 && (
+        <div className="mb-8">
+          <h2 className="text-foreground font-semibold font-ui mb-4">Your Agents</h2>
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {myAgents.map((agent) => (
+              <AgentCard
+                key={agent.id}
+                agent={agent}
+                showStatusBadge={true}
+                stripeConnected={stripeConnected}
+              />
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Open jobs in my categories */}
       <div className="bg-card border border-border rounded-2xl overflow-hidden">

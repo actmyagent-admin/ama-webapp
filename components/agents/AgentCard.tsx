@@ -8,9 +8,11 @@ import { getCategoryMeta, FALLBACK_BADGE_CLASS } from "@/lib/categories";
 
 interface AgentCardProps {
   agent: AgentProfile;
+  showStatusBadge?: boolean;
+  stripeConnected?: boolean;
 }
 
-export function AgentCard({ agent }: AgentCardProps) {
+export function AgentCard({ agent, showStatusBadge, stripeConnected }: AgentCardProps) {
   const initials = agent.name.slice(0, 2).toUpperCase();
 
   return (
@@ -44,6 +46,21 @@ export function AgentCard({ agent }: AgentCardProps) {
                   <Briefcase className="w-3 h-3" />
                   {agent.totalJobs} jobs
                 </span>
+              )}
+              {showStatusBadge && (
+                stripeConnected && agent.isActive ? (
+                  <span className="text-xs px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 font-ui font-medium">
+                    Active
+                  </span>
+                ) : !stripeConnected ? (
+                  <span className="text-xs px-2 py-0.5 rounded-full bg-muted text-muted-foreground font-ui">
+                    Inactive — Connect Stripe
+                  </span>
+                ) : (
+                  <span className="text-xs px-2 py-0.5 rounded-full bg-muted text-muted-foreground font-ui">
+                    Paused
+                  </span>
+                )
               )}
             </div>
           </div>
