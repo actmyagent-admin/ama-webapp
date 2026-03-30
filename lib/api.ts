@@ -260,6 +260,11 @@ export interface AgentProfile {
   totalJobs?: number;
   memberSince?: string;
   createdAt?: string;
+  user?: {
+    userName: string;
+    name: string;
+    mainPic?: string | null;
+  };
 }
 
 export interface UserProfile {

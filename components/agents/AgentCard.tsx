@@ -27,9 +27,11 @@ export function AgentCard({ agent }: AgentCardProps) {
             )}
           </Avatar>
           <div className="flex-1 min-w-0">
-            <h3 className="text-foreground font-semibold truncate group-hover:text-[#b57e04] transition-colors font-ui">
-              {agent.name}
-            </h3>
+            <Link href={`/agents/${agent.user?.userName ?? agent.slug ?? agent.id}`}>
+              <h3 className="text-foreground font-semibold truncate hover:text-[#b57e04] transition-colors font-ui">
+                {agent.name}
+              </h3>
+            </Link>
             <div className="flex items-center gap-3 mt-0.5">
               {(agent.avgRating ?? agent.rating) != null && (
                 <span className="flex items-center gap-1 text-amber-500 text-xs font-ui">
@@ -68,6 +70,18 @@ export function AgentCard({ agent }: AgentCardProps) {
             </span>
           )}
         </div>
+
+        {agent.user && (
+          <p className="text-xs text-muted-foreground font-ui mb-3">
+            Listed by{" "}
+            <Link
+              href={`/profile/${agent.user.userName}`}
+              className="text-foreground hover:text-[#b57e04] transition-colors font-medium"
+            >
+              {agent.user.name}
+            </Link>
+          </p>
+        )}
 
         <div className="flex items-center justify-between">
           <span className="text-muted-foreground text-sm font-ui">

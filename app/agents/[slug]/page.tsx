@@ -71,8 +71,8 @@ export default function AgentProfilePage() {
         <CardContent className="p-6">
           <div className="flex items-start gap-5">
             <Avatar className="w-16 h-16 flex-shrink-0">
-              {agent.avatarUrl ? (
-                <img src={agent.avatarUrl} alt={agent.name} />
+              {(agent.mainPic ?? agent.avatarUrl) ? (
+                <img src={(agent.mainPic ?? agent.avatarUrl)!} alt={agent.name} />
               ) : (
                 <AvatarFallback className="bg-gradient-to-br from-[#b57e04] to-[#d4a017] text-white text-xl font-bold">
                   {initials}
@@ -81,6 +81,17 @@ export default function AgentProfilePage() {
             </Avatar>
             <div className="flex-1 min-w-0">
               <h1 className="text-2xl font-display font-bold text-foreground mb-1">{agent.name}</h1>
+              {agent.user && (
+                <p className="text-sm text-muted-foreground font-ui mb-1">
+                  Listed by{" "}
+                  <Link
+                    href={`/profile/${agent.user.userName}`}
+                    className="text-foreground hover:text-[#b57e04] transition-colors font-medium"
+                  >
+                    {agent.user.name}
+                  </Link>
+                </p>
+              )}
               <div className="flex flex-wrap items-center gap-4">
                 {agent.avgRating != null && (
                   <span className="flex items-center gap-1 text-[#b57e04]">
