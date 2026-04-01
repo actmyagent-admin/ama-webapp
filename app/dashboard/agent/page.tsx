@@ -1,26 +1,21 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { api, Job } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   Briefcase,
   CheckCircle,
   DollarSign,
   Star,
-  Copy,
-  Check,
   ArrowRight,
   Cpu,
 } from "lucide-react";
 import { useUser } from "@/hooks/useUser";
 import { JobCard } from "@/components/jobs/JobCard";
-import { AgentCard } from "@/components/agents/AgentCard";
 import { StripeRequiredBanner } from "@/components/dashboard/StripeRequiredBanner";
 
 function StatCard({
@@ -51,7 +46,6 @@ function StatCard({
 
 export default function AgentDashboardPage() {
   const { user } = useUser();
-  const [copied, setCopied] = useState(false);
 
   const { data: stats } = useQuery({
     queryKey: ["agent-stats"],
@@ -75,26 +69,13 @@ export default function AgentDashboardPage() {
     enabled: !!user,
   });
 
-  const { data: myAgents } = useQuery({
-    queryKey: ["my-agents", me?.id],
-    queryFn: () => api.getAgentsByUser(me!.id),
-    enabled: !!me?.id,
-  });
-
   const stripeConnected =
     !!stripeStatus?.connected &&
     !!stripeStatus?.chargesEnabled &&
     !!stripeStatus?.payoutsEnabled;
 
-  const apiKey = me?.agentProfile
-    ? "ama_••••••••••••••••••••••••••••••••"
-    : null;
-
-  const copyApiKey = () => {
-    navigator.clipboard.writeText(apiKey ?? "");
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  };
+  const agentCount = me?.agentProfiles?.length ?? 0;
+  const canRegisterMore = agentCount < 3;
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
@@ -104,7 +85,7 @@ export default function AgentDashboardPage() {
           <h1 className="text-2xl font-display font-bold text-foreground">Agent Dashboard</h1>
           <p className="text-muted-foreground mt-1 font-ui text-sm">{user?.email}</p>
         </div>
-        {!me?.agentProfile && (
+        {canRegisterMore && (
           <Link href="/agent/register">
             <Button className="bg-gradient-to-r from-[#b57e04] to-[#d4a017] hover:from-[#9a6a03] hover:to-[#b57e04] text-white gap-2 font-ui font-medium shadow-sm">
               <Cpu className="w-4 h-4" />
@@ -144,68 +125,6 @@ export default function AgentDashboardPage() {
           iconClass="bg-purple-100 text-purple-600 dark:bg-purple-900/20 dark:text-purple-400"
         />
       </div>
-
-      {/* API Key */}
-      <div className="bg-card border border-border rounded-2xl p-5 mb-8">
-        <div className="flex items-center justify-between mb-2">
-          <h2 className="text-foreground font-semibold font-ui">API Key</h2>
-          <Badge className="bg-muted text-muted-foreground border-border text-xs font-ui">
-            Programmatic access
-          </Badge>
-        </div>
-        <p className="text-muted-foreground text-sm mb-4 font-ui">
-          Use this key in your webhook server to submit proposals via the Agent SDK.
-        </p>
-        <div className="flex items-center gap-2">
-          <code className="flex-1 bg-muted border border-border rounded-lg px-4 py-2.5 text-[#b57e04] font-mono text-sm select-all overflow-hidden">
-            {apiKey ?? "Register your agent to get an API key"}
-          </code>
-          {apiKey && (
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={copyApiKey}
-              className="border-border hover:border-[#b57e04] hover:text-[#b57e04] gap-1.5 flex-shrink-0 font-ui"
-            >
-              {copied ? (
-                <>
-                  <Check className="w-3.5 h-3.5 text-[#b57e04]" />
-                  Copied
-                </>
-              ) : (
-                <>
-                  <Copy className="w-3.5 h-3.5" />
-                  Copy
-                </>
-              )}
-            </Button>
-          )}
-        </div>
-        <p className="text-muted-foreground text-xs mt-2 font-ui">
-          See the{" "}
-          <Link href="/docs/agent-sdk" className="text-[#b57e04] hover:underline">
-            Agent SDK docs
-          </Link>{" "}
-          to learn how to use this key.
-        </p>
-      </div>
-
-      {/* My Agents */}
-      {myAgents && myAgents.length > 0 && (
-        <div className="mb-8">
-          <h2 className="text-foreground font-semibold font-ui mb-4">Your Agents</h2>
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {myAgents.map((agent) => (
-              <AgentCard
-                key={agent.id}
-                agent={agent}
-                showStatusBadge={true}
-                stripeConnected={stripeConnected}
-              />
-            ))}
-          </div>
-        </div>
-      )}
 
       {/* Open jobs in my categories */}
       <div className="bg-card border border-border rounded-2xl overflow-hidden">

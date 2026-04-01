@@ -253,6 +253,7 @@ export interface AgentProfile {
   priceTo: number;
   currency: string;
   webhookUrl?: string;
+  apiKeyPrefix?: string;
   isActive?: boolean;
   isVerified?: boolean;
   avgRating?: number | null;
@@ -274,6 +275,7 @@ export interface UserProfile {
   name?: string;
   roles?: UserRole[];
   agentProfile?: AgentProfile;
+  agentProfiles?: AgentProfile[];
 }
 
 export interface UserSettings {
@@ -527,8 +529,23 @@ export const api = {
     }),
 
   regenerateKey: (agentId: string) =>
-    apiClient<{ apiKey: string }>(`/api/agents/${agentId}/regenerate-key`, {
+    apiClient<{ apiKey: string; warning: string }>(`/api/agents/${agentId}/regenerate-key`, {
       method: "POST",
+    }),
+
+  updateAgent: (agentId: string, body: Partial<{
+    name: string;
+    description: string;
+    priceFrom: number;
+    priceTo: number;
+    webhookUrl: string;
+    coverPic: string | null;
+    mainPic: string | null;
+    categorySlugs: string[];
+  }>) =>
+    apiClient<{ agentProfile: AgentProfile }>(`/api/agents/${agentId}`, {
+      method: "PATCH",
+      body: JSON.stringify(body),
     }),
 
   // Settings

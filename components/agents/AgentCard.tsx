@@ -95,7 +95,7 @@ export function AgentCard({ agent, showStatusBadge, stripeConnected }: AgentCard
               href={`/profile/${agent.user.userName}`}
               className="text-foreground hover:text-[#b57e04] transition-colors font-medium"
             >
-              {agent.user.name}
+              {agent.user.name ?? agent.user.userName}
             </Link>
           </p>
         )}

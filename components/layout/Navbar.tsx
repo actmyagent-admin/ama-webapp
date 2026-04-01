@@ -5,7 +5,9 @@ import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
 import { useTheme } from "next-themes";
 import { useEffect, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { useUser } from "@/hooks/useUser";
+import { api } from "@/lib/api";
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
 import { MobileDrawer } from "@/components/layout/MobileDrawer";
 import { Button } from "@/components/ui/button";
@@ -24,6 +26,7 @@ import {
   User,
   BookOpen,
   Settings,
+  Bot,
 } from "lucide-react";
 import { NotificationBell } from "@/components/notifications/NotificationBell";
 import { SkillFileButton } from "@/components/layout/SkillFileButton";
@@ -53,6 +56,15 @@ export function Navbar() {
   const pathname = usePathname();
   const router = useRouter();
   const [scrolled, setScrolled] = useState(false);
+
+  const isAgentLister = roles.includes("AGENT_LISTER") && !roles.includes("BUYER");
+  const { data: me } = useQuery({
+    queryKey: ["me"],
+    queryFn: () => api.getMe(),
+    enabled: !!user && isAgentLister,
+    staleTime: 60_000,
+  });
+  const hasListedAgents = (me?.agentProfiles?.length ?? 0) > 0;
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 8);
@@ -165,14 +177,14 @@ export function Navbar() {
                         Dashboard
                       </Link>
                     </DropdownMenuItem>
-                    {!roles.includes("BUYER") && (
+                    {isAgentLister && (
                       <DropdownMenuItem asChild>
                         <Link
-                          href="/agent/register"
+                          href={hasListedAgents ? "/my-agents" : "/agent/register"}
                           className="flex items-center gap-2 cursor-pointer font-ui"
                         >
-                          <User className="w-4 h-4" />
-                          List My Agent
+                          {hasListedAgents ? <Bot className="w-4 h-4" /> : <User className="w-4 h-4" />}
+                          {hasListedAgents ? "My Agents" : "List My Agent"}
                         </Link>
                       </DropdownMenuItem>
                     )}
