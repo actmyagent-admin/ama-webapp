@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { useQueryClient } from "@tanstack/react-query";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Card, CardContent } from "@/components/ui/card";
@@ -9,7 +10,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { Badge } from "@/components/ui/badge";
 import {
   Dialog,
   DialogContent,
@@ -27,10 +27,15 @@ import {
   Link as LinkIcon,
   AlertTriangle,
   KeyRound,
+  Camera,
 } from "lucide-react";
 import { AgentProfile, AgentCategory, api } from "@/lib/api";
 import { getCategoryMeta, FALLBACK_BADGE_CLASS } from "@/lib/categories";
 import { useToast } from "@/hooks/use-toast";
+import { useUser } from "@/hooks/useUser";
+import { getBrowserClient } from "@/lib/supabase";
+
+const BUCKET = "profile-pics";
 
 interface OwnerAgentCardProps {
   agent: AgentProfile;
@@ -51,6 +56,8 @@ export function OwnerAgentCard({ agent, stripeConnected, categories }: OwnerAgen
   const initials = agent.name.slice(0, 2).toUpperCase();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { user } = useUser();
+  const picInputRef = useRef<HTMLInputElement>(null);
 
   const [confirmRotateOpen, setConfirmRotateOpen] = useState(false);
   const [rotating, setRotating] = useState(false);
@@ -60,6 +67,8 @@ export function OwnerAgentCard({ agent, stripeConnected, categories }: OwnerAgen
 
   const [editOpen, setEditOpen] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [uploadingPic, setUploadingPic] = useState(false);
+  const [localMainPic, setLocalMainPic] = useState<string | null>(agent.mainPic ?? null);
   const [form, setForm] = useState<EditForm>({
     name: agent.name,
     description: agent.description,
@@ -68,6 +77,41 @@ export function OwnerAgentCard({ agent, stripeConnected, categories }: OwnerAgen
     webhookUrl: agent.webhookUrl ?? "",
     categorySlugs: agent.categories.map((c) => c.slug),
   });
+
+  const uploadAgentPic = async (file: File) => {
+    if (!user) return;
+    if (file.size > 2 * 1024 * 1024) {
+      toast({ title: "File too large", description: "Maximum file size is 2MB.", variant: "destructive" });
+      return;
+    }
+    setUploadingPic(true);
+    try {
+      const supabase = getBrowserClient();
+      const path = `${user.id}/${agent.id}/main-pic`;
+      const { error } = await supabase.storage
+        .from(BUCKET)
+        .upload(path, file, { upsert: true, contentType: file.type });
+      if (error) throw error;
+      const { data } = supabase.storage.from(BUCKET).getPublicUrl(path);
+      const url = `${data.publicUrl}?t=${Date.now()}`;
+      setLocalMainPic(url);
+      await api.updateAgent(agent.id, { mainPic: url });
+      queryClient.setQueryData(["me"], (old: any) => {
+        if (!old?.agentProfiles) return old;
+        return {
+          ...old,
+          agentProfiles: old.agentProfiles.map((a: AgentProfile) =>
+            a.id === agent.id ? { ...a, mainPic: url } : a
+          ),
+        };
+      });
+      toast({ title: "Agent photo updated", variant: "success" });
+    } catch (err: unknown) {
+      toast({ title: "Upload failed", description: (err as Error).message, variant: "destructive" });
+    } finally {
+      setUploadingPic(false);
+    }
+  };
 
   const displayKey = newApiKey
     ? newApiKey
@@ -113,15 +157,29 @@ export function OwnerAgentCard({ agent, stripeConnected, categories }: OwnerAgen
         priceTo: Number(form.priceTo),
         webhookUrl: form.webhookUrl,
         categorySlugs: form.categorySlugs,
+        mainPic: localMainPic,
       });
       queryClient.invalidateQueries({ queryKey: ["me"] });
       setEditOpen(false);
-      toast({ title: "Agent updated" });
+      toast({ title: "Agent updated", variant: "success" });
     } catch {
       toast({ title: "Failed to update agent", variant: "destructive" });
     } finally {
       setSaving(false);
     }
+  };
+
+  const openEdit = () => {
+    setLocalMainPic(agent.mainPic ?? null);
+    setForm({
+      name: agent.name,
+      description: agent.description,
+      priceFrom: String(agent.priceFrom),
+      priceTo: String(agent.priceTo),
+      webhookUrl: agent.webhookUrl ?? "",
+      categorySlugs: agent.categories.map((c) => c.slug),
+    });
+    setEditOpen(true);
   };
 
   return (
@@ -176,7 +234,7 @@ export function OwnerAgentCard({ agent, stripeConnected, categories }: OwnerAgen
             <Button
               size="sm"
               variant="outline"
-              onClick={() => setEditOpen(true)}
+              onClick={openEdit}
               className="flex-shrink-0 border-border hover:border-[#b57e04] hover:text-[#b57e04] gap-1 font-ui"
             >
               <Pencil className="w-3.5 h-3.5" />
@@ -265,6 +323,41 @@ export function OwnerAgentCard({ agent, stripeConnected, categories }: OwnerAgen
             <DialogTitle className="font-display">Edit Agent</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 pt-2">
+            {/* Agent Photo */}
+            <div>
+              <Label className="font-ui text-sm font-medium mb-2 block">Agent Photo</Label>
+              <div className="flex items-center gap-4">
+                <div
+                  className="w-16 h-16 rounded-full overflow-hidden bg-muted cursor-pointer relative group flex-shrink-0 border-2 border-border hover:border-[#b57e04] transition-colors"
+                  onClick={() => picInputRef.current?.click()}
+                >
+                  {localMainPic ? (
+                    <Image src={localMainPic} alt="Agent photo" fill className="object-cover" unoptimized />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-[#b57e04] to-[#d4a017]">
+                      <span className="text-white font-bold text-lg font-ui">{initials}</span>
+                    </div>
+                  )}
+                  <div className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity rounded-full">
+                    {uploadingPic ? (
+                      <Loader2 className="w-4 h-4 text-white animate-spin" />
+                    ) : (
+                      <Camera className="w-4 h-4 text-white" />
+                    )}
+                  </div>
+                </div>
+                <p className="text-xs text-muted-foreground font-ui">
+                  Click the avatar to upload a photo. Max 2MB. Changes are saved immediately.
+                </p>
+              </div>
+              <input
+                ref={picInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={(e) => { const f = e.target.files?.[0]; if (f) uploadAgentPic(f); e.target.value = ""; }}
+              />
+            </div>
             <div>
               <Label className="font-ui text-sm font-medium mb-1.5 block">Agent Name</Label>
               <Input

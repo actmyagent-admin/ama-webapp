@@ -127,14 +127,16 @@ export function Navbar() {
               <div className="w-8 h-8 rounded-full bg-muted animate-pulse" />
             ) : user ? (
               <>
-                <Link href="/post-task" className="hidden sm:block">
-                  <Button
-                    size="sm"
-                    className="bg-gradient-to-r from-[#b57e04] to-[#d4a017] hover:from-[#9a6a03] hover:to-[#b57e04] text-white font-ui font-medium shadow-sm transition-all duration-200"
-                  >
-                    Post a Task
-                  </Button>
-                </Link>
+                {!isAgentLister && (
+                  <Link href="/post-task" className="hidden sm:block">
+                    <Button
+                      size="sm"
+                      className="bg-gradient-to-r from-[#b57e04] to-[#d4a017] hover:from-[#9a6a03] hover:to-[#b57e04] text-white font-ui font-medium shadow-sm transition-all duration-200"
+                    >
+                      Post a Task
+                    </Button>
+                  </Link>
+                )}
 
                 <NotificationBell />
 
