@@ -77,7 +77,7 @@ export default function ProfilePage() {
   }
 
   const isAgent = profile.roles.includes("AGENT_LISTER");
-  const agent = profile.agentProfile;
+  const agents = profile.agentProfiles ?? [];
 
   return (
     <div>
@@ -157,92 +157,98 @@ export default function ProfilePage() {
         })()}
 
         {/* Agent profile section */}
-        {isAgent && agent && (
+        {isAgent && agents.length > 0 && (
           <div className="pb-12">
             <h2 className="text-base font-display font-semibold text-muted-foreground mb-3 uppercase tracking-wide">
-              Agent
+              Agents
             </h2>
-            <Card className="gradient-border-card gradient-border-card-hover bg-card">
-              <CardContent className="p-5">
-                <div className="flex items-start gap-4">
-                  {/* Agent icon */}
-                  <div className="w-14 h-14 rounded-xl overflow-hidden bg-muted flex-shrink-0">
-                    {agent.mainPic ? (
-                      <Image
-                        src={agent.mainPic} alt={agent.name}
-                        width={56} height={56} className="object-cover w-full h-full" unoptimized
-                      />
-                    ) : (
-                      <div className="w-full h-full bg-gradient-to-br from-[#b57e04] to-[#d4a017] flex items-center justify-center">
-                        <span className="text-white font-bold text-xl font-display">
-                          {agent.name[0]}
-                        </span>
+            <div className="space-y-4">
+              {agents.map((agent) => (
+                <Card key={agent.id} className="gradient-border-card gradient-border-card-hover bg-card">
+                  <CardContent className="p-5">
+                    <div className="flex items-start gap-4">
+                      {/* Agent icon */}
+                      <div className="w-14 h-14 rounded-xl overflow-hidden bg-muted flex-shrink-0">
+                        {agent.mainPic ? (
+                          <Image
+                            src={agent.mainPic} alt={agent.name}
+                            width={56} height={56} className="object-cover w-full h-full" unoptimized
+                          />
+                        ) : (
+                          <div className="w-full h-full bg-gradient-to-br from-[#b57e04] to-[#d4a017] flex items-center justify-center">
+                            <span className="text-white font-bold text-xl font-display">
+                              {agent.name[0]}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="flex-1 min-w-0">
+                        {/* Agent name + verified */}
+                        <div className="flex items-center gap-2 flex-wrap mb-1">
+                          <Link href={`/agents/${agent.slug ?? agent.id}`}>
+                            <h3 className="font-display font-semibold text-foreground hover:text-[#b57e04] transition-colors">{agent.name}</h3>
+                          </Link>
+                          {agent.isVerified && (
+                            <Badge className="bg-emerald-500/10 text-emerald-600 border-emerald-500/30 text-xs font-ui">
+                              Verified
+                            </Badge>
+                          )}
+                        </div>
+
+                        <p className="text-muted-foreground text-sm font-ui line-clamp-2 mb-3">
+                          {agent.description}
+                        </p>
+
+                        {/* Stats row */}
+                        <div className="flex items-center gap-4 text-sm text-muted-foreground font-ui flex-wrap">
+                          <span className="flex items-center gap-1">
+                            <DollarSign className="w-3.5 h-3.5 text-[#b57e04]" />
+                            ${agent.priceFrom}–${agent.priceTo} {agent.currency}
+                          </span>
+                          {agent.avgRating != null && (
+                            <span className="flex items-center gap-1">
+                              <Star className="w-3.5 h-3.5 text-[#b57e04] fill-[#b57e04]" />
+                              {agent.avgRating.toFixed(1)}
+                            </span>
+                          )}
+                          {agent.totalJobs != null && agent.totalJobs > 0 && (
+                            <span className="flex items-center gap-1">
+                              <Briefcase className="w-3.5 h-3.5" />
+                              {agent.totalJobs} job{agent.totalJobs !== 1 ? "s" : ""}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Categories */}
+                    {agent.categories.length > 0 && (
+                      <div className="mt-4 flex flex-wrap gap-2">
+                        {agent.categories.map((cat) => {
+                          const meta = getCategoryMeta(cat.slug);
+                          const Icon = meta?.icon;
+                          return (
+                            <span
+                              key={cat.id}
+                              className="flex items-center gap-1.5 px-3 py-1 rounded-full text-xs border border-border text-muted-foreground font-ui bg-muted/50"
+                            >
+                              {Icon && <Icon className={`w-3 h-3 ${meta?.iconColor}`} />}
+                              {meta?.label ?? cat.name}
+                            </span>
+                          );
+                        })}
                       </div>
                     )}
-                  </div>
-
-                  <div className="flex-1 min-w-0">
-                    {/* Agent name + verified */}
-                    <div className="flex items-center gap-2 flex-wrap mb-1">
-                      <h3 className="font-display font-semibold text-foreground">{agent.name}</h3>
-                      {agent.isVerified && (
-                        <Badge className="bg-emerald-500/10 text-emerald-600 border-emerald-500/30 text-xs font-ui">
-                          Verified
-                        </Badge>
-                      )}
-                    </div>
-
-                    <p className="text-muted-foreground text-sm font-ui line-clamp-2 mb-3">
-                      {agent.description}
-                    </p>
-
-                    {/* Stats row */}
-                    <div className="flex items-center gap-4 text-sm text-muted-foreground font-ui flex-wrap">
-                      <span className="flex items-center gap-1">
-                        <DollarSign className="w-3.5 h-3.5 text-[#b57e04]" />
-                        ${agent.priceFrom}–${agent.priceTo} {agent.currency}
-                      </span>
-                      {agent.avgRating != null && (
-                        <span className="flex items-center gap-1">
-                          <Star className="w-3.5 h-3.5 text-[#b57e04] fill-[#b57e04]" />
-                          {agent.avgRating.toFixed(1)}
-                        </span>
-                      )}
-                      {agent.totalJobs != null && agent.totalJobs > 0 && (
-                        <span className="flex items-center gap-1">
-                          <Briefcase className="w-3.5 h-3.5" />
-                          {agent.totalJobs} job{agent.totalJobs !== 1 ? "s" : ""}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                </div>
-
-                {/* Categories */}
-                {agent.categories.length > 0 && (
-                  <div className="mt-4 flex flex-wrap gap-2">
-                    {agent.categories.map((cat) => {
-                      const meta = getCategoryMeta(cat.slug);
-                      const Icon = meta?.icon;
-                      return (
-                        <span
-                          key={cat.id}
-                          className="flex items-center gap-1.5 px-3 py-1 rounded-full text-xs border border-border text-muted-foreground font-ui bg-muted/50"
-                        >
-                          {Icon && <Icon className={`w-3 h-3 ${meta?.iconColor}`} />}
-                          {meta?.label ?? cat.name}
-                        </span>
-                      );
-                    })}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
           </div>
         )}
 
         {/* Spacer for non-agent profiles */}
-        {(!isAgent || !agent) && <div className="pb-12" />}
+        {(!isAgent || agents.length === 0) && <div className="pb-12" />}
       </div>
     </div>
   );

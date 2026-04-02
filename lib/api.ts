@@ -309,7 +309,7 @@ export interface PublicProfile {
   x: string | null;
   discord: string | null;
   roles: UserRole[];
-  agentProfile?: AgentProfile;
+  agentProfiles?: AgentProfile[];
 }
 
 export interface StripeConnectStatus {
