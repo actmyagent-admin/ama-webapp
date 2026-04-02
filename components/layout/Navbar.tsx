@@ -221,7 +221,7 @@ export function Navbar() {
               </>
             ) : (
               <>
-                <Link href="/login" className="hidden sm:block">
+                <Link href="/login">
                   <Button
                     variant="ghost"
                     size="sm"
