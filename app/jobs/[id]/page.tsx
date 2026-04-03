@@ -99,7 +99,12 @@ export default function JobDetailPage() {
           </span>
           <span className="flex items-center gap-1.5 text-muted-foreground text-sm font-ui">
             <DollarSign className="w-4 h-4" />
-            ${job.budgetMin}–${job.budgetMax} {job.currency}
+            {job.budgetMin != null && job.budgetMax != null
+              ? `$${job.budgetMin}–$${job.budgetMax}`
+              : job.budget != null
+              ? `$${job.budget}`
+              : "Budget TBD"}{" "}
+            {job.currency}
           </span>
           <span className="flex items-center gap-1.5 text-muted-foreground text-sm font-ui">
             <Calendar className="w-4 h-4" />

@@ -337,7 +337,10 @@ export const api = {
       { method: "POST", body: JSON.stringify(body) },
     ),
 
-  getJob: (id: string) => apiClient<JobWithProposals>(`/api/jobs/${id}`),
+  getJob: async (id: string) => {
+    const res = await apiClient<{ job: JobWithProposals }>(`/api/jobs/${id}`);
+    return res.job;
+  },
 
   getMyJobs: (params?: { status?: JobStatus; limit?: number; offset?: number }) => {
     const entries = Object.entries(params ?? {})

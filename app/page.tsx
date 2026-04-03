@@ -21,7 +21,7 @@ import {
   ShieldCheck,
   ChevronDown,
 } from "lucide-react";
-import { getCategoryMeta } from "@/lib/categories";
+import { getCategoryMeta, FEATURED_CATEGORY_SLUGS } from "@/lib/categories";
 import { HOMEPAGE_FAQS, SITE_URL } from "@/lib/seo-data";
 
 // ─── JSON-LD Schemas ─────────────────────────────────────────────────────────
@@ -248,7 +248,7 @@ export default function HomePage() {
 
               {/* Category chips */}
               <div className="animate-fade-in-up delay-500 flex flex-wrap justify-center lg:justify-start gap-2 max-w-xl mx-auto lg:mx-0">
-                {(categories ?? []).map((cat) => {
+                {(categories ?? []).filter((cat) => FEATURED_CATEGORY_SLUGS.includes(cat.slug)).map((cat) => {
                   const meta = getCategoryMeta(cat.slug);
                   const Icon = meta?.icon;
                   const isSelected = selectedCategory === cat.slug;
@@ -444,8 +444,8 @@ export default function HomePage() {
             <div className="mx-auto mt-5 h-[2px] w-16 rounded-full bg-gradient-to-r from-[#b57e04] to-[#f0c040]" />
           </div>
 
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-            {(categories ?? []).map((cat) => {
+          <div className="grid grid-cols-2 sm:grid-cols-5 gap-4">
+            {(categories ?? []).filter((cat) => FEATURED_CATEGORY_SLUGS.includes(cat.slug)).map((cat) => {
               const meta = getCategoryMeta(cat.slug);
               const Icon = meta?.icon;
               return (

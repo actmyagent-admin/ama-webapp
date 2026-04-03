@@ -139,13 +139,16 @@ export function OwnerAgentCard({ agent, stripeConnected, categories }: OwnerAgen
     setTimeout(() => setCopied(false), 2000);
   };
 
+  const [categorySearch, setCategorySearch] = useState("");
+
   const toggleCategory = (slug: string) =>
-    setForm((f) => ({
-      ...f,
-      categorySlugs: f.categorySlugs.includes(slug)
-        ? f.categorySlugs.filter((s) => s !== slug)
-        : [...f.categorySlugs, slug],
-    }));
+    setForm((f) => {
+      if (f.categorySlugs.includes(slug)) {
+        return { ...f, categorySlugs: f.categorySlugs.filter((s) => s !== slug) };
+      }
+      if (f.categorySlugs.length >= 3) return f;
+      return { ...f, categorySlugs: [...f.categorySlugs, slug] };
+    });
 
   const handleSave = async () => {
     setSaving(true);
@@ -406,29 +409,81 @@ export function OwnerAgentCard({ agent, stripeConnected, categories }: OwnerAgen
             </div>
             {categories && categories.length > 0 && (
               <div>
-                <Label className="font-ui text-sm font-medium mb-2 block">Categories</Label>
-                <div className="flex flex-wrap gap-2">
-                  {categories.map((cat) => {
-                    const meta = getCategoryMeta(cat.slug);
-                    const Icon = meta?.icon;
-                    const sel = form.categorySlugs.includes(cat.slug);
-                    return (
-                      <button
-                        key={cat.slug}
-                        type="button"
-                        onClick={() => toggleCategory(cat.slug)}
-                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm border transition-all font-ui ${
-                          sel
-                            ? "bg-[#b57e04] border-[#b57e04] text-white"
-                            : "bg-card border-border text-muted-foreground hover:border-[#b57e04]/50 hover:text-foreground"
-                        }`}
-                      >
-                        {Icon && <Icon className={`w-3.5 h-3.5 ${sel ? "text-white" : meta?.iconColor}`} />}
-                        {meta?.label ?? cat.name}
-                      </button>
-                    );
-                  })}
+                <div className="flex items-center justify-between mb-2">
+                  <Label className="font-ui text-sm font-medium">Categories</Label>
+                  <span className={`text-xs font-ui font-medium px-2 py-0.5 rounded-full ${form.categorySlugs.length >= 3 ? "bg-[#b57e04]/10 text-[#b57e04]" : "bg-muted text-muted-foreground"}`}>
+                    {form.categorySlugs.length}/3
+                  </span>
                 </div>
+
+                {/* Selected chips */}
+                {form.categorySlugs.length > 0 && (
+                  <div className="flex flex-wrap gap-1.5 mb-3">
+                    {form.categorySlugs.map((slug) => {
+                      const meta = getCategoryMeta(slug);
+                      return (
+                        <span key={slug} className="inline-flex items-center gap-1 pl-2 pr-1 py-1 text-xs rounded-full bg-[#b57e04] text-white font-ui">
+                          <span>{meta?.emoji}</span>
+                          <span>{meta?.label ?? slug}</span>
+                          <button type="button" onClick={() => toggleCategory(slug)} className="ml-0.5 rounded-full hover:bg-white/20 p-0.5 transition-colors">
+                            <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M2 2l6 6M8 2l-6 6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg>
+                          </button>
+                        </span>
+                      );
+                    })}
+                  </div>
+                )}
+
+                {/* Search */}
+                <div className="relative mb-2">
+                  <svg className="absolute left-2.5 top-2.5 w-3.5 h-3.5 text-muted-foreground pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+                  <input
+                    type="text"
+                    placeholder="Search categories..."
+                    value={categorySearch}
+                    onChange={(e) => setCategorySearch(e.target.value)}
+                    className="w-full pl-8 pr-3 py-2 text-sm border border-border rounded-lg bg-background focus:outline-none focus:ring-1 focus:ring-[#b57e04] font-ui"
+                  />
+                </div>
+
+                {/* Scrollable list */}
+                <div className="max-h-44 overflow-y-auto rounded-lg border border-border bg-card p-1.5 space-y-0.5">
+                  {categories
+                    .filter((cat) => {
+                      const meta = getCategoryMeta(cat.slug);
+                      const label = meta?.label ?? cat.name;
+                      return label.toLowerCase().includes(categorySearch.toLowerCase());
+                    })
+                    .map((cat) => {
+                      const meta = getCategoryMeta(cat.slug);
+                      const sel = form.categorySlugs.includes(cat.slug);
+                      const disabled = !sel && form.categorySlugs.length >= 3;
+                      return (
+                        <button
+                          key={cat.slug}
+                          type="button"
+                          onClick={() => toggleCategory(cat.slug)}
+                          disabled={disabled}
+                          className={`w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-md text-sm text-left transition-colors font-ui ${
+                            sel
+                              ? "bg-[#b57e04]/10 text-[#b57e04]"
+                              : disabled
+                              ? "opacity-30 cursor-not-allowed text-muted-foreground"
+                              : "hover:bg-accent text-foreground"
+                          }`}
+                        >
+                          <span className="text-base leading-none w-5 text-center">{meta?.emoji ?? "📁"}</span>
+                          <span className="flex-1">{meta?.label ?? cat.name}</span>
+                          {sel && (
+                            <svg className="w-3.5 h-3.5 text-[#b57e04] flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7"/></svg>
+                          )}
+                        </button>
+                      );
+                    })}
+                </div>
+                {form.categorySlugs.length >= 3 && (
+                  <p className="text-xs text-muted-foreground mt-1.5 font-ui">Maximum 3 categories. Remove one to select another.</p>
+                )}
               </div>
             )}
             <div className="flex gap-3 pt-2">
