@@ -31,7 +31,7 @@ async function apiRaw(path: string, options?: RequestInit & { token?: string }):
 
 async function apiClient<T>(
   path: string,
-  options?: RequestInit & { token?: string },
+  options?: RequestInit & { token?: string; noAutoLogout?: boolean },
 ): Promise<T> {
   const token = options?.token ?? (await getToken());
   const headers: Record<string, string> = {
@@ -54,7 +54,7 @@ async function apiClient<T>(
     } catch {
       data = null;
     }
-    if (res.status === 401) {
+    if (res.status === 401 && !options?.noAutoLogout) {
       // Defer signOut so it never runs while the Supabase auth lock is held
       // (e.g. when apiClient is called from inside an onAuthStateChange callback).
       // Calling supabase.auth.signOut() synchronously here would deadlock.
@@ -518,7 +518,13 @@ export const api = {
     }),
 
   getMe: async (token?: string) => {
-    const res = await apiClient<{ user: UserProfile }>("/api/users/me", token ? { token } : undefined);
+    // noAutoLogout: true — a 401 here means the user is not yet registered in
+    // the internal DB (new OAuth signup), not that their Supabase session is
+    // invalid. Callers handle the ApiError themselves; we must not force-logout.
+    const res = await apiClient<{ user: UserProfile }>("/api/users/me", {
+      ...(token ? { token } : {}),
+      noAutoLogout: true,
+    });
     return res.user;
   },
 

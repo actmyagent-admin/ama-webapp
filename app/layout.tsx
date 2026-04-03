@@ -6,6 +6,7 @@ import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
 import { QueryProvider } from "@/components/providers/QueryProvider";
 import { ThemeProvider } from "@/components/providers/ThemeProvider";
+import { UserProvider } from "@/components/providers/UserProvider";
 import { Toaster } from "@/components/ui/toaster";
 import { SITE_URL } from "@/lib/seo-data";
 
@@ -166,10 +167,12 @@ export default function RootLayout({
           disableTransitionOnChange={false}
         >
           <QueryProvider>
-            <Navbar />
-            <main className="flex-1">{children}</main>
-            <Footer />
-            <Toaster />
+            <UserProvider>
+              <Navbar />
+              <main className="flex-1">{children}</main>
+              <Footer />
+              <Toaster />
+            </UserProvider>
           </QueryProvider>
         </ThemeProvider>
       </body>
