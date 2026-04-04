@@ -13,8 +13,9 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
   ArrowLeft, ArrowRight, CheckCircle, Copy, Check,
-  Loader2, Cpu, Link as LinkIcon, BookOpen, ShieldAlert,
+  Loader2, Cpu, Link as LinkIcon, BookOpen, ShieldAlert, Download,
 } from "lucide-react";
+import { downloadSkillMd } from "@/lib/downloadSkill";
 import { useToast } from "@/hooks/use-toast";
 import { Logo } from "@/components/ui/Logo";
 import Link from "next/link";
@@ -37,6 +38,7 @@ export default function AgentRegisterPage() {
   });
   const [apiKey, setApiKey] = useState("");
   const [copied, setCopied] = useState(false);
+  const [downloadingSkill, setDownloadingSkill] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [descriptionTouched, setDescriptionTouched] = useState(false);
   const [webhookTouched, setWebhookTouched] = useState(false);
@@ -403,6 +405,25 @@ export default function AgentRegisterPage() {
               </div>
             </CardContent>
           </Card>
+
+          {/* One-time skill.md download */}
+          <div className="bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800/40 rounded-xl px-4 py-3 mb-1">
+            <p className="text-sm text-amber-800 dark:text-amber-300 font-ui mb-3">
+              <span className="font-semibold">Note:</span> Download your personalised <code className="bg-amber-100 dark:bg-amber-900/40 px-1 rounded text-xs">skill.md</code> now — it contains your API key and will not be available again after you leave this page.
+            </p>
+            <Button
+              variant="outline"
+              className="w-full border-amber-300 dark:border-amber-700 hover:border-[#b57e04] hover:text-[#b57e04] gap-2 font-ui"
+              disabled={downloadingSkill}
+              onClick={async () => {
+                setDownloadingSkill(true);
+                try { await downloadSkillMd(apiKey); } finally { setDownloadingSkill(false); }
+              }}
+            >
+              {downloadingSkill ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
+              Download skill.md
+            </Button>
+          </div>
 
           <div className="flex flex-col sm:flex-row gap-3">
             <Link href="/docs/agent-sdk" className="flex-1">

@@ -28,8 +28,10 @@ import {
   AlertTriangle,
   KeyRound,
   Camera,
+  Download,
 } from "lucide-react";
 import { AgentProfile, AgentCategory, api } from "@/lib/api";
+import { downloadSkillMd } from "@/lib/downloadSkill";
 import { getCategoryMeta, FALLBACK_BADGE_CLASS } from "@/lib/categories";
 import { useToast } from "@/hooks/use-toast";
 import { useUser } from "@/hooks/useUser";
@@ -65,6 +67,7 @@ export function OwnerAgentCard({ agent, stripeConnected, categories }: OwnerAgen
   const [newKeyModalOpen, setNewKeyModalOpen] = useState(false);
   const [copied, setCopied] = useState(false);
 
+  const [downloadingSkill, setDownloadingSkill] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [uploadingPic, setUploadingPic] = useState(false);
@@ -575,6 +578,24 @@ export function OwnerAgentCard({ agent, stripeConnected, categories }: OwnerAgen
                   )}
                 </Button>
               </div>
+            </div>
+            <div className="bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800/40 rounded-xl px-4 py-3">
+              <p className="text-sm text-amber-800 dark:text-amber-300 font-ui mb-3">
+                <span className="font-semibold">Note:</span> Download your personalised <code className="bg-amber-100 dark:bg-amber-900/40 px-1 rounded text-xs">skill.md</code> now — it contains your new API key and will not be available again after you close this dialog.
+              </p>
+              <Button
+                variant="outline"
+                className="w-full border-amber-300 dark:border-amber-700 hover:border-[#b57e04] hover:text-[#b57e04] gap-2 font-ui"
+                disabled={downloadingSkill}
+                onClick={async () => {
+                  if (!newApiKey) return;
+                  setDownloadingSkill(true);
+                  try { await downloadSkillMd(newApiKey); } finally { setDownloadingSkill(false); }
+                }}
+              >
+                {downloadingSkill ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
+                Download skill.md
+              </Button>
             </div>
             <Button
               onClick={() => setNewKeyModalOpen(false)}
