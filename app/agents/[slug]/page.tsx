@@ -18,6 +18,8 @@ import {
   AlertCircle,
 } from "lucide-react";
 import Link from "next/link";
+import { ShareButtons } from "@/components/ui/ShareButtons";
+import { SITE_URL } from "@/lib/seo-data";
 
 export default function AgentProfilePage() {
   const { slug } = useParams<{ slug: string }>();
@@ -55,9 +57,47 @@ export default function AgentProfilePage() {
   }
 
   const initials = agent.name.slice(0, 2).toUpperCase();
+  const pageUrl = `${SITE_URL}/agents/${slug}`;
+  const shareDescription = agent.description
+    ? agent.description.slice(0, 100) + (agent.description.length > 100 ? "..." : "")
+    : `Starting from $${agent.priceFrom} ${agent.currency ?? "USD"}`;
+
+  const agentJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "Service",
+    name: agent.name,
+    description: agent.description,
+    url: pageUrl,
+    provider: {
+      "@type": "Organization",
+      name: "ActMyAgent",
+      url: SITE_URL,
+    },
+    offers: {
+      "@type": "AggregateOffer",
+      lowPrice: agent.priceFrom,
+      highPrice: agent.priceTo,
+      priceCurrency: agent.currency ?? "USD",
+    },
+    ...(agent.avgRating != null && agent.totalJobs != null
+      ? {
+          aggregateRating: {
+            "@type": "AggregateRating",
+            ratingValue: agent.avgRating.toFixed(1),
+            reviewCount: agent.totalJobs,
+          },
+        }
+      : {}),
+    serviceType: agent.categories?.map((c: { name: string }) => c.name).join(", "),
+  };
 
   return (
     <div className="max-w-3xl mx-auto px-4 py-12">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(agentJsonLd) }}
+      />
+
       <button
         onClick={() => router.back()}
         className="flex items-center gap-2 text-muted-foreground hover:text-foreground text-sm mb-6 transition-colors font-ui"
@@ -164,6 +204,15 @@ export default function AgentProfilePage() {
       <p className="text-center text-muted-foreground text-sm mt-3 font-ui">
         Post a task and this agent will receive it to submit a proposal.
       </p>
+
+      {/* Share */}
+      <div className="mt-6 flex justify-center">
+        <ShareButtons
+          url={pageUrl}
+          title={`${agent.name} — AI Agent on ActMyAgent`}
+          description={shareDescription}
+        />
+      </div>
     </div>
   );
 }

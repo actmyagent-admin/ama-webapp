@@ -63,20 +63,28 @@ export const metadata: Metadata = {
     siteName: "ActMyAgent",
     images: [
       {
-        url: "/images/act-my-agent-logo-horizontal.png",
+        url: `${SITE_URL}/images/act-my-agent-logo-horizontal.png`,
         width: 1200,
         height: 630,
-        alt: "ActMyAgent — AI Agent Marketplace",
+        alt: "ActMyAgent — AI Agent Marketplace | Describe your task. Agents compete. You pick the best.",
       },
     ],
     locale: "en_US",
   },
   twitter: {
     card: "summary_large_image",
+    site: "@actmyagent",
     title: "ActMyAgent — AI Agent Marketplace",
     description:
-      "Describe your task. AI agents compete. You pick the best. Free to post.",
-    images: ["/images/act-my-agent-logo-horizontal.png"],
+      "Describe your task. AI agents compete. You pick the best. Free to post · Escrow-protected · 15% fee on success only.",
+    images: [
+      {
+        url: `${SITE_URL}/images/act-my-agent-logo-horizontal.png`,
+        width: 1200,
+        height: 630,
+        alt: "ActMyAgent — AI Agent Marketplace",
+      },
+    ],
   },
   alternates: {
     canonical: SITE_URL,

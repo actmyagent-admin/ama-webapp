@@ -9,14 +9,17 @@ import { AgentCard } from "@/components/agents/AgentCard";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
-import { Search, SlidersHorizontal, Loader2 } from "lucide-react";
+import { Search, SlidersHorizontal, Loader2, ChevronDown, ChevronUp } from "lucide-react";
 import Link from "next/link";
 import { getCategoryMeta } from "@/lib/categories";
+
+const VISIBLE_CATEGORIES = 8;
 
 function AgentsContent() {
   const searchParams = useSearchParams();
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState(searchParams.get("category") || "");
+  const [showAllCats, setShowAllCats] = useState(false);
 
   const { data: categories } = useQuery({
     queryKey: ["categories"],
@@ -52,34 +55,65 @@ function AgentsContent() {
           />
         </div>
 
-        <div className="flex flex-wrap gap-2">
-          <button
-            onClick={() => setCategory("")}
-            className={`px-3 py-1.5 rounded-full text-sm font-ui border transition-all ${
-              category === ""
-                ? "bg-[#b57e04] border-[#b57e04] text-white shadow-sm"
-                : "bg-card border-border text-muted-foreground hover:border-[#b57e04]/50 hover:text-foreground"
-            }`}
-          >
-            All
-          </button>
-          {(categories ?? []).map((cat) => {
-            const meta = getCategoryMeta(cat.slug);
-            return (
-              <button
-                key={cat.slug}
-                onClick={() => setCategory(cat.slug)}
-                className={`px-3 py-1.5 rounded-full text-sm font-ui border transition-all ${
-                  category === cat.slug
-                    ? "bg-[#b57e04] border-[#b57e04] text-white shadow-sm"
-                    : "bg-card border-border text-muted-foreground hover:border-[#b57e04]/50 hover:text-foreground"
-                }`}
-              >
-                {meta?.label ?? cat.name}
-              </button>
-            );
-          })}
-        </div>
+        {(() => {
+          const allCats = categories ?? [];
+          // Always show the active category even if it's beyond the visible limit
+          const activeIsHidden =
+            category !== "" &&
+            !allCats.slice(0, VISIBLE_CATEGORIES).some((c) => c.slug === category);
+          const visibleCats = showAllCats
+            ? allCats
+            : activeIsHidden
+            ? [...allCats.slice(0, VISIBLE_CATEGORIES), allCats.find((c) => c.slug === category)!].filter(Boolean)
+            : allCats.slice(0, VISIBLE_CATEGORIES);
+          const hiddenCount = allCats.length - VISIBLE_CATEGORIES;
+
+          return (
+            <div className="space-y-2">
+              <div className="flex flex-wrap gap-2">
+                <button
+                  onClick={() => setCategory("")}
+                  className={`px-3 py-1.5 rounded-full text-sm font-ui border transition-all ${
+                    category === ""
+                      ? "bg-[#b57e04] border-[#b57e04] text-white shadow-sm"
+                      : "bg-card border-border text-muted-foreground hover:border-[#b57e04]/50 hover:text-foreground"
+                  }`}
+                >
+                  All
+                </button>
+                {visibleCats.map((cat) => {
+                  const meta = getCategoryMeta(cat.slug);
+                  return (
+                    <button
+                      key={cat.slug}
+                      onClick={() => setCategory(cat.slug)}
+                      className={`px-3 py-1.5 rounded-full text-sm font-ui border transition-all ${
+                        category === cat.slug
+                          ? "bg-[#b57e04] border-[#b57e04] text-white shadow-sm"
+                          : "bg-card border-border text-muted-foreground hover:border-[#b57e04]/50 hover:text-foreground"
+                      }`}
+                    >
+                      {meta?.label ?? cat.name}
+                    </button>
+                  );
+                })}
+              </div>
+
+              {allCats.length > VISIBLE_CATEGORIES && (
+                <button
+                  onClick={() => setShowAllCats((v) => !v)}
+                  className="flex items-center gap-1 text-xs text-muted-foreground font-ui hover:text-[#b57e04] transition-colors ml-1"
+                >
+                  {showAllCats ? (
+                    <><ChevronUp className="w-3.5 h-3.5" /> Show less</>
+                  ) : (
+                    <><ChevronDown className="w-3.5 h-3.5" /> Show {hiddenCount} more categories</>
+                  )}
+                </button>
+              )}
+            </div>
+          );
+        })()}
       </div>
 
       {isLoading ? (
