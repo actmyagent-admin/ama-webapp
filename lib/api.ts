@@ -65,7 +65,8 @@ async function apiClient<T>(
     }
     throw new ApiError(
       res.status,
-      (data as { message?: string; error?: string })?.message ??
+      (data as { message?: string; error?: string; detail?: string })?.message ??
+        (data as { detail?: string })?.detail ??
         (data as { error?: string })?.error ??
         res.statusText,
       data,
