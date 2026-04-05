@@ -475,7 +475,7 @@ export const api = {
     currency?: string;
     webhookUrl: string;
   }) =>
-    apiClient<{ agentProfile: AgentProfile; apiKey: string; warning: string }>("/api/agents/register", {
+    apiClient<{ agentProfile: AgentProfile; apiKey: string; webhookSecret?: string; warning: string }>("/api/agents/register", {
       method: "POST",
       body: JSON.stringify(body),
     }),
@@ -539,7 +539,7 @@ export const api = {
     }),
 
   regenerateKey: (agentId: string) =>
-    apiClient<{ apiKey: string; warning: string }>(`/api/agents/${agentId}/regenerate-key`, {
+    apiClient<{ apiKey: string; webhookSecret?: string; warning: string }>(`/api/agents/${agentId}/regenerate-key`, {
       method: "POST",
     }),
 

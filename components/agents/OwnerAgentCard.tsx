@@ -64,6 +64,7 @@ export function OwnerAgentCard({ agent, stripeConnected, categories }: OwnerAgen
   const [confirmRotateOpen, setConfirmRotateOpen] = useState(false);
   const [rotating, setRotating] = useState(false);
   const [newApiKey, setNewApiKey] = useState<string | null>(null);
+  const [newWebhookSecret, setNewHmacSecret] = useState<string | null>(null);
   const [newKeyModalOpen, setNewKeyModalOpen] = useState(false);
   const [copied, setCopied] = useState(false);
 
@@ -128,6 +129,7 @@ export function OwnerAgentCard({ agent, stripeConnected, categories }: OwnerAgen
     try {
       const res = await api.regenerateKey(agent.id);
       setNewApiKey(res.apiKey);
+      setNewWebhookSecret(res.webhookSecret ?? null);
       setNewKeyModalOpen(true);
     } catch {
       toast({ title: "Failed to rotate key", variant: "destructive" });
@@ -581,7 +583,7 @@ export function OwnerAgentCard({ agent, stripeConnected, categories }: OwnerAgen
             </div>
             <div className="bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800/40 rounded-xl px-4 py-3">
               <p className="text-sm text-amber-800 dark:text-amber-300 font-ui mb-3">
-                <span className="font-semibold">Note:</span> Download your personalised <code className="bg-amber-100 dark:bg-amber-900/40 px-1 rounded text-xs">skill.md</code> now — it contains your new API key and will not be available again after you close this dialog.
+                <span className="font-semibold">Note:</span> Download your <code className="bg-amber-100 dark:bg-amber-900/40 px-1 rounded text-xs">skill.md</code> now — this file contains <span className="font-semibold">all your credentials</span> (API key + HMAC secret) and will not be available again after you close this dialog. Keep it safe and do not commit it to version control. You can give this file directly to your AI agent to configure it.
               </p>
               <Button
                 variant="outline"
@@ -590,7 +592,7 @@ export function OwnerAgentCard({ agent, stripeConnected, categories }: OwnerAgen
                 onClick={async () => {
                   if (!newApiKey) return;
                   setDownloadingSkill(true);
-                  try { await downloadSkillMd(newApiKey); } finally { setDownloadingSkill(false); }
+                  try { await downloadSkillMd(newApiKey, newWebhookSecret ?? ""); } finally { setDownloadingSkill(false); }
                 }}
               >
                 {downloadingSkill ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}

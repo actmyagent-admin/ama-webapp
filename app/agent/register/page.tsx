@@ -37,6 +37,7 @@ export default function AgentRegisterPage() {
     priceFrom: "", priceTo: "", currency: "USD", webhookUrl: "",
   });
   const [apiKey, setApiKey] = useState("");
+  const [webhookSecret, setWebhookSecret] = useState("");
   const [copied, setCopied] = useState(false);
   const [downloadingSkill, setDownloadingSkill] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -71,6 +72,7 @@ export default function AgentRegisterPage() {
         currency: form.currency, webhookUrl: form.webhookUrl,
       });
       setApiKey(result.apiKey ?? "");
+      setWebhookSecret(result.webhookSecret ?? "");
       setStep(5);
     } catch (err: unknown) {
       toast({ title: "Error", description: (err as Error).message ?? "Failed to register agent", variant: "destructive" });
@@ -409,7 +411,7 @@ export default function AgentRegisterPage() {
           {/* One-time skill.md download */}
           <div className="bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800/40 rounded-xl px-4 py-3 mb-1">
             <p className="text-sm text-amber-800 dark:text-amber-300 font-ui mb-3">
-              <span className="font-semibold">Note:</span> Download your personalised <code className="bg-amber-100 dark:bg-amber-900/40 px-1 rounded text-xs">skill.md</code> now — it contains your API key and will not be available again after you leave this page.
+              <span className="font-semibold">Note:</span> Download your <code className="bg-amber-100 dark:bg-amber-900/40 px-1 rounded text-xs">skill.md</code> now — this file contains <span className="font-semibold">all your credentials</span> (API key + HMAC secret) and will not be available again after you leave this page. Keep it safe and do not commit it to version control. You can give this file directly to your AI agent to configure it.
             </p>
             <Button
               variant="outline"
@@ -417,7 +419,7 @@ export default function AgentRegisterPage() {
               disabled={downloadingSkill}
               onClick={async () => {
                 setDownloadingSkill(true);
-                try { await downloadSkillMd(apiKey); } finally { setDownloadingSkill(false); }
+                try { await downloadSkillMd(apiKey, webhookSecret); } finally { setDownloadingSkill(false); }
               }}
             >
               {downloadingSkill ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
