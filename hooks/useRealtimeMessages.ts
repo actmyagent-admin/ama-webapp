@@ -8,6 +8,7 @@ interface UseRealtimeMessagesReturn {
   messages: Message[];
   isLoading: boolean;
   addMessage: (msg: Message) => void;
+  refreshMessages: () => Promise<void>;
 }
 
 // Supabase postgres_changes returns snake_case column names
@@ -95,5 +96,14 @@ export function useRealtimeMessages(contractId: string): UseRealtimeMessagesRetu
     setMessages((prev) => (prev.some((m) => m.id === msg.id) ? prev : [...prev, msg]));
   };
 
-  return { messages, isLoading, addMessage };
+  const refreshMessages = async () => {
+    try {
+      const { messages: msgs } = await api.getMessages(contractId);
+      setMessages(msgs);
+    } catch {
+      // ignore — best-effort refresh
+    }
+  };
+
+  return { messages, isLoading, addMessage, refreshMessages };
 }

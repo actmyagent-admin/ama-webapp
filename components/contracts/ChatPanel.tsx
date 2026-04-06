@@ -10,14 +10,17 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { MessageSquare, Send, Loader2, CheckCheck } from "lucide-react";
+import { ApiError } from "@/lib/api";
+import { useToast } from "@/hooks/use-toast";
 
 interface ChatPanelProps {
   contractId: string;
 }
 
 export function ChatPanel({ contractId }: ChatPanelProps) {
-  const { messages, isLoading, addMessage } = useRealtimeMessages(contractId);
-  const { user } = useUser();
+  const { messages, isLoading, addMessage, refreshMessages } = useRealtimeMessages(contractId);
+  const { profileId } = useUser();
+  const { toast } = useToast();
   const [content, setContent] = useState("");
   const [sending, setSending] = useState(false);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
@@ -30,16 +33,16 @@ export function ChatPanel({ contractId }: ChatPanelProps) {
 
   // Auto-mark incoming messages as read
   useEffect(() => {
-    if (!user || messages.length === 0) return;
+    if (!profileId || messages.length === 0) return;
     messages
-      .filter((msg) => msg.senderId !== user.id && !msg.readAt && !markedReadRef.current.has(msg.id))
+      .filter((msg) => msg.senderId !== profileId && !msg.readAt && !markedReadRef.current.has(msg.id))
       .forEach((msg) => {
         markedReadRef.current.add(msg.id);
         api.markMessageRead(msg.id).catch(() => {
           markedReadRef.current.delete(msg.id);
         });
       });
-  }, [messages, user]);
+  }, [messages, profileId]);
 
   const handleSend = async () => {
     if (!content.trim() || sending) return;
@@ -48,10 +51,26 @@ export function ChatPanel({ contractId }: ChatPanelProps) {
     setContent("");
     try {
       const { message } = await api.sendMessage(contractId, text);
-      // Optimistically add to local state — realtime will dedup if it also fires
       addMessage(message);
-    } catch {
-      setContent(text);
+    } catch (err: unknown) {
+      const status = err instanceof ApiError ? err.status : 0;
+      if (status >= 500) {
+        // Server error after saving — message likely reached the DB.
+        // Refresh to pull it in rather than pretending it failed.
+        await refreshMessages();
+        toast({
+          title: "Message delivered",
+          description: "The server had a minor issue but your message was saved.",
+        });
+      } else {
+        // Genuine failure — restore the draft so nothing is lost.
+        setContent(text);
+        toast({
+          title: "Failed to send",
+          description: err instanceof ApiError ? err.message : "Please try again.",
+          variant: "destructive",
+        });
+      }
     } finally {
       setSending(false);
     }
@@ -91,7 +110,7 @@ export function ChatPanel({ contractId }: ChatPanelProps) {
           </div>
         ) : (
           messages.map((msg) => {
-            const isMe = msg.senderId === user?.id;
+            const isMe = msg.senderId === profileId;
             return (
               <div
                 key={msg.id}
