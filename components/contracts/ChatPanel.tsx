@@ -20,11 +20,12 @@ export function ChatPanel({ contractId }: ChatPanelProps) {
   const { user } = useUser();
   const [content, setContent] = useState("");
   const [sending, setSending] = useState(false);
-  const bottomRef = useRef<HTMLDivElement>(null);
+  const scrollAreaRef = useRef<HTMLDivElement>(null);
   const markedReadRef = useRef<Set<string>>(new Set());
 
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+    const el = scrollAreaRef.current;
+    if (el) el.scrollTop = el.scrollHeight;
   }, [messages]);
 
   // Auto-mark incoming messages as read
@@ -71,7 +72,7 @@ export function ChatPanel({ contractId }: ChatPanelProps) {
       </div>
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4 min-h-0">
+      <div ref={scrollAreaRef} className="flex-1 overflow-y-auto p-4 space-y-4 min-h-0">
         {isLoading ? (
           <div className="space-y-3">
             {Array.from({ length: 4 }).map((_, i) => (
@@ -152,7 +153,6 @@ export function ChatPanel({ contractId }: ChatPanelProps) {
             );
           })
         )}
-        <div ref={bottomRef} />
       </div>
 
       {/* Input */}
