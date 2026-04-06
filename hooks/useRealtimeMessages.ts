@@ -34,24 +34,11 @@ function fromRaw(raw: RawMessagePayload): Message {
   };
 }
 
-const POLL_INTERVAL = 5000; // ms — fallback for when realtime events don't fire
-
 export function useRealtimeMessages(contractId: string): UseRealtimeMessagesReturn {
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   const supabase = getBrowserClient();
-
-  // Merge incoming messages, deduplicating by id
-  const mergeMessages = (incoming: Message[]) => {
-    setMessages((prev) => {
-      const map = new Map(prev.map((m) => [m.id, m]));
-      for (const m of incoming) map.set(m.id, { ...map.get(m.id), ...m });
-      return Array.from(map.values()).sort(
-        (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
-      );
-    });
-  };
 
   useEffect(() => {
     if (!contractId) return;
@@ -64,7 +51,7 @@ export function useRealtimeMessages(contractId: string): UseRealtimeMessagesRetu
       setIsLoading(false);
     });
 
-    // Realtime subscription — fires when Supabase RLS allows it
+    // Realtime subscription
     const channel = supabase
       .channel(`messages:${contractId}`)
       .on(
@@ -100,19 +87,8 @@ export function useRealtimeMessages(contractId: string): UseRealtimeMessagesRetu
       )
       .subscribe();
 
-    // Polling fallback — catches agent messages if realtime events don't fire
-    const poll = setInterval(async () => {
-      try {
-        const { messages: msgs } = await api.getMessages(contractId);
-        mergeMessages(msgs);
-      } catch {
-        // ignore poll errors
-      }
-    }, POLL_INTERVAL);
-
     return () => {
       supabase.removeChannel(channel);
-      clearInterval(poll);
     };
   }, [contractId]);
 

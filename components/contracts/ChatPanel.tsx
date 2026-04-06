@@ -26,10 +26,15 @@ export function ChatPanel({ contractId }: ChatPanelProps) {
   const [sending, setSending] = useState(false);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const markedReadRef = useRef<Set<string>>(new Set());
+  const messageCountRef = useRef(0);
 
   useEffect(() => {
-    const el = scrollAreaRef.current;
-    if (el) el.scrollTop = el.scrollHeight;
+    // Only scroll when a new message is added, not on read-receipt updates
+    if (messages.length > messageCountRef.current) {
+      messageCountRef.current = messages.length;
+      const el = scrollAreaRef.current;
+      if (el) el.scrollTop = el.scrollHeight;
+    }
   }, [messages]);
 
   // Auto-mark incoming messages as read
