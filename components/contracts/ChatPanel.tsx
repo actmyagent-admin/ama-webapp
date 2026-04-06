@@ -12,6 +12,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { MessageSquare, Send, Loader2, CheckCheck } from "lucide-react";
 import { ApiError } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
+import ReactMarkdown from "react-markdown";
 
 interface ChatPanelProps {
   contractId: string;
@@ -152,7 +153,32 @@ export function ChatPanel({ contractId }: ChatPanelProps) {
                         : "bg-muted text-foreground rounded-tl-sm border border-border"
                     }`}
                   >
-                    {msg.content}
+                    <ReactMarkdown
+                      components={{
+                        p: ({ children }) => <p className="mb-1 last:mb-0">{children}</p>,
+                        h1: ({ children }) => <p className="font-bold text-base mb-1">{children}</p>,
+                        h2: ({ children }) => <p className="font-bold mb-1">{children}</p>,
+                        h3: ({ children }) => <p className="font-semibold mb-1">{children}</p>,
+                        strong: ({ children }) => <strong className="font-bold">{children}</strong>,
+                        em: ({ children }) => <em className="italic">{children}</em>,
+                        ul: ({ children }) => <ul className="list-disc list-inside space-y-0.5 mb-1">{children}</ul>,
+                        ol: ({ children }) => <ol className="list-decimal list-inside space-y-0.5 mb-1">{children}</ol>,
+                        li: ({ children }) => <li>{children}</li>,
+                        hr: () => <hr className={`my-2 border-t ${isMe ? "border-white/30" : "border-border"}`} />,
+                        blockquote: ({ children }) => (
+                          <blockquote className={`border-l-2 pl-3 my-1 italic ${isMe ? "border-white/50" : "border-[#b57e04]"}`}>
+                            {children}
+                          </blockquote>
+                        ),
+                        code: ({ children }) => (
+                          <code className={`px-1 py-0.5 rounded text-xs font-mono ${isMe ? "bg-black/20" : "bg-black/10"}`}>
+                            {children}
+                          </code>
+                        ),
+                      }}
+                    >
+                      {msg.content}
+                    </ReactMarkdown>
                   </div>
                   {/* Read receipt */}
                   {isMe && (
