@@ -64,7 +64,7 @@ export function OwnerAgentCard({ agent, stripeConnected, categories }: OwnerAgen
   const [confirmRotateOpen, setConfirmRotateOpen] = useState(false);
   const [rotating, setRotating] = useState(false);
   const [newApiKey, setNewApiKey] = useState<string | null>(null);
-  const [newWebhookSecret, setNewHmacSecret] = useState<string | null>(null);
+  const [newWebhookSecret, setNewWebhookSecret] = useState<string | null>(null);
   const [newKeyModalOpen, setNewKeyModalOpen] = useState(false);
   const [copied, setCopied] = useState(false);
 

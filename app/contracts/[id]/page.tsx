@@ -104,7 +104,7 @@ function PaymentForm({
 const CONTRACT_STATUS = {
   DRAFT: { label: "Draft", class: "bg-muted text-muted-foreground border-border" },
   SIGNED_BUYER: { label: "Awaiting Agent Signature", class: "bg-amber-100 text-amber-700 border-amber-200 dark:bg-amber-900/30 dark:text-amber-300 dark:border-amber-800" },
-  SIGNED_AGENT: { label: "Awaiting Buyer Signature", class: "bg-amber-100 text-amber-700 border-amber-200 dark:bg-amber-900/30 dark:text-amber-300 dark:border-amber-800" },
+  SIGNED_AGENT: { label: "Awaiting Your Signature", class: "bg-amber-100 text-amber-700 border-amber-200 dark:bg-amber-900/30 dark:text-amber-300 dark:border-amber-800" },
   ACTIVE: { label: "Active", class: "bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-300 dark:border-blue-800" },
   COMPLETED: { label: "Completed", class: "bg-emerald-100 text-emerald-700 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-300 dark:border-emerald-800" },
   DISPUTED: { label: "Disputed", class: "bg-red-100 text-red-700 border-red-200 dark:bg-red-900/30 dark:text-red-300 dark:border-red-800" },
@@ -113,7 +113,7 @@ const CONTRACT_STATUS = {
 // ─── Main page ────────────────────────────────────────────────────────────────
 export default function ContractPage() {
   const { id } = useParams<{ id: string }>();
-  const { user } = useUser();
+  const { profileId } = useUser();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [signing, setSigning] = useState(false);
@@ -130,13 +130,26 @@ export default function ContractPage() {
     queryKey: ["contract", id],
     queryFn: () => api.getContract(id),
     enabled: !!id,
-    refetchInterval: 10000,
+    // Only poll while the contract is in a transitional state (awaiting signatures / payment).
+    // Once ACTIVE or terminal, stop polling to avoid unnecessary requests.
+    refetchInterval: (query) => {
+      const status = query.state.data?.status;
+      if (!status || status === "ACTIVE" || status === "COMPLETED" || status === "DISPUTED") {
+        return false;
+      }
+      return 8000;
+    },
   });
 
-  const isBuyer = contract?.buyerId === user?.id;
-  const isAgent = contract?.agentId === user?.id;
+  // Use internal DB profileId for role checks (NOT Supabase user.id)
+  const isBuyer = !!profileId && contract?.buyerId === profileId;
+  const isAgent = !!profileId && contract?.agentProfile?.userId === profileId;
 
-  const hasSigned = isBuyer ? contract?.buyerSigned : contract?.agentSigned;
+  const buyerSigned = contract?.buyerSignedAt !== null && contract?.buyerSignedAt !== undefined;
+  const agentSigned = contract?.agentSignedAt !== null && contract?.agentSignedAt !== undefined;
+  const hasSigned = isBuyer ? buyerSigned : agentSigned;
+  const escrowPaid = !!contract?.payment && contract.payment.status !== "PENDING";
+
   const statusConfig = contract ? (CONTRACT_STATUS[contract.status] ?? CONTRACT_STATUS.ACTIVE) : null;
 
   const handleSign = async () => {
@@ -210,7 +223,7 @@ export default function ContractPage() {
         <div className="mb-6">
           <div className="flex items-center justify-between">
             <h1 className="text-xl font-display font-bold text-foreground truncate">
-              {contract.job?.title ?? "Contract"}
+              {contract.agentProfile?.name ?? "Contract"}
             </h1>
             {statusConfig && (
               <Badge className={`text-xs border flex-shrink-0 ml-3 ${statusConfig.class}`}>
@@ -238,8 +251,10 @@ export default function ContractPage() {
               <ContractDetails
                 contract={contract}
                 isBuyer={isBuyer}
-                isAgent={isAgent}
-                hasSigned={!!hasSigned}
+                hasSigned={hasSigned}
+                buyerSigned={buyerSigned}
+                agentSigned={agentSigned}
+                escrowPaid={escrowPaid}
                 signing={signing}
                 onSign={handleSign}
                 onPay={handleOpenPayment}
@@ -255,8 +270,8 @@ export default function ContractPage() {
                 <DeliveryPanel
                   contractId={id}
                   isAgent={isAgent}
-                  delivery={contract.delivery}
-                  escrowPaid={contract.escrowPaid}
+                  delivery={contract.delivery ?? undefined}
+                  escrowPaid={escrowPaid}
                 />
               </div>
             </TabsContent>
@@ -275,8 +290,10 @@ export default function ContractPage() {
               <ContractDetails
                 contract={contract}
                 isBuyer={isBuyer}
-                isAgent={isAgent}
-                hasSigned={!!hasSigned}
+                hasSigned={hasSigned}
+                buyerSigned={buyerSigned}
+                agentSigned={agentSigned}
+                escrowPaid={escrowPaid}
                 signing={signing}
                 onSign={handleSign}
                 onPay={handleOpenPayment}
@@ -294,8 +311,8 @@ export default function ContractPage() {
             <DeliveryPanel
               contractId={id}
               isAgent={isAgent}
-              delivery={contract.delivery}
-              escrowPaid={contract.escrowPaid}
+              delivery={contract.delivery ?? undefined}
+              escrowPaid={escrowPaid}
             />
           </div>
         </div>
@@ -365,33 +382,65 @@ export default function ContractPage() {
 function ContractDetails({
   contract,
   isBuyer,
-  isAgent,
   hasSigned,
+  buyerSigned,
+  agentSigned,
+  escrowPaid,
   signing,
   onSign,
   onPay,
 }: {
-  contract: NonNullable<ReturnType<typeof useQuery<Awaited<ReturnType<typeof api.getContract>>>>>["data"];
+  contract: Awaited<ReturnType<typeof api.getContract>>;
   isBuyer: boolean;
-  isAgent: boolean;
   hasSigned: boolean;
+  buyerSigned: boolean;
+  agentSigned: boolean;
+  escrowPaid: boolean;
   signing: boolean;
   onSign: () => void;
   onPay: () => void;
 }) {
-  if (!contract) return null;
-
-  const bothSigned = contract.buyerSigned && contract.agentSigned;
+  const bothSigned = buyerSigned && agentSigned;
 
   return (
     <div className="space-y-5">
+      {/* Agent */}
+      {contract.agentProfile && (
+        <div>
+          <p className="text-muted-foreground text-xs uppercase tracking-wide mb-1 font-ui">Agent</p>
+          <p className="text-foreground font-medium font-ui">{contract.agentProfile.name}</p>
+          {contract.agentProfile.description && (
+            <p className="text-muted-foreground text-xs mt-0.5 font-ui line-clamp-2">
+              {contract.agentProfile.description}
+            </p>
+          )}
+        </div>
+      )}
+
+      <Separator className="bg-border" />
+
       {/* Scope */}
       <div>
         <p className="text-muted-foreground text-xs uppercase tracking-wide mb-2 font-ui">Scope</p>
         <p className="text-foreground text-sm leading-relaxed whitespace-pre-wrap font-ui">
-          {contract.scope || contract.job?.description || "—"}
+          {contract.scope}
         </p>
       </div>
+
+      {/* Deliverables */}
+      {contract.deliverables && (
+        <>
+          <Separator className="bg-border" />
+          <div>
+            <p className="text-muted-foreground text-xs uppercase tracking-wide mb-2 font-ui">
+              Deliverables
+            </p>
+            <p className="text-foreground text-sm leading-relaxed whitespace-pre-wrap font-ui">
+              {contract.deliverables}
+            </p>
+          </div>
+        </>
+      )}
 
       <Separator className="bg-border" />
 
@@ -421,7 +470,7 @@ function ContractDetails({
         <div className="space-y-2">
           <div className="flex items-center justify-between text-sm">
             <span className="text-muted-foreground font-ui">Client</span>
-            {contract.buyerSigned ? (
+            {buyerSigned ? (
               <span className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400 font-ui">
                 <CheckCircle className="w-4 h-4" /> Signed
               </span>
@@ -433,7 +482,7 @@ function ContractDetails({
           </div>
           <div className="flex items-center justify-between text-sm">
             <span className="text-muted-foreground font-ui">Agent</span>
-            {contract.agentSigned ? (
+            {agentSigned ? (
               <span className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400 font-ui">
                 <CheckCircle className="w-4 h-4" /> Signed
               </span>
@@ -463,7 +512,7 @@ function ContractDetails({
       )}
 
       {/* Pay button */}
-      {isBuyer && bothSigned && !contract.escrowPaid && (
+      {isBuyer && bothSigned && !escrowPaid && (
         <Button
           onClick={onPay}
           className="w-full bg-emerald-600 hover:bg-emerald-500 text-white gap-2 font-ui font-medium"
@@ -473,7 +522,7 @@ function ContractDetails({
         </Button>
       )}
 
-      {contract.escrowPaid && (
+      {escrowPaid && (
         <div className="flex items-center gap-2 bg-emerald-50 border border-emerald-200 dark:bg-emerald-950/30 dark:border-emerald-900 rounded-lg px-4 py-2.5 text-emerald-700 dark:text-emerald-400 text-sm font-ui">
           <CheckCircle className="w-4 h-4 flex-shrink-0" />
           Funds secured in escrow

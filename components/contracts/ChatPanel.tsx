@@ -9,7 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Send, Loader2, CheckCheck } from "lucide-react";
+import { MessageSquare, Send, Loader2, CheckCheck } from "lucide-react";
 
 interface ChatPanelProps {
   contractId: string;
@@ -62,8 +62,10 @@ export function ChatPanel({ contractId }: ChatPanelProps) {
 
   return (
     <div className="flex flex-col h-full min-h-0">
-      <div className="px-4 py-3 border-b border-gray-800">
-        <h3 className="text-white font-semibold text-sm">Chat</h3>
+      {/* Header */}
+      <div className="px-4 py-3 border-b border-border flex items-center gap-2">
+        <MessageSquare className="w-4 h-4 text-muted-foreground" />
+        <h3 className="text-foreground font-semibold text-sm font-ui">Chat</h3>
       </div>
 
       {/* Messages */}
@@ -72,14 +74,17 @@ export function ChatPanel({ contractId }: ChatPanelProps) {
           <div className="space-y-3">
             {Array.from({ length: 4 }).map((_, i) => (
               <div key={i} className={`flex gap-2 ${i % 2 === 0 ? "" : "flex-row-reverse"}`}>
-                <Skeleton className="w-7 h-7 rounded-full bg-gray-800 flex-shrink-0" />
-                <Skeleton className={`h-12 bg-gray-800 rounded-xl ${i % 2 === 0 ? "w-2/3" : "w-1/2"}`} />
+                <Skeleton className="w-7 h-7 rounded-full flex-shrink-0" />
+                <Skeleton className={`h-12 rounded-xl ${i % 2 === 0 ? "w-2/3" : "w-1/2"}`} />
               </div>
             ))}
           </div>
         ) : messages.length === 0 ? (
-          <div className="flex items-center justify-center h-full">
-            <p className="text-gray-600 text-sm">No messages yet. Start the conversation!</p>
+          <div className="flex flex-col items-center justify-center h-full gap-2 text-center">
+            <MessageSquare className="w-8 h-8 text-muted-foreground/40" />
+            <p className="text-muted-foreground text-sm font-ui">
+              No messages yet. Start the conversation!
+            </p>
           </div>
         ) : (
           messages.map((msg) => {
@@ -90,22 +95,28 @@ export function ChatPanel({ contractId }: ChatPanelProps) {
                 className={`flex gap-2 ${isMe ? "flex-row-reverse" : ""}`}
               >
                 <Avatar className="w-7 h-7 flex-shrink-0 mt-1">
-                  <AvatarFallback className={`text-xs ${isMe ? "bg-indigo-700" : "bg-gray-700"} text-white`}>
+                  <AvatarFallback
+                    className={`text-xs text-white font-medium ${
+                      isMe
+                        ? "bg-gradient-to-br from-[#b57e04] to-[#d4a017]"
+                        : "bg-muted-foreground/50"
+                    }`}
+                  >
                     {msg.senderRole === "BUYER" ? "B" : "A"}
                   </AvatarFallback>
                 </Avatar>
                 <div className={`flex flex-col ${isMe ? "items-end" : ""} max-w-[75%]`}>
                   <div className="flex items-center gap-2 mb-1">
                     <Badge
-                      className={`text-xs py-0 ${
+                      className={`text-xs py-0 border ${
                         msg.senderRole === "BUYER"
-                          ? "bg-indigo-900/50 text-indigo-300 border-indigo-800"
-                          : "bg-emerald-900/50 text-emerald-300 border-emerald-800"
+                          ? "bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-300 dark:border-blue-800"
+                          : "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-300 dark:border-emerald-800"
                       }`}
                     >
                       {msg.senderRole === "BUYER" ? "Client" : "Agent"}
                     </Badge>
-                    <span className="text-gray-600 text-xs">
+                    <span className="text-muted-foreground text-xs font-ui">
                       {new Date(msg.createdAt).toLocaleTimeString([], {
                         hour: "2-digit",
                         minute: "2-digit",
@@ -113,23 +124,23 @@ export function ChatPanel({ contractId }: ChatPanelProps) {
                     </span>
                   </div>
                   <div
-                    className={`rounded-2xl px-4 py-2.5 text-sm leading-relaxed ${
+                    className={`rounded-2xl px-4 py-2.5 text-sm leading-relaxed font-ui ${
                       isMe
-                        ? "bg-indigo-600 text-white rounded-tr-sm"
-                        : "bg-gray-800 text-gray-200 rounded-tl-sm"
+                        ? "bg-gradient-to-r from-[#b57e04] to-[#d4a017] text-white rounded-tr-sm"
+                        : "bg-muted text-foreground rounded-tl-sm border border-border"
                     }`}
                   >
                     {msg.content}
                   </div>
-                  {/* Read receipt — only shown on sender's own messages */}
+                  {/* Read receipt */}
                   {isMe && (
                     <div className="flex items-center gap-1 mt-1">
                       <CheckCheck
                         className={`w-3.5 h-3.5 ${
-                          msg.readAt ? "text-indigo-400" : "text-gray-600"
+                          msg.readAt ? "text-[#b57e04]" : "text-muted-foreground/50"
                         }`}
                       />
-                      <span className="text-[10px] text-gray-600">
+                      <span className="text-[10px] text-muted-foreground font-ui">
                         {msg.readAt ? "Read" : "Delivered"}
                       </span>
                     </div>
@@ -143,21 +154,21 @@ export function ChatPanel({ contractId }: ChatPanelProps) {
       </div>
 
       {/* Input */}
-      <div className="p-4 border-t border-gray-800">
+      <div className="p-4 border-t border-border">
         <div className="flex gap-2">
           <Textarea
             value={content}
             onChange={(e) => setContent(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="Send a message... (⌘+Enter to send)"
-            className="resize-none bg-gray-800 border-gray-700 text-white placeholder:text-gray-600 min-h-[44px] max-h-32 focus:border-indigo-500 text-sm"
+            placeholder="Send a message… (⌘+Enter to send)"
+            className="resize-none min-h-[44px] max-h-32 text-sm font-ui"
             rows={1}
           />
           <Button
             onClick={handleSend}
             disabled={!content.trim() || sending}
             size="sm"
-            className="bg-indigo-600 hover:bg-indigo-500 text-white self-end flex-shrink-0"
+            className="bg-gradient-to-r from-[#b57e04] to-[#d4a017] hover:from-[#9a6a03] hover:to-[#b57e04] text-white self-end flex-shrink-0"
           >
             {sending ? (
               <Loader2 className="w-4 h-4 animate-spin" />

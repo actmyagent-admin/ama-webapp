@@ -3,7 +3,6 @@
 import { useParams, useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "@/lib/api";
-import { useUser } from "@/hooks/useUser";
 import { ProposalCard } from "@/components/jobs/ProposalCard";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -29,7 +28,6 @@ const STATUS_CONFIG = {
 
 export default function JobDetailPage() {
   const { id } = useParams<{ id: string }>();
-  const { user } = useUser();
   const router = useRouter();
 
   const { data: job, isLoading, error } = useQuery({
@@ -37,6 +35,21 @@ export default function JobDetailPage() {
     queryFn: () => api.getJob(id),
     enabled: !!id,
   });
+
+  // Fetch proposals from the dedicated buyer endpoint.
+  // If this returns 403 the user is not the buyer — we treat isBuyer as false.
+  const {
+    data: proposals,
+    isLoading: proposalsLoading,
+    isError: proposalsForbidden,
+  } = useQuery({
+    queryKey: ["proposals", id],
+    queryFn: () => api.getProposalsForJob(id),
+    enabled: !!id,
+    retry: false, // don't retry 403s
+  });
+
+  const isBuyer = !proposalsForbidden && proposals !== undefined;
 
   if (isLoading) {
     return (
@@ -65,10 +78,10 @@ export default function JobDetailPage() {
     );
   }
 
-  const isBuyer = job.buyerId === user?.id;
   const status = STATUS_CONFIG[job.status] ?? STATUS_CONFIG.OPEN;
-  const myProposal = !isBuyer
-    ? job.proposals?.find((p) => p.agentId === user?.id)
+  // For agent view — find their own proposal inside the minimal list from getJob
+  const myProposalStub = !isBuyer
+    ? job.proposals?.find((p) => p.status !== undefined)
     : null;
 
   return (
@@ -120,18 +133,27 @@ export default function JobDetailPage() {
           <span className="text-[#b57e04] text-sm font-ui">
             <strong>Broadcasted</strong> to all agents in{" "}
             <span className="capitalize">{job.category}</span> ·{" "}
-            {job.proposals?.length ?? 0} proposal{job.proposals?.length !== 1 ? "s" : ""} received
+            {proposals?.length ?? job.proposals?.length ?? 0} proposal
+            {(proposals?.length ?? job.proposals?.length ?? 0) !== 1 ? "s" : ""} received
           </span>
         </div>
       )}
 
-      {/* Agent view — own proposal */}
-      {myProposal && (
+      {/* Agent view — own proposal stub */}
+      {!isBuyer && myProposalStub && (
         <div className="mb-6">
-          <h2 className="text-foreground font-display font-semibold mb-3 flex items-center gap-2">
-            Your Proposal
-          </h2>
-          <ProposalCard proposal={myProposal} isBuyer={false} />
+          <h2 className="text-foreground font-display font-semibold mb-3">Your Proposal</h2>
+          <div className="bg-card border border-border rounded-2xl p-5">
+            <div className="flex items-center gap-3 flex-wrap">
+              <span className="flex items-center gap-1 text-[#b57e04] font-medium font-ui">
+                <DollarSign className="w-4 h-4" />
+                {myProposalStub.price} {myProposalStub.currency}
+              </span>
+              <Badge className={`text-xs border ${STATUS_CONFIG[myProposalStub.status as keyof typeof STATUS_CONFIG]?.class ?? ""}`}>
+                {myProposalStub.status}
+              </Badge>
+            </div>
+          </div>
         </div>
       )}
 
@@ -140,10 +162,14 @@ export default function JobDetailPage() {
         <div>
           <h2 className="text-foreground font-display font-semibold mb-4 flex items-center gap-2">
             <Users className="w-5 h-5 text-muted-foreground" />
-            Proposals ({job.proposals?.length ?? 0})
+            Proposals ({proposals?.length ?? 0})
           </h2>
 
-          {!job.proposals || job.proposals.length === 0 ? (
+          {proposalsLoading ? (
+            <div className="space-y-4">
+              {[1, 2].map((i) => <Skeleton key={i} className="h-36 rounded-2xl" />)}
+            </div>
+          ) : !proposals || proposals.length === 0 ? (
             <Card className="gradient-border-card bg-card">
               <CardContent className="flex flex-col items-center justify-center py-16 text-center">
                 <div className="w-14 h-14 rounded-2xl bg-muted flex items-center justify-center mb-4">
@@ -157,11 +183,11 @@ export default function JobDetailPage() {
             </Card>
           ) : (
             <div className="space-y-4">
-              {job.proposals.map((proposal) => (
+              {proposals.map((proposal) => (
                 <ProposalCard
                   key={proposal.id}
                   proposal={proposal}
-                  isBuyer={isBuyer && job.status === "OPEN"}
+                  isBuyer={job.status === "OPEN"}
                 />
               ))}
             </div>

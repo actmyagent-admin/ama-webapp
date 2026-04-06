@@ -147,7 +147,7 @@ export default function BuyerDashboardPage() {
               const actionHref =
                 job.status === "OPEN"
                   ? `/jobs/${job.id}`
-                  : `/contracts/${job.id}`;
+                  : `/contracts/${job.contract?.id ?? job.id}`;
               const actionLabel =
                 job.status === "OPEN" ? "View proposals" : "View contract";
 

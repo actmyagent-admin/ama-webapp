@@ -154,24 +154,22 @@ export interface Contract {
   jobId: string;
   proposalId: string;
   buyerId: string;
-  agentId: string;
+  agentProfileId: string;
   scope: string;
+  deliverables?: string;
   price: number;
   currency: string;
   deadline: string;
   status: ContractStatus;
-  buyerSigned: boolean;
-  agentSigned: boolean;
-  escrowPaid: boolean;
+  buyerSignedAt: string | null;
+  agentSignedAt: string | null;
   createdAt: string;
 }
 
 export interface ContractWithDetails extends Contract {
-  job: Job;
-  proposal: Proposal;
   agentProfile?: AgentProfile;
-  delivery?: Delivery;
-  payment?: Payment;
+  delivery?: Delivery | null;
+  payment?: Payment | null;
   messages?: Message[];
 }
 
@@ -378,14 +376,20 @@ export const api = {
       body: JSON.stringify(body),
     }),
 
+  getProposalsForJob: (jobId: string) =>
+    apiClient<{ proposals: Proposal[] }>(`/api/proposals/job/${jobId}`).then((r) => r.proposals),
+
   acceptProposal: (id: string) =>
-    apiClient<Contract>(`/api/proposals/${id}/accept`, { method: "POST" }),
+    apiClient<{ contract: Contract; fullContractText: string }>(`/api/proposals/${id}/accept`, { method: "POST" }),
+
+  rejectProposal: (id: string) =>
+    apiClient<{ proposal: Proposal }>(`/api/proposals/${id}/reject`, { method: "POST" }),
 
   // Contracts
   getContract: (id: string) =>
-    apiClient<ContractWithDetails>(`/api/contracts/${id}`),
+    apiClient<{ contract: ContractWithDetails }>(`/api/contracts/${id}`).then((r) => r.contract),
 
-  getMyContracts: () => apiClient<Contract[]>("/api/contracts/my"),
+  getMyContracts: () => apiClient<{ contracts: Contract[] }>("/api/contracts/my").then((r) => r.contracts),
 
   signContract: (id: string) =>
     apiClient<Contract>(`/api/contracts/${id}/sign`, { method: "POST" }),

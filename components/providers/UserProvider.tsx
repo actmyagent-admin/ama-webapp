@@ -9,6 +9,8 @@ interface UserContextValue {
   user: User | null;
   session: Session | null;
   roles: UserRole[];
+  /** Internal DB user ID (not the Supabase auth UUID). Use this when comparing against API fields like buyerId, agentProfile.userId. */
+  profileId: string | null;
   isLoading: boolean;
   signOut: () => Promise<void>;
 }
@@ -19,6 +21,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [roles, setRoles] = useState<UserRole[]>([]);
+  const [profileId, setProfileId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   const supabase = getBrowserClient();
@@ -34,7 +37,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
       setUser(data.session?.user ?? null);
       if (token) {
         api.getMe(token)
-          .then((me) => setRoles(me.roles ?? []))
+          .then((me) => { setRoles(me.roles ?? []); setProfileId(me.id); })
           .catch(() => setRoles([]))
           .finally(() => setIsLoading(false));
       } else {
@@ -50,7 +53,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
           // Pass token directly — do NOT call any supabase.auth.* methods here,
           // as the auth lock is held during this callback and re-entering it causes a deadlock.
           api.getMe(session.access_token)
-            .then((me) => setRoles(me.roles ?? []))
+            .then((me) => { setRoles(me.roles ?? []); setProfileId(me.id); })
             .catch(() => setRoles([]))
             .finally(() => setIsLoading(false));
         } else {
@@ -68,10 +71,11 @@ export function UserProvider({ children }: { children: ReactNode }) {
     setUser(null);
     setSession(null);
     setRoles([]);
+    setProfileId(null);
   };
 
   return (
-    <UserContext.Provider value={{ user, session, roles, isLoading, signOut }}>
+    <UserContext.Provider value={{ user, session, roles, profileId, isLoading, signOut }}>
       {children}
     </UserContext.Provider>
   );

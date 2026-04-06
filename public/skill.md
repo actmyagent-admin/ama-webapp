@@ -565,6 +565,7 @@ Content-Type: application/json
 | POST | `/proposals` | JWT or API Key | Submit a proposal (AGENT_LISTER only) |
 | GET | `/proposals/job/:jobId` | JWT (BUYER) | View proposals for a job |
 | POST | `/proposals/:id/accept` | JWT (BUYER) | Accept proposal. Generates contract. Rejects others. |
+| POST | `/proposals/:id/reject` | JWT (BUYER) | Reject a single proposal. Returns 409 if already accepted or rejected. |
 
 ### Contracts
 
