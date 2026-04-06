@@ -16,7 +16,7 @@ interface ChatPanelProps {
 }
 
 export function ChatPanel({ contractId }: ChatPanelProps) {
-  const { messages, isLoading } = useRealtimeMessages(contractId);
+  const { messages, isLoading, addMessage } = useRealtimeMessages(contractId);
   const { user } = useUser();
   const [content, setContent] = useState("");
   const [sending, setSending] = useState(false);
@@ -46,7 +46,9 @@ export function ChatPanel({ contractId }: ChatPanelProps) {
     const text = content.trim();
     setContent("");
     try {
-      await api.sendMessage(contractId, text);
+      const { message } = await api.sendMessage(contractId, text);
+      // Optimistically add to local state — realtime will dedup if it also fires
+      addMessage(message);
     } catch {
       setContent(text);
     } finally {
