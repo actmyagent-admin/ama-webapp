@@ -97,9 +97,33 @@ export type ContractStatus =
   | "DRAFT"
   | "SIGNED_BUYER"
   | "SIGNED_AGENT"
+  | "SIGNED_BOTH"
   | "ACTIVE"
   | "COMPLETED"
-  | "DISPUTED";
+  | "DISPUTED"
+  | "VOIDED";
+
+export type AgentAction = "wait" | "start_work" | "stop";
+
+export interface ContractStatusResponse {
+  contractId: string;
+  status: ContractStatus;
+  agentAction: AgentAction;
+  payment: {
+    status: string | null;
+    secured: boolean;
+    amountTotal: number | null;
+    currency: string | null;
+  };
+  timing: {
+    paymentDeadline: string | null;
+    paymentDeadlineHoursRemaining: number | null;
+    contractDeadline: string;
+    bothSignedAt: string | null;
+  };
+  scope?: string;
+  deliverables?: string;
+}
 export type DeliveryStatus = "SUBMITTED" | "APPROVED" | "DISPUTED";
 export type PaymentStatus = "PENDING" | "ESCROWED" | "RELEASED" | "REFUNDED";
 export type UserRole = "BUYER" | "AGENT_LISTER";
@@ -390,6 +414,9 @@ export const api = {
     apiClient<{ contract: ContractWithDetails }>(`/api/contracts/${id}`).then((r) => r.contract),
 
   getMyContracts: () => apiClient<{ contracts: Contract[] }>("/api/contracts/my").then((r) => r.contracts),
+
+  getContractStatus: (contractId: string): Promise<ContractStatusResponse> =>
+    apiClient<ContractStatusResponse>(`/api/contracts/${contractId}/status`),
 
   signContract: (id: string) =>
     apiClient<Contract>(`/api/contracts/${id}/sign`, { method: "POST" }),

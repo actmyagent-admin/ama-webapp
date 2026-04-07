@@ -1,22 +1,18 @@
 "use client";
 
-import { useState } from "react";
-import { useParams } from "next/navigation";
+import { useCallback, useEffect, useState } from "react";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 import { useUser } from "@/hooks/useUser";
 import { ChatPanel } from "@/components/contracts/ChatPanel";
 import { DeliveryPanel } from "@/components/contracts/DeliveryPanel";
+import { ContractStatusBadge } from "@/components/contracts/ContractStatusBadge";
+import { PaymentDeadlineCountdown } from "@/components/contracts/PaymentDeadlineCountdown";
+import { PayNowModal } from "@/components/contracts/PayNowModal";
+import { VoidedContractState } from "@/components/contracts/VoidedContractState";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-} from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
 import {
@@ -30,127 +26,65 @@ import {
   Clock,
   Loader2,
   AlertCircle,
-  Lock,
 } from "lucide-react";
-import { Elements, PaymentElement, useStripe, useElements } from "@stripe/react-stripe-js";
-import { getStripe } from "@/lib/stripe";
 import { useToast } from "@/hooks/use-toast";
-
-// ─── Stripe payment form ─────────────────────────────────────────────────────
-function PaymentForm({
-  onSuccess,
-  onCancel,
-}: {
-  onSuccess: () => void;
-  onCancel: () => void;
-}) {
-  const stripe = useStripe();
-  const elements = useElements();
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!stripe || !elements) return;
-    setLoading(true);
-    setError("");
-    try {
-      const { error } = await stripe.confirmPayment({
-        elements,
-        confirmParams: { return_url: window.location.href },
-        redirect: "if_required",
-      });
-      if (error) {
-        setError(error.message ?? "Payment failed");
-      } else {
-        onSuccess();
-      }
-    } catch {
-      setError("An unexpected error occurred");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      <PaymentElement />
-      {error && (
-        <p className="text-destructive text-sm font-ui">{error}</p>
-      )}
-      <div className="flex gap-2 pt-2">
-        <Button
-          type="button"
-          variant="outline"
-          onClick={onCancel}
-          className="flex-1 border-border hover:border-[#b57e04] hover:text-[#b57e04] font-ui"
-        >
-          Cancel
-        </Button>
-        <Button
-          type="submit"
-          disabled={loading || !stripe}
-          className="flex-1 bg-gradient-to-r from-[#b57e04] to-[#d4a017] hover:from-[#9a6a03] hover:to-[#b57e04] text-white font-ui font-medium"
-        >
-          {loading && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
-          Pay & Secure Escrow
-        </Button>
-      </div>
-    </form>
-  );
-}
-
-// ─── Contract status badge ───────────────────────────────────────────────────
-const CONTRACT_STATUS = {
-  DRAFT: { label: "Draft", class: "bg-muted text-muted-foreground border-border" },
-  SIGNED_BUYER: { label: "Awaiting Agent Signature", class: "bg-amber-100 text-amber-700 border-amber-200 dark:bg-amber-900/30 dark:text-amber-300 dark:border-amber-800" },
-  SIGNED_AGENT: { label: "Awaiting Your Signature", class: "bg-amber-100 text-amber-700 border-amber-200 dark:bg-amber-900/30 dark:text-amber-300 dark:border-amber-800" },
-  ACTIVE: { label: "Active", class: "bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-300 dark:border-blue-800" },
-  COMPLETED: { label: "Completed", class: "bg-emerald-100 text-emerald-700 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-300 dark:border-emerald-800" },
-  DISPUTED: { label: "Disputed", class: "bg-red-100 text-red-700 border-red-200 dark:bg-red-900/30 dark:text-red-300 dark:border-red-800" },
-};
 
 // ─── Main page ────────────────────────────────────────────────────────────────
 export default function ContractPage() {
   const { id } = useParams<{ id: string }>();
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const { profileId } = useUser();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [signing, setSigning] = useState(false);
-  const [paymentOpen, setPaymentOpen] = useState(false);
-  const [clientSecret, setClientSecret] = useState<string | null>(null);
-  const [paymentBreakdown, setPaymentBreakdown] = useState<{
-    amountTotal: number;
-    amountPlatformFee: number;
-    amountAgentReceives: number;
-    currency: string;
-  } | null>(null);
+  const [payNowOpen, setPayNowOpen] = useState(false);
 
+  // Contract details (full object with messages, delivery, payment)
   const { data: contract, isLoading } = useQuery({
     queryKey: ["contract", id],
     queryFn: () => api.getContract(id),
     enabled: !!id,
-    // Only poll while the contract is in a transitional state (awaiting signatures / payment).
-    // Once ACTIVE or terminal, stop polling to avoid unnecessary requests.
+  });
+
+  // Lightweight status polling
+  const { data: contractStatus, refetch: refetchStatus } = useQuery({
+    queryKey: ["contract-status", id],
+    queryFn: () => api.getContractStatus(id),
+    enabled: !!id,
     refetchInterval: (query) => {
       const status = query.state.data?.status;
-      if (!status || status === "ACTIVE" || status === "COMPLETED" || status === "DISPUTED") {
-        return false;
-      }
-      return 8000;
+      if (status === "SIGNED_BOTH") return 5000;
+      if (status === "ACTIVE") return 30000;
+      return false;
     },
   });
 
-  // Use internal DB profileId for role checks (NOT Supabase user.id)
+  // Derived role/state from contract details
   const isBuyer = !!profileId && contract?.buyerId === profileId;
   const isAgent = !!profileId && contract?.agentProfile?.userId === profileId;
+  const userRole = isBuyer ? "BUYER" : "AGENT_LISTER";
 
-  const buyerSigned = contract?.buyerSignedAt !== null && contract?.buyerSignedAt !== undefined;
-  const agentSigned = contract?.agentSignedAt !== null && contract?.agentSignedAt !== undefined;
+  const buyerSigned = !!contract?.buyerSignedAt;
+  const agentSigned = !!contract?.agentSignedAt;
   const hasSigned = isBuyer ? buyerSigned : agentSigned;
-  const escrowPaid = !!contract?.payment && contract.payment.status !== "PENDING";
 
-  const statusConfig = contract ? (CONTRACT_STATUS[contract.status] ?? CONTRACT_STATUS.ACTIVE) : null;
+  // Use status from the polling endpoint when available; fall back to contract object
+  const currentStatus = contractStatus?.status ?? contract?.status;
+  const escrowPaid = contractStatus?.payment.secured ?? (!!contract?.payment && contract.payment.status !== "PENDING");
+
+  // Handle ?payment=success on mount
+  useEffect(() => {
+    if (searchParams.get("payment") === "success") {
+      toast({ title: "Payment confirmed!", description: "Agent notified. Contract is now active." });
+      refetchStatus();
+      queryClient.invalidateQueries({ queryKey: ["contract", id] });
+      // Clear the query param
+      const url = new URL(window.location.href);
+      url.searchParams.delete("payment");
+      router.replace(url.pathname, { scroll: false });
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleSign = async () => {
     if (!id) return;
@@ -159,6 +93,7 @@ export default function ContractPage() {
       await api.signContract(id);
       toast({ title: "Contract signed!", description: "Waiting for the other party." });
       queryClient.invalidateQueries({ queryKey: ["contract", id] });
+      refetchStatus();
     } catch (err: unknown) {
       toast({
         title: "Error",
@@ -170,32 +105,17 @@ export default function ContractPage() {
     }
   };
 
-  const handleOpenPayment = async () => {
-    if (!id) return;
-    try {
-      const data = await api.createPayment(id);
-      setClientSecret(data.clientSecret);
-      setPaymentBreakdown({
-        amountTotal: data.amountTotal,
-        amountPlatformFee: data.amountPlatformFee,
-        amountAgentReceives: data.amountAgentReceives,
-        currency: data.currency,
-      });
-      setPaymentOpen(true);
-    } catch (err: unknown) {
-      toast({
-        title: "Error",
-        description: (err as Error).message ?? "Failed to initialize payment",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const handlePaymentSuccess = () => {
-    setPaymentOpen(false);
+  const handlePaySuccess = useCallback(() => {
+    setPayNowOpen(false);
     toast({ title: "Funds secured in escrow!", description: "The agent can now start working." });
     queryClient.invalidateQueries({ queryKey: ["contract", id] });
-  };
+    refetchStatus();
+  }, [id, queryClient, refetchStatus, toast]);
+
+  const handleCountdownExpired = useCallback(() => {
+    refetchStatus();
+    queryClient.invalidateQueries({ queryKey: ["contract", id] });
+  }, [id, queryClient, refetchStatus]);
 
   if (isLoading) {
     return (
@@ -216,22 +136,47 @@ export default function ContractPage() {
     );
   }
 
+  // Voided state — replace page entirely
+  if (currentStatus === "VOIDED") {
+    return (
+      <VoidedContractState
+        role={userRole}
+        jobId={contract.jobId}
+      />
+    );
+  }
+
+  const panelsDimmed = currentStatus === "SIGNED_BOTH";
+
   return (
     <>
       <div className="max-w-7xl mx-auto px-4 py-8">
         {/* Page header */}
-        <div className="mb-6">
+        <div className="mb-4">
           <div className="flex items-center justify-between">
             <h1 className="text-xl font-display font-bold text-foreground truncate">
               {contract.agentProfile?.name ?? "Contract"}
             </h1>
-            {statusConfig && (
-              <Badge className={`text-xs border flex-shrink-0 ml-3 ${statusConfig.class}`}>
-                {statusConfig.label}
-              </Badge>
+            {currentStatus && (
+              <div className="flex-shrink-0 ml-3">
+                <ContractStatusBadge status={currentStatus} role={userRole} />
+              </div>
             )}
           </div>
         </div>
+
+        {/* Payment deadline banner */}
+        {currentStatus === "SIGNED_BOTH" &&
+          contractStatus?.timing.paymentDeadline && (
+            <PaymentDeadlineCountdown
+              deadline={contractStatus.timing.paymentDeadline}
+              amountTotal={contractStatus.payment.amountTotal ?? (contract.price * 100)}
+              currency={contractStatus.payment.currency ?? contract.currency}
+              role={userRole}
+              onPayNow={() => setPayNowOpen(true)}
+              onExpired={handleCountdownExpired}
+            />
+          )}
 
         {/* Mobile: Tabs */}
         <div className="lg:hidden">
@@ -240,10 +185,10 @@ export default function ContractPage() {
               <TabsTrigger value="contract" className="flex-1 gap-1.5 text-xs font-ui">
                 <FileText className="w-3.5 h-3.5" /> Contract
               </TabsTrigger>
-              <TabsTrigger value="chat" className="flex-1 gap-1.5 text-xs font-ui">
+              <TabsTrigger value="chat" className="flex-1 gap-1.5 text-xs font-ui" disabled={panelsDimmed}>
                 <MessageSquare className="w-3.5 h-3.5" /> Chat
               </TabsTrigger>
-              <TabsTrigger value="delivery" className="flex-1 gap-1.5 text-xs font-ui">
+              <TabsTrigger value="delivery" className="flex-1 gap-1.5 text-xs font-ui" disabled={panelsDimmed}>
                 <Package className="w-3.5 h-3.5" /> Delivery
               </TabsTrigger>
             </TabsList>
@@ -255,9 +200,10 @@ export default function ContractPage() {
                 buyerSigned={buyerSigned}
                 agentSigned={agentSigned}
                 escrowPaid={escrowPaid}
+                currentStatus={currentStatus}
                 signing={signing}
                 onSign={handleSign}
-                onPay={handleOpenPayment}
+                onPay={() => setPayNowOpen(true)}
               />
             </TabsContent>
             <TabsContent value="chat">
@@ -272,6 +218,8 @@ export default function ContractPage() {
                   isAgent={isAgent}
                   delivery={contract.delivery ?? undefined}
                   escrowPaid={escrowPaid}
+                  bothSigned={buyerSigned && agentSigned}
+                  onPay={isBuyer && !escrowPaid ? () => setPayNowOpen(true) : undefined}
                 />
               </div>
             </TabsContent>
@@ -280,7 +228,7 @@ export default function ContractPage() {
 
         {/* Desktop: 3-column */}
         <div className="hidden lg:grid grid-cols-3 gap-5 h-[calc(100vh-12rem)]">
-          {/* Left */}
+          {/* Left — Contract details */}
           <div className="bg-card border border-border rounded-2xl overflow-hidden flex flex-col">
             <div className="px-5 py-4 border-b border-border flex items-center gap-2">
               <FileText className="w-4 h-4 text-muted-foreground" />
@@ -294,20 +242,27 @@ export default function ContractPage() {
                 buyerSigned={buyerSigned}
                 agentSigned={agentSigned}
                 escrowPaid={escrowPaid}
+                currentStatus={currentStatus}
                 signing={signing}
                 onSign={handleSign}
-                onPay={handleOpenPayment}
+                onPay={() => setPayNowOpen(true)}
               />
             </div>
           </div>
 
           {/* Center — Chat */}
-          <div className="bg-card border border-border rounded-2xl overflow-hidden flex flex-col">
+          <div
+            className={`bg-card border border-border rounded-2xl overflow-hidden flex flex-col relative ${panelsDimmed ? "opacity-50 pointer-events-none" : ""}`}
+            title={panelsDimmed ? "Available once contract is active" : undefined}
+          >
             <ChatPanel contractId={id} />
           </div>
 
           {/* Right — Delivery */}
-          <div className="bg-card border border-border rounded-2xl overflow-hidden flex flex-col">
+          <div
+            className={`bg-card border border-border rounded-2xl overflow-hidden flex flex-col relative ${panelsDimmed ? "opacity-50 pointer-events-none" : ""}`}
+            title={panelsDimmed ? "Available once contract is active" : undefined}
+          >
             <DeliveryPanel
               contractId={id}
               isAgent={isAgent}
@@ -318,62 +273,17 @@ export default function ContractPage() {
         </div>
       </div>
 
-      {/* Payment modal */}
-      <Dialog open={paymentOpen} onOpenChange={setPaymentOpen}>
-        <DialogContent className="bg-card border-border max-w-md">
-          <DialogHeader>
-            <DialogTitle className="text-foreground font-display flex items-center gap-2">
-              <Lock className="w-5 h-5 text-[#b57e04]" />
-              Secure Payment to Escrow
-            </DialogTitle>
-            <DialogDescription className="text-muted-foreground font-ui">
-              Funds are held securely and released only after you approve the delivery.
-            </DialogDescription>
-          </DialogHeader>
-          {paymentBreakdown && (
-            <div className="bg-muted/50 border border-border rounded-xl px-4 py-3 space-y-2 text-sm font-ui">
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">You pay</span>
-                <span className="text-foreground font-semibold">
-                  {new Intl.NumberFormat("en-US", {
-                    style: "currency",
-                    currency: paymentBreakdown.currency.toUpperCase(),
-                  }).format(paymentBreakdown.amountTotal / 100)}
-                </span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Agent receives</span>
-                <span className="text-emerald-600 dark:text-emerald-400">
-                  {new Intl.NumberFormat("en-US", {
-                    style: "currency",
-                    currency: paymentBreakdown.currency.toUpperCase(),
-                  }).format(paymentBreakdown.amountAgentReceives / 100)}
-                </span>
-              </div>
-              <div className="flex justify-between border-t border-border pt-2">
-                <span className="text-muted-foreground">Platform fee (15%)</span>
-                <span className="text-muted-foreground">
-                  {new Intl.NumberFormat("en-US", {
-                    style: "currency",
-                    currency: paymentBreakdown.currency.toUpperCase(),
-                  }).format(paymentBreakdown.amountPlatformFee / 100)}
-                </span>
-              </div>
-            </div>
-          )}
-          {clientSecret && (
-            <Elements
-              stripe={getStripe()}
-              options={{ clientSecret, appearance: { theme: "stripe" } }}
-            >
-              <PaymentForm
-                onSuccess={handlePaymentSuccess}
-                onCancel={() => setPaymentOpen(false)}
-              />
-            </Elements>
-          )}
-        </DialogContent>
-      </Dialog>
+      {/* Pay Now modal */}
+      {isBuyer && (
+        <PayNowModal
+          contractId={id}
+          amountTotal={contractStatus?.payment.amountTotal ?? contract.price * 100}
+          currency={contractStatus?.payment.currency ?? contract.currency}
+          open={payNowOpen}
+          onSuccess={handlePaySuccess}
+          onClose={() => setPayNowOpen(false)}
+        />
+      )}
     </>
   );
 }
@@ -386,6 +296,7 @@ function ContractDetails({
   buyerSigned,
   agentSigned,
   escrowPaid,
+  currentStatus,
   signing,
   onSign,
   onPay,
@@ -396,11 +307,13 @@ function ContractDetails({
   buyerSigned: boolean;
   agentSigned: boolean;
   escrowPaid: boolean;
+  currentStatus: string | undefined;
   signing: boolean;
   onSign: () => void;
   onPay: () => void;
 }) {
   const bothSigned = buyerSigned && agentSigned;
+  const needsPayment = currentStatus === "SIGNED_BOTH" && isBuyer && !escrowPaid;
 
   return (
     <div className="space-y-5">
@@ -511,13 +424,13 @@ function ContractDetails({
         </Button>
       )}
 
-      {/* Pay button */}
-      {isBuyer && bothSigned && !escrowPaid && (
+      {/* Pay button — shown in sidebar for SIGNED_BOTH buyers (countdown also has one) */}
+      {needsPayment && !bothSigned && null}
+      {needsPayment && (
         <Button
           onClick={onPay}
-          className="w-full bg-emerald-600 hover:bg-emerald-500 text-white gap-2 font-ui font-medium"
+          className="w-full bg-indigo-600 hover:bg-indigo-500 text-white gap-2 font-ui font-medium"
         >
-          <Lock className="w-4 h-4" />
           Pay & Secure Escrow
         </Button>
       )}

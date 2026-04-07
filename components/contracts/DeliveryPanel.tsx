@@ -119,6 +119,8 @@ export interface DeliveryPanelProps {
   isAgent: boolean;
   delivery?: Delivery;
   escrowPaid: boolean;
+  bothSigned?: boolean;
+  onPay?: () => void;
 }
 
 // ─── Main component ───────────────────────────────────────────────────────────
@@ -128,6 +130,8 @@ export function DeliveryPanel({
   isAgent,
   delivery,
   escrowPaid,
+  bothSigned,
+  onPay,
 }: DeliveryPanelProps) {
   const [description, setDescription] = useState("");
   const [fileStates, setFileStates] = useState<FileUploadState[]>([]);
@@ -314,10 +318,34 @@ export function DeliveryPanel({
               message="Waiting for delivery from the agent..."
             />
           ) : (
-            <EmptyState
-              icon={<Lock className="w-7 h-7 text-muted-foreground/50" />}
-              message="Fund escrow to start the project."
-            />
+            <div className="flex flex-col items-center justify-center h-full text-center py-12 gap-4">
+              <div className="w-14 h-14 rounded-2xl bg-muted flex items-center justify-center">
+                <Lock className="w-7 h-7 text-muted-foreground/50" />
+              </div>
+              <div>
+                <p className="text-foreground font-medium text-sm font-ui mb-1">
+                  Payment required
+                </p>
+                {bothSigned ? (
+                  <p className="text-muted-foreground text-xs font-ui">
+                    Secure payment into escrow to activate this contract and let the agent begin work.
+                  </p>
+                ) : (
+                  <p className="text-muted-foreground text-xs font-ui">
+                    Payment cannot be made until both parties have signed the contract.
+                  </p>
+                )}
+              </div>
+              {bothSigned && onPay && (
+                <Button
+                  onClick={onPay}
+                  className="bg-indigo-600 hover:bg-indigo-500 text-white font-ui font-medium gap-2"
+                >
+                  <Lock className="w-4 h-4" />
+                  Pay Now
+                </Button>
+              )}
+            </div>
           )
         ) : (
           /* ── Delivery exists ─────────────────────────────────── */

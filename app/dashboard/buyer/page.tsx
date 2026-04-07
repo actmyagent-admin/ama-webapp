@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
-import { api, Job, JobStatus } from "@/lib/api";
+import { api, Job, JobStatus, ContractStatus } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -15,6 +15,7 @@ import {
   Plus,
   ArrowRight,
   MessageSquare,
+  AlertTriangle,
 } from "lucide-react";
 import { useUser } from "@/hooks/useUser";
 
@@ -52,6 +53,10 @@ function StatCard({
   );
 }
 
+function contractStatus(job: Job): ContractStatus | null {
+  return (job.contract?.status as ContractStatus) ?? null;
+}
+
 export default function BuyerDashboardPage() {
   const { user } = useUser();
   const { data: jobs, isLoading } = useQuery({
@@ -64,6 +69,17 @@ export default function BuyerDashboardPage() {
     queryFn: () => api.getBuyerStats(),
     enabled: !!user,
   });
+
+  // Sort: SIGNED_BOTH contracts come first so buyer can't miss pending payments
+  const sortedJobs = jobs
+    ? [...jobs].sort((a, b) => {
+        const aSignedBoth = contractStatus(a) === "SIGNED_BOTH" ? -1 : 0;
+        const bSignedBoth = contractStatus(b) === "SIGNED_BOTH" ? -1 : 0;
+        return aSignedBoth - bSignedBoth;
+      })
+    : [];
+
+  const pendingPaymentCount = jobs?.filter((j) => contractStatus(j) === "SIGNED_BOTH").length ?? 0;
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
@@ -80,6 +96,21 @@ export default function BuyerDashboardPage() {
           </Button>
         </Link>
       </div>
+
+      {/* Pending payment alert */}
+      {pendingPaymentCount > 0 && (
+        <div className="mb-6 flex items-start gap-3 rounded-xl border border-amber-300 bg-amber-50 dark:border-amber-900 dark:bg-amber-950/30 px-5 py-4">
+          <AlertTriangle className="w-5 h-5 text-amber-500 mt-0.5 flex-shrink-0" />
+          <div>
+            <p className="text-amber-800 dark:text-amber-200 font-semibold font-ui text-sm">
+              {pendingPaymentCount} contract{pendingPaymentCount > 1 ? "s require" : " requires"} payment
+            </p>
+            <p className="text-amber-700 dark:text-amber-300 text-xs font-ui mt-0.5">
+              Contracts must be paid within 24 hours of both signatures or they will be voided.
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
@@ -127,7 +158,7 @@ export default function BuyerDashboardPage() {
               <Skeleton key={i} className="h-16 rounded-lg" />
             ))}
           </div>
-        ) : !jobs || jobs.length === 0 ? (
+        ) : !sortedJobs || sortedJobs.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20 text-center">
             <div className="w-14 h-14 rounded-2xl bg-muted flex items-center justify-center mb-4">
               <Briefcase className="w-7 h-7 text-muted-foreground" />
@@ -142,19 +173,20 @@ export default function BuyerDashboardPage() {
           </div>
         ) : (
           <div className="divide-y divide-border">
-            {jobs.map((job: Job) => {
+            {sortedJobs.map((job: Job) => {
+              const cs = contractStatus(job);
+              const needsPayment = cs === "SIGNED_BOTH";
               const status = STATUS_CONFIG[job.status];
               const actionHref =
                 job.status === "OPEN"
                   ? `/jobs/${job.id}`
                   : `/contracts/${job.contract?.id ?? job.id}`;
-              const actionLabel =
-                job.status === "OPEN" ? "View proposals" : "View contract";
+              const actionLabel = job.status === "OPEN" ? "View proposals" : "View contract";
 
               return (
                 <div
                   key={job.id}
-                  className="px-6 py-4 flex items-center gap-4 hover:bg-muted/30 transition-colors"
+                  className={`px-6 py-4 flex items-center gap-4 hover:bg-muted/30 transition-colors ${needsPayment ? "border-l-4 border-amber-400 pl-5" : ""}`}
                 >
                   <div className="flex-1 min-w-0">
                     <p className="text-foreground font-medium truncate text-sm font-ui">{job.title}</p>
@@ -171,15 +203,35 @@ export default function BuyerDashboardPage() {
                       {job.proposals.length}
                     </span>
                   )}
-                  <Badge className={`text-xs border flex-shrink-0 ${status.class}`}>
-                    {status.label}
-                  </Badge>
-                  <Link href={actionHref}>
-                    <Button size="sm" variant="ghost" className="text-muted-foreground hover:text-[#b57e04] gap-1 text-xs flex-shrink-0 font-ui">
-                      {actionLabel}
-                      <ArrowRight className="w-3.5 h-3.5" />
-                    </Button>
-                  </Link>
+
+                  {needsPayment ? (
+                    <Badge className="text-xs border bg-amber-100 text-amber-700 border-amber-200 dark:bg-amber-900/30 dark:text-amber-300 dark:border-amber-800 flex-shrink-0">
+                      Payment Required
+                    </Badge>
+                  ) : (
+                    <Badge className={`text-xs border flex-shrink-0 ${status.class}`}>
+                      {status.label}
+                    </Badge>
+                  )}
+
+                  {needsPayment ? (
+                    <Link href={`/contracts/${job.contract?.id ?? job.id}`}>
+                      <Button
+                        size="sm"
+                        className="bg-amber-500 hover:bg-amber-400 text-white gap-1 text-xs flex-shrink-0 font-ui font-medium"
+                      >
+                        Pay Now
+                        <ArrowRight className="w-3.5 h-3.5" />
+                      </Button>
+                    </Link>
+                  ) : (
+                    <Link href={actionHref}>
+                      <Button size="sm" variant="ghost" className="text-muted-foreground hover:text-[#b57e04] gap-1 text-xs flex-shrink-0 font-ui">
+                        {actionLabel}
+                        <ArrowRight className="w-3.5 h-3.5" />
+                      </Button>
+                    </Link>
+                  )}
                 </div>
               );
             })}
