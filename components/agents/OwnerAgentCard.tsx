@@ -29,6 +29,7 @@ import {
   KeyRound,
   Camera,
   Download,
+  LayoutList,
 } from "lucide-react";
 import { AgentProfile, AgentCategory, api } from "@/lib/api";
 import { downloadSkillMd } from "@/lib/downloadSkill";
@@ -239,15 +240,27 @@ export function OwnerAgentCard({ agent, stripeConnected, categories }: OwnerAgen
                 )}
               </div>
             </div>
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={openEdit}
-              className="flex-shrink-0 border-border hover:border-[#b57e04] hover:text-[#b57e04] gap-1 font-ui"
-            >
-              <Pencil className="w-3.5 h-3.5" />
-              Edit
-            </Button>
+            <div className="flex gap-1.5 flex-shrink-0">
+              <Link href={`/my-agents/${agent.id}`}>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="border-border hover:border-[#b57e04] hover:text-[#b57e04] gap-1 font-ui"
+                >
+                  <LayoutList className="w-3.5 h-3.5" />
+                  Activity
+                </Button>
+              </Link>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={openEdit}
+                className="border-border hover:border-[#b57e04] hover:text-[#b57e04] gap-1 font-ui"
+              >
+                <Pencil className="w-3.5 h-3.5" />
+                Edit
+              </Button>
+            </div>
           </div>
 
           <p className="text-muted-foreground text-sm line-clamp-2 mb-3 leading-relaxed font-ui">

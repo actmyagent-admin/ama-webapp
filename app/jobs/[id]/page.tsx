@@ -1,13 +1,16 @@
 "use client";
 
+import { useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 import { ProposalCard } from "@/components/jobs/ProposalCard";
+import { SubmitProposalModal } from "@/components/proposals/SubmitProposalModal";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { useUser } from "@/hooks/useUser";
 import {
   ArrowLeft,
   Calendar,
@@ -16,6 +19,9 @@ import {
   Users,
   Radio,
   AlertCircle,
+  Send,
+  CheckCircle,
+  Clock,
 } from "lucide-react";
 
 const STATUS_CONFIG = {
@@ -29,6 +35,8 @@ const STATUS_CONFIG = {
 export default function JobDetailPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
+  const { roles } = useUser();
+  const [proposalModalOpen, setProposalModalOpen] = useState(false);
 
   const { data: job, isLoading, error } = useQuery({
     queryKey: ["job", id],
@@ -49,7 +57,16 @@ export default function JobDetailPage() {
     retry: false, // don't retry 403s
   });
 
+  // Fetch agent profiles for the proposal modal (only needed for agent listers)
+  const isAgentLister = roles.includes("AGENT_LISTER");
+  const { data: me } = useQuery({
+    queryKey: ["me"],
+    queryFn: () => api.getMe(),
+    enabled: isAgentLister,
+  });
+
   const isBuyer = !proposalsForbidden && proposals !== undefined;
+  const myAgents = me?.agentProfiles ?? [];
 
   if (isLoading) {
     return (
@@ -153,6 +170,46 @@ export default function JobDetailPage() {
                 {myProposalStub.status}
               </Badge>
             </div>
+            {myProposalStub.status === "PENDING" && (
+              <p className="text-muted-foreground text-xs font-ui mt-2 flex items-center gap-1">
+                <Clock className="w-3.5 h-3.5" />
+                Waiting for the buyer to review your proposal.
+              </p>
+            )}
+            {myProposalStub.status === "ACCEPTED" && (
+              <p className="text-muted-foreground text-xs font-ui mt-2 flex items-center gap-1 text-emerald-600 dark:text-emerald-400">
+                <CheckCircle className="w-3.5 h-3.5" />
+                Accepted! Check your active contracts to proceed.
+              </p>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Agent view — no proposal yet, show submit button */}
+      {!isBuyer && !myProposalStub && isAgentLister && job.status === "OPEN" && (
+        <div className="mb-6">
+          <div className="bg-card border border-border rounded-2xl p-6 flex flex-col items-center text-center">
+            <div className="w-12 h-12 rounded-2xl bg-[#b57e04]/10 flex items-center justify-center mb-3">
+              <Send className="w-6 h-6 text-[#b57e04]" />
+            </div>
+            <h3 className="text-foreground font-semibold font-ui mb-1">Submit a Proposal</h3>
+            <p className="text-muted-foreground text-sm font-ui mb-4 max-w-sm">
+              Pitch your agent for this task. Explain your approach, set your price, and estimated delivery time.
+            </p>
+            <Button
+              onClick={() => setProposalModalOpen(true)}
+              disabled={myAgents.length === 0}
+              className="bg-gradient-to-r from-[#b57e04] to-[#d4a017] hover:from-[#9a6a03] hover:to-[#b57e04] text-white gap-2 font-ui font-medium"
+            >
+              <Send className="w-4 h-4" />
+              Submit Proposal
+            </Button>
+            {myAgents.length === 0 && (
+              <p className="text-muted-foreground text-xs font-ui mt-2">
+                You need to register an agent first.
+              </p>
+            )}
           </div>
         </div>
       )}
@@ -193,6 +250,17 @@ export default function JobDetailPage() {
             </div>
           )}
         </div>
+      )}
+
+      {/* Submit proposal modal */}
+      {isAgentLister && job && (
+        <SubmitProposalModal
+          open={proposalModalOpen}
+          onClose={() => setProposalModalOpen(false)}
+          jobId={job.id}
+          jobTitle={job.title}
+          agents={myAgents}
+        />
       )}
     </div>
   );

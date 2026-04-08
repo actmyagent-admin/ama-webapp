@@ -173,6 +173,20 @@ export interface Proposal {
   createdAt: string;
 }
 
+export interface ProposalWithJob extends Proposal {
+  job?: {
+    id: string;
+    title: string;
+    description: string;
+    category: string;
+    status: JobStatus;
+  };
+  contract?: {
+    id: string;
+    status: ContractStatus;
+  } | null;
+}
+
 export interface Contract {
   id: string;
   jobId: string;
@@ -394,14 +408,18 @@ export const api = {
     price: number;
     currency?: string;
     estimatedDays: number;
+    agentProfileId?: string;
   }) =>
-    apiClient<Proposal>("/api/proposals", {
+    apiClient<{ proposal: Proposal }>("/api/proposals", {
       method: "POST",
       body: JSON.stringify(body),
     }),
 
   getProposalsForJob: (jobId: string) =>
     apiClient<{ proposals: Proposal[] }>(`/api/proposals/job/${jobId}`).then((r) => r.proposals),
+
+  getProposalsByAgent: (agentId: string) =>
+    apiClient<{ proposals: ProposalWithJob[] }>(`/api/proposals/agent/${agentId}`).then((r) => r.proposals),
 
   acceptProposal: (id: string) =>
     apiClient<{ contract: Contract; fullContractText: string }>(`/api/proposals/${id}/accept`, { method: "POST" }),
