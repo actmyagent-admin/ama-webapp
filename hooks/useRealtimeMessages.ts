@@ -11,26 +11,26 @@ interface UseRealtimeMessagesReturn {
   refreshMessages: () => Promise<void>;
 }
 
-// Supabase postgres_changes returns snake_case column names
+// Supabase postgres_changes returns columns exactly as they are in the DB (camelCase for Prisma schemas)
 interface RawMessagePayload {
   id: string;
-  contract_id: string;
-  sender_id: string;
-  sender_role: string;
+  contractId: string;
+  senderId: string;
+  senderRole: string;
   content: string;
-  read_at: string | null;
-  created_at: string;
+  readAt: string | null;
+  createdAt: string;
 }
 
 function fromRaw(raw: RawMessagePayload): Message {
   return {
     id: raw.id,
-    contractId: raw.contract_id,
-    senderId: raw.sender_id,
-    senderRole: raw.sender_role as "BUYER" | "AGENT_LISTER",
+    contractId: raw.contractId,
+    senderId: raw.senderId,
+    senderRole: raw.senderRole as "BUYER" | "AGENT_LISTER",
     content: raw.content,
-    readAt: raw.read_at,
-    createdAt: raw.created_at,
+    readAt: raw.readAt,
+    createdAt: raw.createdAt,
   };
 }
 
@@ -51,7 +51,18 @@ export function useRealtimeMessages(contractId: string): UseRealtimeMessagesRetu
       setIsLoading(false);
     });
 
-    // Realtime subscription
+    // Supabase Realtime evaluates RLS using auth.uid() on the realtime connection.
+    // The singleton browser client does not automatically forward the session JWT
+    // to the realtime socket, so we must call setAuth explicitly before subscribing.
+    supabase.auth.getSession().then(({ data }) => {
+      const token = data.session?.access_token;
+      if (token) supabase.realtime.setAuth(token);
+    });
+
+    // Realtime subscription — subscribe with status callback so we can
+    // detect CHANNEL_ERROR (e.g. auth not yet ready) and do a best-effort
+    // HTTP refresh to keep messages current.
+    let refreshOnError = true;
     const channel = supabase
       .channel(`messages:${contractId}`)
       .on(
@@ -59,11 +70,13 @@ export function useRealtimeMessages(contractId: string): UseRealtimeMessagesRetu
         {
           event: "INSERT",
           schema: "public",
-          table: "messages",
-          filter: `contract_id=eq.${contractId}`,
+          table: "Message",
         },
         (payload) => {
-          const newMsg = fromRaw(payload.new as RawMessagePayload);
+          const raw = payload.new as RawMessagePayload;
+          // client-side filter — camelCase column names can't be used in Realtime filter syntax
+          if (raw.contractId !== contractId) return;
+          const newMsg = fromRaw(raw);
           setMessages((prev) => {
             if (prev.some((m) => m.id === newMsg.id)) return prev;
             return [...prev, newMsg];
@@ -75,19 +88,35 @@ export function useRealtimeMessages(contractId: string): UseRealtimeMessagesRetu
         {
           event: "UPDATE",
           schema: "public",
-          table: "messages",
-          filter: `contract_id=eq.${contractId}`,
+          table: "Message",
         },
         (payload) => {
-          const updated = fromRaw(payload.new as RawMessagePayload);
+          const raw = payload.new as RawMessagePayload;
+          if (raw.contractId !== contractId) return;
+          const updated = fromRaw(raw);
           setMessages((prev) =>
             prev.map((m) => (m.id === updated.id ? { ...m, readAt: updated.readAt } : m))
           );
         }
       )
-      .subscribe();
+      .subscribe((status, err) => {
+        console.log(`[Realtime] channel=messages:${contractId} status=${status}`, err ?? "");
+        if ((status === "CHANNEL_ERROR" || status === "TIMED_OUT") && refreshOnError) {
+          // Realtime unavailable — fall back to polling every 5 s
+          console.warn("[Realtime] falling back to HTTP polling");
+          const poll = setInterval(() => {
+            api.getMessages(contractId).then(({ messages: msgs }) => {
+              setMessages(msgs);
+            }).catch(() => {});
+          }, 5000);
+          (channel as unknown as { _pollInterval?: ReturnType<typeof setInterval> })._pollInterval = poll;
+        }
+      });
 
     return () => {
+      refreshOnError = false;
+      const poll = (channel as unknown as { _pollInterval?: ReturnType<typeof setInterval> })._pollInterval;
+      if (poll) clearInterval(poll);
       supabase.removeChannel(channel);
     };
   }, [contractId]);
