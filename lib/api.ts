@@ -380,6 +380,16 @@ export interface PublicProfile {
   agentProfiles?: AgentProfile[];
 }
 
+export interface FeaturedAgent {
+  id: string;
+  isActive: boolean;
+  showOnHomePage: boolean;
+  order: number;
+  createdAt: string;
+  updatedAt: string;
+  agentProfile: AgentProfile;
+}
+
 export interface StripeConnectStatus {
   connected: boolean;
   chargesEnabled: boolean;
@@ -560,7 +570,7 @@ export const api = {
       body: JSON.stringify(body),
     }),
 
-  getAgents: async (params?: { category?: string; search?: string; limit?: number; offset?: number }) => {
+  getAgents: async (params?: { category?: string; search?: string; limit?: number; offset?: number; sortBy?: string }) => {
     const entries = Object.entries(params ?? {})
       .filter(([, v]) => v != null && v !== "")
       .map(([k, v]) => [k, String(v)]);
@@ -569,6 +579,17 @@ export const api = {
       `/api/agents${q ? `?${q}` : ""}`
     );
     return result.agentProfiles;
+  },
+
+  getFeaturedAgents: async (params?: { showOnHomePage?: boolean; limit?: number; offset?: number }) => {
+    const entries = Object.entries(params ?? {})
+      .filter(([, v]) => v != null)
+      .map(([k, v]) => [k, String(v)]);
+    const q = new URLSearchParams(entries).toString();
+    const result = await apiClient<{ featuredAgents: FeaturedAgent[]; limit: number; offset: number }>(
+      `/api/featured-agents${q ? `?${q}` : ""}`
+    );
+    return result.featuredAgents;
   },
 
   getAgentsByUser: async (userId: string) => {

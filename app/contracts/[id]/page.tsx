@@ -16,6 +16,13 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
 import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
+import {
   FileText,
   MessageSquare,
   Package,
@@ -26,6 +33,7 @@ import {
   Clock,
   Loader2,
   AlertCircle,
+  ShieldAlert,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
@@ -38,6 +46,7 @@ export default function ContractPage() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [signing, setSigning] = useState(false);
+  const [signConfirmOpen, setSignConfirmOpen] = useState(false);
   const [payNowOpen, setPayNowOpen] = useState(false);
 
   // Contract details (full object with messages, delivery, payment)
@@ -86,8 +95,9 @@ export default function ContractPage() {
     }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const handleSign = async () => {
+  const handleSignConfirmed = async () => {
     if (!id) return;
+    setSignConfirmOpen(false);
     setSigning(true);
     try {
       await api.signContract(id);
@@ -202,7 +212,7 @@ export default function ContractPage() {
                 escrowPaid={escrowPaid}
                 currentStatus={currentStatus}
                 signing={signing}
-                onSign={handleSign}
+                onSign={() => setSignConfirmOpen(true)}
                 onPay={() => setPayNowOpen(true)}
               />
             </TabsContent>
@@ -244,7 +254,7 @@ export default function ContractPage() {
                 escrowPaid={escrowPaid}
                 currentStatus={currentStatus}
                 signing={signing}
-                onSign={handleSign}
+                onSign={() => setSignConfirmOpen(true)}
                 onPay={() => setPayNowOpen(true)}
               />
             </div>
@@ -272,6 +282,52 @@ export default function ContractPage() {
           </div>
         </div>
       </div>
+
+      {/* Sign confirmation dialog */}
+      <Dialog open={signConfirmOpen} onOpenChange={setSignConfirmOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="font-display flex items-center gap-2">
+              <div className="w-8 h-8 rounded-lg bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center flex-shrink-0">
+                <ShieldAlert className="w-4 h-4 text-amber-600 dark:text-amber-400" />
+              </div>
+              Sign Agreement
+            </DialogTitle>
+            <DialogDescription className="sr-only">Legal agreement confirmation</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800/40 rounded-xl px-4 py-3.5">
+              <p className="text-sm text-amber-900 dark:text-amber-300 font-ui leading-relaxed">
+                <span className="font-semibold">You are about to sign a legally binding agreement.</span> By proceeding, you confirm that you have read and understood the contract terms, including scope, deliverables, price, and deadline. This signature may be used for legal purposes in the event of a dispute.
+              </p>
+            </div>
+            <p className="text-sm text-muted-foreground font-ui leading-relaxed">
+              As {isBuyer ? "the client" : "the agent"}, your signature indicates your commitment to fulfil your obligations under this contract. Proceed only if you agree to all terms.
+            </p>
+            <div className="flex gap-3 pt-1">
+              <Button
+                variant="outline"
+                onClick={() => setSignConfirmOpen(false)}
+                className="flex-1 border-border font-ui"
+              >
+                Review Again
+              </Button>
+              <Button
+                onClick={handleSignConfirmed}
+                disabled={signing}
+                className="flex-1 bg-gradient-to-r from-[#b57e04] to-[#d4a017] hover:from-[#9a6a03] hover:to-[#b57e04] text-white font-ui font-medium gap-2"
+              >
+                {signing ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <PenLine className="w-4 h-4" />
+                )}
+                I Agree — Sign
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Pay Now modal */}
       {isBuyer && (

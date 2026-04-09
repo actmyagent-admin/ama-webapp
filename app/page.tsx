@@ -9,6 +9,7 @@ import { useQuery } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 import { useUser } from "@/hooks/useUser";
 import { AgentCard } from "@/components/agents/AgentCard";
+import { FeaturedAgentCard } from "@/components/agents/FeaturedAgentCard";
 import { ContactSection } from "@/components/contact/ContactSection";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -140,9 +141,14 @@ export default function HomePage() {
     staleTime: Infinity,
   });
 
-  const { data: agents, isLoading: agentsLoading } = useQuery({
-    queryKey: ["agents", "featured"],
-    queryFn: () => api.getAgents(),
+  const { data: newAgents, isLoading: newAgentsLoading } = useQuery({
+    queryKey: ["agents", "latest"],
+    queryFn: () => api.getAgents({ sortBy: "latest", limit: 5 }),
+  });
+
+  const { data: featuredAgents, isLoading: featuredAgentsLoading } = useQuery({
+    queryKey: ["featured-agents"],
+    queryFn: () => api.getFeaturedAgents({ showOnHomePage: true }),
   });
 
   const handlePost = () => {
@@ -367,15 +373,58 @@ export default function HomePage() {
       {/* ────────────────────────────────────────────────────── */}
       {/* FEATURED AGENTS                                       */}
       {/* ────────────────────────────────────────────────────── */}
-      <section className="py-24">
+      {(featuredAgentsLoading || (featuredAgents && featuredAgents.length > 0)) && (
+        <section className="py-24">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex items-end justify-between mb-10">
+              <div>
+                <h2 className="font-display text-3xl sm:text-4xl font-bold text-foreground mb-2">
+                  Featured Agents
+                </h2>
+                <p className="text-muted-foreground font-ui">
+                  Hand-picked agents ready to take on your tasks
+                </p>
+              </div>
+              <Link href="/agents">
+                <Button
+                  variant="outline"
+                  className="border-border text-foreground hover:border-[#b57e04] hover:text-[#b57e04] gap-2 font-ui hidden sm:flex"
+                >
+                  View all
+                  <ArrowRight className="w-4 h-4" />
+                </Button>
+              </Link>
+            </div>
+
+            {featuredAgentsLoading ? (
+              <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
+                {Array.from({ length: 3 }).map((_, i) => (
+                  <Skeleton key={i} className="h-72 rounded-2xl" />
+                ))}
+              </div>
+            ) : (
+              <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
+                {featuredAgents!.map((fa) => (
+                  <FeaturedAgentCard key={fa.id} featuredAgent={fa} />
+                ))}
+              </div>
+            )}
+          </div>
+        </section>
+      )}
+
+      {/* ────────────────────────────────────────────────────── */}
+      {/* NEWLY ADDED AGENTS                                    */}
+      {/* ────────────────────────────────────────────────────── */}
+      <section className="py-24 bg-muted/30">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-end justify-between mb-10">
             <div>
               <h2 className="font-display text-3xl sm:text-4xl font-bold text-foreground mb-2">
-                Featured Agents
+                Newly Added Agents
               </h2>
               <p className="text-muted-foreground font-ui">
-                Ready to take on your tasks right now
+                The latest agents to join the marketplace
               </p>
             </div>
             <Link href="/agents">
@@ -389,15 +438,15 @@ export default function HomePage() {
             </Link>
           </div>
 
-          {agentsLoading ? (
+          {newAgentsLoading ? (
             <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {Array.from({ length: 6 }).map((_, i) => (
+              {Array.from({ length: 5 }).map((_, i) => (
                 <Skeleton key={i} className="h-52 rounded-2xl" />
               ))}
             </div>
-          ) : agents && agents.length > 0 ? (
+          ) : newAgents && newAgents.length > 0 ? (
             <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {agents.slice(0, 6).map((agent) => (
+              {newAgents.map((agent) => (
                 <AgentCard key={agent.id} agent={agent} />
               ))}
             </div>

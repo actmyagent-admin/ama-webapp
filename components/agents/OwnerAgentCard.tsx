@@ -61,6 +61,7 @@ export function OwnerAgentCard({ agent, stripeConnected, categories }: OwnerAgen
   const queryClient = useQueryClient();
   const { user } = useUser();
   const picInputRef = useRef<HTMLInputElement>(null);
+  const coverPicInputRef = useRef<HTMLInputElement>(null);
 
   const [confirmRotateOpen, setConfirmRotateOpen] = useState(false);
   const [rotating, setRotating] = useState(false);
@@ -72,8 +73,9 @@ export function OwnerAgentCard({ agent, stripeConnected, categories }: OwnerAgen
   const [downloadingSkill, setDownloadingSkill] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [uploadingPic, setUploadingPic] = useState(false);
+  const [uploadingPic, setUploadingPic] = useState<"main" | "cover" | null>(null);
   const [localMainPic, setLocalMainPic] = useState<string | null>(agent.mainPic ?? null);
+  const [localCoverPic, setLocalCoverPic] = useState<string | null>(agent.coverPic ?? null);
   const [form, setForm] = useState<EditForm>({
     name: agent.name,
     description: agent.description,
@@ -83,38 +85,40 @@ export function OwnerAgentCard({ agent, stripeConnected, categories }: OwnerAgen
     categorySlugs: agent.categories.map((c) => c.slug),
   });
 
-  const uploadAgentPic = async (file: File) => {
+  const uploadAgentPic = async (file: File, type: "main" | "cover") => {
     if (!user) return;
     if (file.size > 2 * 1024 * 1024) {
       toast({ title: "File too large", description: "Maximum file size is 2MB.", variant: "destructive" });
       return;
     }
-    setUploadingPic(true);
+    setUploadingPic(type);
     try {
       const supabase = getBrowserClient();
-      const path = `${user.id}/${agent.id}/main-pic`;
+      const path = `${user.id}/${agent.id}/${type}-pic`;
       const { error } = await supabase.storage
         .from(BUCKET)
         .upload(path, file, { upsert: true, contentType: file.type });
       if (error) throw error;
       const { data } = supabase.storage.from(BUCKET).getPublicUrl(path);
       const url = `${data.publicUrl}?t=${Date.now()}`;
-      setLocalMainPic(url);
-      await api.updateAgent(agent.id, { mainPic: url });
+      const field = type === "main" ? "mainPic" : "coverPic";
+      if (type === "main") setLocalMainPic(url);
+      else setLocalCoverPic(url);
+      await api.updateAgent(agent.id, { [field]: url });
       queryClient.setQueryData(["me"], (old: any) => {
         if (!old?.agentProfiles) return old;
         return {
           ...old,
           agentProfiles: old.agentProfiles.map((a: AgentProfile) =>
-            a.id === agent.id ? { ...a, mainPic: url } : a
+            a.id === agent.id ? { ...a, [field]: url } : a
           ),
         };
       });
-      toast({ title: "Agent photo updated", variant: "success" });
+      toast({ title: type === "main" ? "Agent photo updated" : "Cover photo updated", variant: "success" });
     } catch (err: unknown) {
       toast({ title: "Upload failed", description: (err as Error).message, variant: "destructive" });
     } finally {
-      setUploadingPic(false);
+      setUploadingPic(null);
     }
   };
 
@@ -167,6 +171,7 @@ export function OwnerAgentCard({ agent, stripeConnected, categories }: OwnerAgen
         webhookUrl: form.webhookUrl,
         categorySlugs: form.categorySlugs,
         mainPic: localMainPic,
+        coverPic: localCoverPic,
       });
       queryClient.invalidateQueries({ queryKey: ["me"] });
       setEditOpen(false);
@@ -180,6 +185,7 @@ export function OwnerAgentCard({ agent, stripeConnected, categories }: OwnerAgen
 
   const openEdit = () => {
     setLocalMainPic(agent.mainPic ?? null);
+    setLocalCoverPic(agent.coverPic ?? null);
     setForm({
       name: agent.name,
       description: agent.description,
@@ -344,39 +350,72 @@ export function OwnerAgentCard({ agent, stripeConnected, categories }: OwnerAgen
             <DialogTitle className="font-display">Edit Agent</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 pt-2">
-            {/* Agent Photo */}
+            {/* Cover + Avatar photos */}
             <div>
-              <Label className="font-ui text-sm font-medium mb-2 block">Agent Photo</Label>
-              <div className="flex items-center gap-4">
+              <Label className="font-ui text-sm font-medium mb-2 block">Photos</Label>
+              <div className="relative mb-10">
+                {/* Cover photo */}
                 <div
-                  className="w-16 h-16 rounded-full overflow-hidden bg-muted cursor-pointer relative group flex-shrink-0 border-2 border-border hover:border-[#b57e04] transition-colors"
-                  onClick={() => picInputRef.current?.click()}
+                  className="h-28 rounded-xl bg-gradient-to-br from-[#b57e04]/20 to-[#d4a017]/10 border border-border overflow-hidden relative group cursor-pointer"
+                  onClick={() => coverPicInputRef.current?.click()}
                 >
-                  {localMainPic ? (
-                    <Image src={localMainPic} alt="Agent photo" fill className="object-cover" unoptimized />
+                  {localCoverPic ? (
+                    <Image src={localCoverPic} alt="Cover" fill className="object-cover" unoptimized />
                   ) : (
-                    <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-[#b57e04] to-[#d4a017]">
-                      <span className="text-white font-bold text-lg font-ui">{initials}</span>
+                    <div className="w-full h-full flex items-center justify-center">
+                      <p className="text-muted-foreground text-xs font-ui">Click to add cover photo</p>
                     </div>
                   )}
-                  <div className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity rounded-full">
-                    {uploadingPic ? (
-                      <Loader2 className="w-4 h-4 text-white animate-spin" />
+                  <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                    {uploadingPic === "cover" ? (
+                      <Loader2 className="w-5 h-5 text-white animate-spin" />
                     ) : (
-                      <Camera className="w-4 h-4 text-white" />
+                      <div className="flex items-center gap-1.5 text-white text-xs font-ui">
+                        <Camera className="w-3.5 h-3.5" />
+                        {localCoverPic ? "Change cover" : "Add cover"}
+                      </div>
                     )}
                   </div>
                 </div>
-                <p className="text-xs text-muted-foreground font-ui">
-                  Click the avatar to upload a photo. Max 2MB. Changes are saved immediately.
-                </p>
+                {/* Avatar overlapping cover */}
+                <div className="absolute -bottom-8 left-4">
+                  <div
+                    className="w-14 h-14 rounded-full overflow-hidden bg-muted cursor-pointer relative group border-2 border-background hover:border-[#b57e04] transition-colors"
+                    onClick={() => picInputRef.current?.click()}
+                  >
+                    {localMainPic ? (
+                      <Image src={localMainPic} alt="Agent photo" fill className="object-cover" unoptimized />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-[#b57e04] to-[#d4a017]">
+                        <span className="text-white font-bold text-base font-ui">{initials}</span>
+                      </div>
+                    )}
+                    <div className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity rounded-full">
+                      {uploadingPic === "main" ? (
+                        <Loader2 className="w-3.5 h-3.5 text-white animate-spin" />
+                      ) : (
+                        <Camera className="w-3.5 h-3.5 text-white" />
+                      )}
+                    </div>
+                  </div>
+                </div>
               </div>
+              <p className="text-xs text-muted-foreground font-ui mt-1">
+                Click either image to upload. Max 2MB. Changes are saved immediately.
+              </p>
               <input
                 ref={picInputRef}
                 type="file"
                 accept="image/*"
                 className="hidden"
-                onChange={(e) => { const f = e.target.files?.[0]; if (f) uploadAgentPic(f); e.target.value = ""; }}
+                onChange={(e) => { const f = e.target.files?.[0]; if (f) uploadAgentPic(f, "main"); e.target.value = ""; }}
+              />
+              <input
+                ref={coverPicInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={(e) => { const f = e.target.files?.[0]; if (f) uploadAgentPic(f, "cover"); e.target.value = ""; }}
               />
             </div>
             <div>
