@@ -20,7 +20,16 @@ import { useToast } from "@/hooks/use-toast";
 import { Logo } from "@/components/ui/Logo";
 import Link from "next/link";
 import { useUser } from "@/hooks/useUser";
+import { ApiError } from "@/lib/api";
+import { PlanLimitModal } from "@/components/agents/PlanLimitModal";
 
+
+interface PlanLimitError {
+  code: string;
+  currentCount: number;
+  limit: number;
+  error: string;
+}
 
 interface FormState {
   name: string; description: string; categories: string[];
@@ -43,6 +52,7 @@ export default function AgentRegisterPage() {
   const [submitting, setSubmitting] = useState(false);
   const [descriptionTouched, setDescriptionTouched] = useState(false);
   const [webhookTouched, setWebhookTouched] = useState(false);
+  const [planLimitError, setPlanLimitError] = useState<PlanLimitError | null>(null);
   const { toast } = useToast();
   const router = useRouter();
 
@@ -75,6 +85,18 @@ export default function AgentRegisterPage() {
       setWebhookSecret(result.webhookSecret ?? "");
       setStep(5);
     } catch (err: unknown) {
+      if (err instanceof ApiError && err.status === 403) {
+        const data = err.data as { code?: string; currentCount?: number; limit?: number; error?: string } | null;
+        if (data?.code === "PLAN_LIMIT_REACHED") {
+          setPlanLimitError({
+            code: data.code,
+            currentCount: data.currentCount ?? 0,
+            limit: data.limit ?? 3,
+            error: data.error ?? "You've reached your plan's agent limit.",
+          });
+          return;
+        }
+      }
       toast({ title: "Error", description: (err as Error).message ?? "Failed to register agent", variant: "destructive" });
     } finally {
       setSubmitting(false);
@@ -129,6 +151,15 @@ export default function AgentRegisterPage() {
 
   return (
     <div className="max-w-2xl mx-auto px-4 py-12">
+      {planLimitError && (
+        <PlanLimitModal
+          open={!!planLimitError}
+          onClose={() => setPlanLimitError(null)}
+          currentCount={planLimitError.currentCount}
+          limit={planLimitError.limit}
+          reason={planLimitError.error}
+        />
+      )}
       {step < 5 && (
         <>
           <button

@@ -105,7 +105,12 @@ export default function AgentDashboardPage() {
     !!stripeStatus?.payoutsEnabled;
 
   const agentCount = me?.agentProfiles?.length ?? 0;
-  const canRegisterMore = agentCount < 3;
+  const maxAgents =
+    me?.subscription?.customMaxAgentListings ??
+    me?.subscription?.plan?.maxAgentListings ??
+    3;
+  const canRegisterMore = agentCount < maxAgents;
+  const planName = me?.subscription?.plan?.name ?? "Starter";
 
   const awaitingPaymentContracts = contracts?.filter(
     (c: Contract) => c.status === "SIGNED_BOTH"
@@ -121,7 +126,14 @@ export default function AgentDashboardPage() {
       <div className="flex items-center justify-between mb-8">
         <div>
           <h1 className="text-2xl font-display font-bold text-foreground">Agent Dashboard</h1>
-          <p className="text-muted-foreground mt-1 font-ui text-sm">{user?.email}</p>
+          <div className="flex items-center gap-2 mt-1">
+            <p className="text-muted-foreground font-ui text-sm">{user?.email}</p>
+            <Link href="/settings/billing">
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-ui font-medium bg-[#b57e04]/10 text-[#b57e04] border border-[#b57e04]/20 hover:bg-[#b57e04]/20 transition-colors cursor-pointer">
+                {planName} · {agentCount}/{maxAgents === Infinity ? "∞" : maxAgents} agents
+              </span>
+            </Link>
+          </div>
         </div>
         {canRegisterMore && (
           <Link href="/agent/register">

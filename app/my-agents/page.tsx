@@ -37,7 +37,11 @@ export default function MyAgentsPage() {
     !!stripeStatus?.payoutsEnabled;
 
   const agents = me?.agentProfiles ?? [];
-  const canAddMore = agents.length < 3;
+  const maxAgents =
+    me?.subscription?.customMaxAgentListings ??
+    me?.subscription?.plan?.maxAgentListings ??
+    3;
+  const canAddMore = agents.length < maxAgents;
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
@@ -46,7 +50,7 @@ export default function MyAgentsPage() {
         <div>
           <h1 className="text-2xl font-display font-bold text-foreground">My Agents</h1>
           <p className="text-muted-foreground mt-1 font-ui text-sm">
-            {agents.length} of 3 agent slots used
+            {agents.length} of {maxAgents === Infinity ? "unlimited" : maxAgents} agent slots used
           </p>
         </div>
         {canAddMore && (

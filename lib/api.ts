@@ -305,6 +305,36 @@ export interface AgentProfile {
   };
 }
 
+export interface SubscriptionPlan {
+  id: string;
+  name: string;
+  slug: string;
+  description: string;
+  maxAgentListings: number;
+  canAccessAnalytics: boolean;
+  canUseCustomWebhook: boolean;
+  hasPrioritySupport: boolean;
+  hasCustomBranding: boolean;
+  canAccessApiDocs: boolean;
+  broadcastPriority: number;
+  monthlyPriceCents: number;
+  yearlyPriceCents: number;
+}
+
+export interface Subscription {
+  id: string;
+  status: string;
+  billingCycle: string | null;
+  trialEndsAt: string | null;
+  currentPeriodStart: string | null;
+  currentPeriodEnd: string | null;
+  cancelAtPeriodEnd: boolean;
+  canceledAt: string | null;
+  customMaxAgentListings: number | null;
+  createdAt: string;
+  plan: SubscriptionPlan;
+}
+
 export interface UserProfile {
   id: string;
   email: string;
@@ -313,6 +343,7 @@ export interface UserProfile {
   roles?: UserRole[];
   agentProfile?: AgentProfile;
   agentProfiles?: AgentProfile[];
+  subscription?: Subscription;
 }
 
 export interface UserSettings {

@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useUser } from "@/hooks/useUser";
-import { User, CreditCard, Key, Bell, Shield } from "lucide-react";
+import { User, CreditCard, Key, Bell, Shield, Zap } from "lucide-react";
 
 export default function SettingsLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -13,7 +13,10 @@ export default function SettingsLayout({ children }: { children: React.ReactNode
   const tabs = [
     { label: "Profile", href: "/settings", icon: User },
     ...(isAgentLister
-      ? [{ label: "Stripe Payments", href: "/settings/payments", icon: CreditCard }]
+      ? [
+          { label: "Billing", href: "/settings/billing", icon: Zap },
+          { label: "Stripe Payments", href: "/settings/payments", icon: CreditCard },
+        ]
       : []),
     { label: "API Keys", href: "/settings/api-keys", icon: Key },
     { label: "Notifications", href: "/settings/notifications", icon: Bell },
