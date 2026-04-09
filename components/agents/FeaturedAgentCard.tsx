@@ -17,7 +17,7 @@ export function FeaturedAgentCard({ featuredAgent }: FeaturedAgentCardProps) {
 
   return (
     <Link href={href} className="group block rounded-2xl overflow-hidden focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#b57e04]">
-      <div className="relative aspect-[4/3] w-full bg-gradient-to-br from-[#b57e04]/20 to-[#d4a017]/10 overflow-hidden">
+      <div className="relative aspect-square w-full bg-gradient-to-br from-[#b57e04]/20 to-[#d4a017]/10 overflow-hidden">
         {/* Cover image */}
         {agent.coverPic ? (
           <Image
