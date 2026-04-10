@@ -34,8 +34,10 @@ import {
   Loader2,
   AlertCircle,
   ShieldAlert,
+  ArrowLeft,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import Link from "next/link";
 
 // ─── Main page ────────────────────────────────────────────────────────────────
 export default function ContractPage() {
@@ -81,6 +83,13 @@ export default function ContractPage() {
   // Use status from the polling endpoint when available; fall back to contract object
   const currentStatus = contractStatus?.status ?? contract?.status;
   const escrowPaid = contractStatus?.payment.secured ?? (!!contract?.payment && contract.payment.status !== "PENDING");
+
+  // Contract timed out: both signed, payment deadline elapsed, and contract deadline is in the past
+  const isTimedOut =
+    contractStatus?.status === "SIGNED_BOTH" &&
+    contractStatus?.timing.paymentDeadlineHoursRemaining === 0 &&
+    !!contractStatus?.timing.contractDeadline &&
+    new Date(contractStatus.timing.contractDeadline) < new Date();
 
   // Handle ?payment=success on mount
   useEffect(() => {
@@ -163,6 +172,12 @@ export default function ContractPage() {
       <div className="max-w-7xl mx-auto px-4 py-8">
         {/* Page header */}
         <div className="mb-4">
+          <Link
+            href={isBuyer ? "/dashboard/buyer" : "/dashboard/agent"}
+            className="inline-flex items-center gap-1.5 text-muted-foreground hover:text-foreground text-sm font-ui mb-3 transition-colors"
+          >
+            <ArrowLeft className="w-4 h-4" /> Dashboard
+          </Link>
           <div className="flex items-center justify-between">
             <h1 className="text-xl font-display font-bold text-foreground truncate">
               {contract.agentProfile?.name ?? "Contract"}
@@ -175,8 +190,21 @@ export default function ContractPage() {
           </div>
         </div>
 
+        {/* Contract timed out — non-payment */}
+        {isTimedOut && (
+          <div className="flex items-start gap-3 bg-destructive/8 border border-destructive/25 rounded-xl px-4 py-3.5 mb-4">
+            <AlertCircle className="w-5 h-5 text-destructive flex-shrink-0 mt-0.5" />
+            <div>
+              <p className="text-destructive font-semibold text-sm font-ui">Contract timed out due to non-payment</p>
+              <p className="text-destructive/80 text-xs font-ui mt-0.5">
+                The payment deadline passed without funds being secured in escrow. This contract is no longer active.
+              </p>
+            </div>
+          </div>
+        )}
+
         {/* Payment deadline banner */}
-        {currentStatus === "SIGNED_BOTH" &&
+        {!isTimedOut && currentStatus === "SIGNED_BOTH" &&
           contractStatus?.timing.paymentDeadline && (
             <PaymentDeadlineCountdown
               deadline={contractStatus.timing.paymentDeadline}
@@ -212,6 +240,7 @@ export default function ContractPage() {
                 escrowPaid={escrowPaid}
                 currentStatus={currentStatus}
                 signing={signing}
+                isTimedOut={isTimedOut}
                 onSign={() => setSignConfirmOpen(true)}
                 onPay={() => setPayNowOpen(true)}
               />
@@ -254,6 +283,7 @@ export default function ContractPage() {
                 escrowPaid={escrowPaid}
                 currentStatus={currentStatus}
                 signing={signing}
+                isTimedOut={isTimedOut}
                 onSign={() => setSignConfirmOpen(true)}
                 onPay={() => setPayNowOpen(true)}
               />
@@ -354,6 +384,7 @@ function ContractDetails({
   escrowPaid,
   currentStatus,
   signing,
+  isTimedOut,
   onSign,
   onPay,
 }: {
@@ -365,11 +396,12 @@ function ContractDetails({
   escrowPaid: boolean;
   currentStatus: string | undefined;
   signing: boolean;
+  isTimedOut: boolean;
   onSign: () => void;
   onPay: () => void;
 }) {
   const bothSigned = buyerSigned && agentSigned;
-  const needsPayment = currentStatus === "SIGNED_BOTH" && isBuyer && !escrowPaid;
+  const needsPayment = currentStatus === "SIGNED_BOTH" && isBuyer && !escrowPaid && !isTimedOut;
 
   return (
     <div className="space-y-5">
@@ -465,7 +497,7 @@ function ContractDetails({
       </div>
 
       {/* Sign button */}
-      {!hasSigned && (
+      {!hasSigned && !isTimedOut && (
         <Button
           onClick={onSign}
           disabled={signing}

@@ -409,11 +409,38 @@ export const api = {
     budget?: number;
     currency?: string;
     deadline?: string;
+    attachmentKeys?: string[];
+    attachmentNames?: string[];
+    briefDetail?: string;
+    exampleUrls?: string[];
+    desiredDeliveryDays?: number;
+    expressRequested?: boolean;
+    preferHuman?: boolean;
+    budgetFlexible?: boolean;
+    requiredLanguage?: string;
+    preferredOutputFormats?: string[];
+    proposalDeadlineHours?: number;
+    maxProposals?: number | null;
   }) =>
     apiClient<{ job: Job; broadcastCount: number; analysis: JobAnalysis }>(
       "/api/jobs",
       { method: "POST", body: JSON.stringify(body) },
     ),
+
+  getJobUploadUrl: (body: { filename: string; mimeType: string; fileSize: number; jobId?: string }) =>
+    apiClient<{ uploadUrl: string; key: string; filename: string }>("/api/jobs/upload-url", {
+      method: "POST",
+      body: JSON.stringify(body),
+    }),
+
+  uploadToS3: async (uploadUrl: string, file: File): Promise<void> => {
+    const res = await fetch(uploadUrl, {
+      method: "PUT",
+      headers: { "Content-Type": file.type || "application/octet-stream" },
+      body: file,
+    });
+    if (!res.ok) throw new Error(`File upload failed (${res.status})`);
+  },
 
   getJob: async (id: string) => {
     const res = await apiClient<{ job: JobWithProposals }>(`/api/jobs/${id}`);
@@ -564,6 +591,23 @@ export const api = {
     priceTo: number;
     currency?: string;
     webhookUrl: string;
+    deliveryDays?: number;
+    revisionsIncluded?: number;
+    pricePerExtraRevision?: number;
+    pricingModel?: string;
+    basePrice?: number;
+    expressDeliveryDays?: number;
+    maxFileSizeMb?: number;
+    outputFormats?: string[];
+    whatsIncluded?: string[];
+    whatsNotIncluded?: string[];
+    perfectFor?: string[];
+    responseTimeSlaHours?: number;
+    maxConcurrentJobs?: number;
+    languagesSupported?: string[];
+    sampleOutputUrl?: string;
+    moneyBackGuarantee?: boolean;
+    guaranteeTerms?: string;
   }) =>
     apiClient<{ agentProfile: AgentProfile; apiKey: string; webhookSecret?: string; warning: string }>("/api/agents/register", {
       method: "POST",

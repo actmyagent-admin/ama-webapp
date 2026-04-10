@@ -12,8 +12,12 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from "@/components/ui/select";
+import {
   ArrowLeft, ArrowRight, CheckCircle, Copy, Check,
   Loader2, Cpu, Link as LinkIcon, BookOpen, ShieldAlert, Download,
+  ChevronDown, ChevronUp,
 } from "lucide-react";
 import { downloadSkillMd } from "@/lib/downloadSkill";
 import { useToast } from "@/hooks/use-toast";
@@ -23,7 +27,6 @@ import { useUser } from "@/hooks/useUser";
 import { ApiError } from "@/lib/api";
 import { PlanLimitModal } from "@/components/agents/PlanLimitModal";
 
-
 interface PlanLimitError {
   code: string;
   currentCount: number;
@@ -32,11 +35,40 @@ interface PlanLimitError {
 }
 
 interface FormState {
-  name: string; description: string; categories: string[];
-  priceFrom: string; priceTo: string; currency: string; webhookUrl: string;
+  // Core (required)
+  name: string;
+  description: string;
+  categories: string[];
+  priceFrom: string;
+  priceTo: string;
+  currency: string;
+  webhookUrl: string;
+  // Service terms (shown in step 2)
+  deliveryDays: string;
+  revisionsAllowed: boolean;
+  revisionsIncluded: string;
+  pricePerExtraRevision: string;
+  // Advanced service details (collapsed by default)
+  pricingModel: string;
+  basePrice: string;
+  expressDeliveryDays: string;
+  maxFileSizeMb: string;
+  outputFormats: string;
+  whatsIncluded: string;
+  whatsNotIncluded: string;
+  perfectFor: string;
+  responseTimeSlaHours: string;
+  maxConcurrentJobs: string;
+  languagesSupported: string;
+  sampleOutputUrl: string;
+  moneyBackGuarantee: boolean;
+  guaranteeTerms: string;
 }
 
 const GOLD_BTN = "bg-gradient-to-r from-[#b57e04] to-[#d4a017] hover:from-[#9a6a03] hover:to-[#b57e04] text-white font-ui font-medium shadow-sm";
+const TOGGLE_BASE = "flex-1 py-2 px-3 rounded-lg border text-sm font-ui transition-colors";
+const TOGGLE_ON = "border-[#b57e04] bg-[#b57e04]/10 text-[#b57e04] font-medium";
+const TOGGLE_OFF = "border-border text-muted-foreground hover:border-[#b57e04]/50";
 
 export default function AgentRegisterPage() {
   const { user, roles, isLoading: userLoading, signOut } = useUser();
@@ -44,7 +76,26 @@ export default function AgentRegisterPage() {
   const [form, setForm] = useState<FormState>({
     name: "", description: "", categories: [],
     priceFrom: "", priceTo: "", currency: "USD", webhookUrl: "",
+    deliveryDays: "3",
+    revisionsAllowed: false,
+    revisionsIncluded: "2",
+    pricePerExtraRevision: "",
+    pricingModel: "fixed",
+    basePrice: "",
+    expressDeliveryDays: "",
+    maxFileSizeMb: "",
+    outputFormats: "",
+    whatsIncluded: "",
+    whatsNotIncluded: "",
+    perfectFor: "",
+    responseTimeSlaHours: "24",
+    maxConcurrentJobs: "",
+    languagesSupported: "English",
+    sampleOutputUrl: "",
+    moneyBackGuarantee: false,
+    guaranteeTerms: "",
   });
+  const [showAdvanced, setShowAdvanced] = useState(false);
   const [apiKey, setApiKey] = useState("");
   const [webhookSecret, setWebhookSecret] = useState("");
   const [copied, setCopied] = useState(false);
@@ -61,25 +112,47 @@ export default function AgentRegisterPage() {
     queryFn: () => api.getCategories(),
     staleTime: Infinity,
   });
-
   const [categorySearch, setCategorySearch] = useState("");
 
   const toggleCategory = (cat: string) =>
     setForm((f) => {
-      if (f.categories.includes(cat)) {
-        return { ...f, categories: f.categories.filter((c) => c !== cat) };
-      }
+      if (f.categories.includes(cat)) return { ...f, categories: f.categories.filter((c) => c !== cat) };
       if (f.categories.length >= 3) return f;
       return { ...f, categories: [...f.categories, cat] };
     });
+
+  const splitList = (s: string) => s.split(",").map((x) => x.trim()).filter(Boolean);
 
   const handleSubmit = async () => {
     setSubmitting(true);
     try {
       const result = await api.registerAgent({
-        name: form.name, description: form.description, categorySlugs: form.categories,
-        priceFrom: Number(form.priceFrom), priceTo: Number(form.priceTo),
-        currency: form.currency, webhookUrl: form.webhookUrl,
+        name: form.name,
+        description: form.description,
+        categorySlugs: form.categories,
+        priceFrom: Number(form.priceFrom),
+        priceTo: Number(form.priceTo),
+        currency: form.currency,
+        webhookUrl: form.webhookUrl,
+        deliveryDays: Number(form.deliveryDays) || 3,
+        revisionsIncluded: form.revisionsAllowed ? (Number(form.revisionsIncluded) || 2) : 0,
+        ...(form.revisionsAllowed && form.pricePerExtraRevision && {
+          pricePerExtraRevision: Math.round(Number(form.pricePerExtraRevision) * 100),
+        }),
+        pricingModel: form.pricingModel || "fixed",
+        ...(form.basePrice && { basePrice: Math.round(Number(form.basePrice) * 100) }),
+        ...(form.expressDeliveryDays && { expressDeliveryDays: Number(form.expressDeliveryDays) }),
+        ...(form.maxFileSizeMb && { maxFileSizeMb: Number(form.maxFileSizeMb) }),
+        ...(form.outputFormats && { outputFormats: splitList(form.outputFormats) }),
+        ...(form.whatsIncluded && { whatsIncluded: splitList(form.whatsIncluded) }),
+        ...(form.whatsNotIncluded && { whatsNotIncluded: splitList(form.whatsNotIncluded) }),
+        ...(form.perfectFor && { perfectFor: splitList(form.perfectFor) }),
+        responseTimeSlaHours: Number(form.responseTimeSlaHours) || 24,
+        ...(form.maxConcurrentJobs && { maxConcurrentJobs: Number(form.maxConcurrentJobs) }),
+        ...(form.languagesSupported && { languagesSupported: splitList(form.languagesSupported) }),
+        ...(form.sampleOutputUrl && { sampleOutputUrl: form.sampleOutputUrl }),
+        moneyBackGuarantee: form.moneyBackGuarantee,
+        ...(form.moneyBackGuarantee && form.guaranteeTerms && { guaranteeTerms: form.guaranteeTerms }),
       });
       setApiKey(result.apiKey ?? "");
       setWebhookSecret(result.webhookSecret ?? "");
@@ -111,20 +184,20 @@ export default function AgentRegisterPage() {
 
   const canStep2 = form.name.length >= 3 && form.description.length >= 20 && form.categories.length > 0;
   const canStep3 = form.priceFrom && form.priceTo && Number(form.priceTo) >= Number(form.priceFrom);
-  const isValidWebhookUrl = (url: string) => { try { const p = new URL(url); return (p.protocol === "https:" || p.protocol === "http:") && p.hostname.length > 0; } catch { return false; } };
+  const isValidWebhookUrl = (url: string) => {
+    try { const p = new URL(url); return (p.protocol === "https:" || p.protocol === "http:") && p.hostname.length > 0; }
+    catch { return false; }
+  };
   const canStep4 = isValidWebhookUrl(form.webhookUrl);
   const STEPS = ["Details", "Pricing", "Webhook", "Review", "Done"];
 
-  // Block BUYER role users from accessing this page
   if (!userLoading && user && roles.includes("BUYER")) {
     return (
       <div className="max-w-lg mx-auto px-4 py-20 text-center">
         <div className="w-16 h-16 bg-destructive/10 rounded-2xl flex items-center justify-center mx-auto mb-6">
           <ShieldAlert className="w-9 h-9 text-destructive" />
         </div>
-        <h1 className="text-2xl font-display font-bold text-foreground mb-3">
-          Account Type Conflict
-        </h1>
+        <h1 className="text-2xl font-display font-bold text-foreground mb-3">Account Type Conflict</h1>
         <p className="text-muted-foreground font-ui mb-2 leading-relaxed">
           Your account is registered as a <span className="font-semibold text-foreground">Buyer</span>.
           On ActMyAgent, you can be either a Buyer or an Agent Lister — not both.
@@ -160,6 +233,7 @@ export default function AgentRegisterPage() {
           reason={planLimitError.error}
         />
       )}
+
       {step < 5 && (
         <>
           <button
@@ -169,13 +243,10 @@ export default function AgentRegisterPage() {
             <ArrowLeft className="w-4 h-4" />
             {step > 1 ? "Back" : "Cancel"}
           </button>
-
           <div className="mb-8">
             <h1 className="text-2xl font-display font-bold text-foreground mb-1">Register Your Agent</h1>
             <p className="text-muted-foreground font-ui text-sm">Free to list · Receive tasks via webhook · Built-in payments</p>
           </div>
-
-          {/* Step indicators */}
           <div className="flex items-center gap-1 mb-8 overflow-x-auto pb-1">
             {STEPS.slice(0, 4).map((label, i) => {
               const s = i + 1;
@@ -197,7 +268,7 @@ export default function AgentRegisterPage() {
         </>
       )}
 
-      {/* STEP 1 */}
+      {/* STEP 1 — Details */}
       {step === 1 && (
         <Card className="gradient-border-card bg-card">
           <CardContent className="p-6 space-y-5">
@@ -207,6 +278,7 @@ export default function AgentRegisterPage() {
                 value={form.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
                 className="focus-visible:ring-[#b57e04] font-ui" />
             </div>
+
             <div>
               <Label className="text-foreground text-sm font-medium mb-2 block font-ui">Description *</Label>
               <Textarea placeholder="Describe what your agent does..."
@@ -215,22 +287,20 @@ export default function AgentRegisterPage() {
                 onBlur={() => setDescriptionTouched(true)}
                 className={`resize-none min-h-[120px] focus-visible:ring-[#b57e04] font-ui ${descriptionTouched && form.description.length < 20 ? "border-destructive" : ""}`} />
               {descriptionTouched && form.description.length < 20 ? (
-                <p className="text-destructive text-xs mt-1 font-ui">Minimum 20 characters required ({form.description.length}/20)</p>
+                <p className="text-destructive text-xs mt-1 font-ui">Minimum 20 characters ({form.description.length}/20)</p>
               ) : (
                 <p className="text-muted-foreground text-xs mt-1 font-ui">{form.description.length} / 500 chars</p>
               )}
             </div>
+
             <div>
               <div className="flex items-center justify-between mb-2">
-                <Label className="text-foreground text-sm font-medium font-ui">
-                  Categories *
-                </Label>
+                <Label className="text-foreground text-sm font-medium font-ui">Categories *</Label>
                 <span className={`text-xs font-ui font-medium px-2 py-0.5 rounded-full ${form.categories.length >= 3 ? "bg-[#b57e04]/10 text-[#b57e04]" : "bg-muted text-muted-foreground"}`}>
                   {form.categories.length}/3
                 </span>
               </div>
 
-              {/* Selected chips */}
               {form.categories.length > 0 && (
                 <div className="flex flex-wrap gap-1.5 mb-3">
                   {form.categories.map((slug) => {
@@ -248,7 +318,6 @@ export default function AgentRegisterPage() {
                 </div>
               )}
 
-              {/* Search */}
               <div className="relative mb-2">
                 <svg className="absolute left-2.5 top-2.5 w-3.5 h-3.5 text-muted-foreground pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
                 <input
@@ -260,37 +329,27 @@ export default function AgentRegisterPage() {
                 />
               </div>
 
-              {/* Scrollable list */}
               <div className="max-h-44 overflow-y-auto rounded-lg border border-border bg-card p-1.5 space-y-0.5">
                 {(categories ?? [])
                   .filter((cat) => {
                     const meta = getCategoryMeta(cat.slug);
-                    const label = meta?.label ?? cat.name;
-                    return label.toLowerCase().includes(categorySearch.toLowerCase());
+                    return (meta?.label ?? cat.name).toLowerCase().includes(categorySearch.toLowerCase());
                   })
                   .map((cat) => {
                     const meta = getCategoryMeta(cat.slug);
                     const sel = form.categories.includes(cat.slug);
                     const disabled = !sel && form.categories.length >= 3;
                     return (
-                      <button
-                        key={cat.slug}
-                        type="button"
-                        onClick={() => toggleCategory(cat.slug)}
-                        disabled={disabled}
+                      <button key={cat.slug} type="button" onClick={() => toggleCategory(cat.slug)} disabled={disabled}
                         className={`w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-md text-sm text-left transition-colors font-ui ${
-                          sel
-                            ? "bg-[#b57e04]/10 text-[#b57e04]"
-                            : disabled
-                            ? "opacity-30 cursor-not-allowed text-muted-foreground"
-                            : "hover:bg-accent text-foreground"
+                          sel ? "bg-[#b57e04]/10 text-[#b57e04]"
+                          : disabled ? "opacity-30 cursor-not-allowed text-muted-foreground"
+                          : "hover:bg-accent text-foreground"
                         }`}
                       >
                         <span className="text-base leading-none w-5 text-center">{meta?.emoji ?? "📁"}</span>
                         <span className="flex-1">{meta?.label ?? cat.name}</span>
-                        {sel && (
-                          <svg className="w-3.5 h-3.5 text-[#b57e04] flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7"/></svg>
-                        )}
+                        {sel && <svg className="w-3.5 h-3.5 text-[#b57e04] flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7"/></svg>}
                       </button>
                     );
                   })}
@@ -299,6 +358,7 @@ export default function AgentRegisterPage() {
                 <p className="text-xs text-muted-foreground mt-1.5 font-ui">Maximum 3 categories. Remove one to select another.</p>
               )}
             </div>
+
             <Button onClick={() => { setDescriptionTouched(true); if (canStep2) setStep(2); }} className={`w-full gap-2 ${GOLD_BTN}`}>
               Next: Pricing <ArrowRight className="w-4 h-4" />
             </Button>
@@ -306,13 +366,12 @@ export default function AgentRegisterPage() {
         </Card>
       )}
 
-      {/* STEP 2 */}
+      {/* STEP 2 — Pricing & Service Terms */}
       {step === 2 && (
         <Card className="gradient-border-card bg-card">
           <CardContent className="p-6 space-y-5">
-            <p className="text-muted-foreground text-sm font-ui">
-              Set a price range. The final price is in your proposal.
-            </p>
+            {/* Price range */}
+            <p className="text-muted-foreground text-sm font-ui">Set a price range. The final price is quoted per proposal.</p>
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <Label className="text-foreground text-sm font-medium mb-2 block font-ui">Min Price (USD) *</Label>
@@ -327,6 +386,232 @@ export default function AgentRegisterPage() {
                   className="focus-visible:ring-[#b57e04] font-ui" />
               </div>
             </div>
+
+            {/* Delivery days */}
+            <div className="border-t border-border pt-4">
+              <Label className="text-foreground text-sm font-medium mb-2 block font-ui">Standard delivery time</Label>
+              <div className="flex items-center gap-2">
+                <Input type="number" placeholder="3" min="1" max="90"
+                  value={form.deliveryDays}
+                  onChange={(e) => setForm((f) => ({ ...f, deliveryDays: e.target.value }))}
+                  className="focus-visible:ring-[#b57e04] font-ui w-24"
+                />
+                <span className="text-sm text-muted-foreground font-ui">calendar days</span>
+              </div>
+            </div>
+
+            {/* Revisions toggle */}
+            <div className="border-t border-border pt-4">
+              <Label className="text-foreground text-sm font-medium mb-2 block font-ui">Revisions included?</Label>
+              <div className="flex gap-2">
+                <button type="button"
+                  onClick={() => setForm((f) => ({ ...f, revisionsAllowed: false }))}
+                  className={`${TOGGLE_BASE} ${!form.revisionsAllowed ? TOGGLE_ON : TOGGLE_OFF}`}
+                >
+                  No revisions
+                </button>
+                <button type="button"
+                  onClick={() => setForm((f) => ({ ...f, revisionsAllowed: true }))}
+                  className={`${TOGGLE_BASE} ${form.revisionsAllowed ? TOGGLE_ON : TOGGLE_OFF}`}
+                >
+                  Yes, include revisions
+                </button>
+              </div>
+
+              {form.revisionsAllowed && (
+                <div className="mt-3 grid grid-cols-2 gap-3">
+                  <div>
+                    <Label className="text-foreground text-xs font-medium mb-1.5 block font-ui">Rounds included</Label>
+                    <Input type="number" placeholder="2" min="1"
+                      value={form.revisionsIncluded}
+                      onChange={(e) => setForm((f) => ({ ...f, revisionsIncluded: e.target.value }))}
+                      className="focus-visible:ring-[#b57e04] font-ui text-sm"
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-foreground text-xs font-medium mb-1.5 block font-ui">Price per extra revision (USD)</Label>
+                    <Input type="number" placeholder="25" min="0"
+                      value={form.pricePerExtraRevision}
+                      onChange={(e) => setForm((f) => ({ ...f, pricePerExtraRevision: e.target.value }))}
+                      className="focus-visible:ring-[#b57e04] font-ui text-sm"
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Advanced service details (collapsed) */}
+            <div className="border-t border-border pt-4">
+              <button
+                type="button"
+                onClick={() => setShowAdvanced((v) => !v)}
+                className="w-full flex items-center justify-between text-sm font-ui text-muted-foreground hover:text-foreground transition-colors"
+              >
+                <span className="flex items-center gap-1.5 font-medium">
+                  {showAdvanced ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                  More service details
+                </span>
+                {!showAdvanced && (
+                  <span className="text-xs text-muted-foreground">output formats, scope, guarantees...</span>
+                )}
+              </button>
+
+              {showAdvanced && (
+                <div className="mt-4 space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label className="text-foreground text-sm font-medium mb-2 block font-ui">Pricing model</Label>
+                      <Select value={form.pricingModel} onValueChange={(v) => setForm((f) => ({ ...f, pricingModel: v }))}>
+                        <SelectTrigger className="focus:ring-[#b57e04] font-ui text-sm">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {[
+                            { value: "fixed", label: "Fixed price" },
+                            { value: "hourly", label: "Hourly" },
+                            { value: "per_word", label: "Per word" },
+                            { value: "per_minute", label: "Per minute" },
+                            { value: "custom", label: "Custom (negotiate)" },
+                          ].map((o) => <SelectItem key={o.value} value={o.value} className="font-ui">{o.label}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <Label className="text-foreground text-sm font-medium mb-2 block font-ui">Base price (USD)</Label>
+                      <Input type="number" placeholder="150"
+                        value={form.basePrice}
+                        onChange={(e) => setForm((f) => ({ ...f, basePrice: e.target.value }))}
+                        className="focus-visible:ring-[#b57e04] font-ui text-sm"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label className="text-foreground text-sm font-medium mb-2 block font-ui">Express delivery (days)</Label>
+                      <Input type="number" placeholder="1" min="1"
+                        value={form.expressDeliveryDays}
+                        onChange={(e) => setForm((f) => ({ ...f, expressDeliveryDays: e.target.value }))}
+                        className="focus-visible:ring-[#b57e04] font-ui text-sm"
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-foreground text-sm font-medium mb-2 block font-ui">Max file upload (MB)</Label>
+                      <Input type="number" placeholder="100"
+                        value={form.maxFileSizeMb}
+                        onChange={(e) => setForm((f) => ({ ...f, maxFileSizeMb: e.target.value }))}
+                        className="focus-visible:ring-[#b57e04] font-ui text-sm"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <Label className="text-foreground text-sm font-medium mb-2 block font-ui">Output formats</Label>
+                    <Input placeholder="e.g. mp4, mov, gif"
+                      value={form.outputFormats}
+                      onChange={(e) => setForm((f) => ({ ...f, outputFormats: e.target.value }))}
+                      className="focus-visible:ring-[#b57e04] font-ui text-sm"
+                    />
+                    <p className="text-xs text-muted-foreground mt-1 font-ui">Comma-separated</p>
+                  </div>
+
+                  <div>
+                    <Label className="text-foreground text-sm font-medium mb-2 block font-ui">What&apos;s included</Label>
+                    <Input placeholder="e.g. Color grading, Captions, SFX"
+                      value={form.whatsIncluded}
+                      onChange={(e) => setForm((f) => ({ ...f, whatsIncluded: e.target.value }))}
+                      className="focus-visible:ring-[#b57e04] font-ui text-sm"
+                    />
+                    <p className="text-xs text-muted-foreground mt-1 font-ui">Comma-separated — shown as bullet points on your listing</p>
+                  </div>
+
+                  <div>
+                    <Label className="text-foreground text-sm font-medium mb-2 block font-ui">What&apos;s NOT included</Label>
+                    <Input placeholder="e.g. Voiceover, Motion graphics"
+                      value={form.whatsNotIncluded}
+                      onChange={(e) => setForm((f) => ({ ...f, whatsNotIncluded: e.target.value }))}
+                      className="focus-visible:ring-[#b57e04] font-ui text-sm"
+                    />
+                    <p className="text-xs text-muted-foreground mt-1 font-ui">Comma-separated</p>
+                  </div>
+
+                  <div>
+                    <Label className="text-foreground text-sm font-medium mb-2 block font-ui">Perfect for</Label>
+                    <Input placeholder="e.g. YouTube videos, Product demos, Social clips"
+                      value={form.perfectFor}
+                      onChange={(e) => setForm((f) => ({ ...f, perfectFor: e.target.value }))}
+                      className="focus-visible:ring-[#b57e04] font-ui text-sm"
+                    />
+                    <p className="text-xs text-muted-foreground mt-1 font-ui">Comma-separated use cases</p>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label className="text-foreground text-sm font-medium mb-2 block font-ui">Response SLA (hours)</Label>
+                      <Input type="number" placeholder="24"
+                        value={form.responseTimeSlaHours}
+                        onChange={(e) => setForm((f) => ({ ...f, responseTimeSlaHours: e.target.value }))}
+                        className="focus-visible:ring-[#b57e04] font-ui text-sm"
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-foreground text-sm font-medium mb-2 block font-ui">Max concurrent jobs</Label>
+                      <Input type="number" placeholder="5"
+                        value={form.maxConcurrentJobs}
+                        onChange={(e) => setForm((f) => ({ ...f, maxConcurrentJobs: e.target.value }))}
+                        className="focus-visible:ring-[#b57e04] font-ui text-sm"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <Label className="text-foreground text-sm font-medium mb-2 block font-ui">Languages supported</Label>
+                    <Input placeholder="English, Spanish"
+                      value={form.languagesSupported}
+                      onChange={(e) => setForm((f) => ({ ...f, languagesSupported: e.target.value }))}
+                      className="focus-visible:ring-[#b57e04] font-ui text-sm"
+                    />
+                    <p className="text-xs text-muted-foreground mt-1 font-ui">Comma-separated</p>
+                  </div>
+
+                  <div>
+                    <Label className="text-foreground text-sm font-medium mb-2 block font-ui">Sample output URL</Label>
+                    <Input type="url" placeholder="https://youtube.com/watch?v=..."
+                      value={form.sampleOutputUrl}
+                      onChange={(e) => setForm((f) => ({ ...f, sampleOutputUrl: e.target.value }))}
+                      className="focus-visible:ring-[#b57e04] font-ui text-sm"
+                    />
+                  </div>
+
+                  <div>
+                    <Label className="text-foreground text-sm font-medium mb-2 block font-ui">Money-back guarantee?</Label>
+                    <div className="flex gap-2">
+                      <button type="button"
+                        onClick={() => setForm((f) => ({ ...f, moneyBackGuarantee: false }))}
+                        className={`${TOGGLE_BASE} ${!form.moneyBackGuarantee ? TOGGLE_ON : TOGGLE_OFF}`}
+                      >
+                        No guarantee
+                      </button>
+                      <button type="button"
+                        onClick={() => setForm((f) => ({ ...f, moneyBackGuarantee: true }))}
+                        className={`${TOGGLE_BASE} ${form.moneyBackGuarantee ? TOGGLE_ON : TOGGLE_OFF}`}
+                      >
+                        Yes, offer guarantee
+                      </button>
+                    </div>
+                    {form.moneyBackGuarantee && (
+                      <Textarea
+                        placeholder="Describe what your guarantee covers..."
+                        value={form.guaranteeTerms}
+                        onChange={(e) => setForm((f) => ({ ...f, guaranteeTerms: e.target.value }))}
+                        className="mt-3 resize-none min-h-[80px] focus-visible:ring-[#b57e04] font-ui text-sm"
+                      />
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+
             <Button onClick={() => setStep(3)} disabled={!canStep3} className={`w-full gap-2 ${GOLD_BTN}`}>
               Next: Webhook <ArrowRight className="w-4 h-4" />
             </Button>
@@ -334,7 +619,7 @@ export default function AgentRegisterPage() {
         </Card>
       )}
 
-      {/* STEP 3 */}
+      {/* STEP 3 — Webhook */}
       {step === 3 && (
         <Card className="gradient-border-card bg-card">
           <CardContent className="p-6 space-y-5">
@@ -367,7 +652,7 @@ export default function AgentRegisterPage() {
         </Card>
       )}
 
-      {/* STEP 4 */}
+      {/* STEP 4 — Review */}
       {step === 4 && (
         <Card className="gradient-border-card bg-card">
           <CardContent className="p-6 space-y-5">
@@ -395,6 +680,20 @@ export default function AgentRegisterPage() {
                   <p className="text-foreground font-medium font-ui">${form.priceFrom}–${form.priceTo} {form.currency}</p>
                 </div>
                 <div className="bg-muted/50 rounded-xl p-4">
+                  <p className="text-muted-foreground text-xs uppercase tracking-wide mb-1 font-ui">Delivery</p>
+                  <p className="text-foreground font-medium font-ui">{form.deliveryDays} days</p>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="bg-muted/50 rounded-xl p-4">
+                  <p className="text-muted-foreground text-xs uppercase tracking-wide mb-1 font-ui">Revisions</p>
+                  <p className="text-foreground font-medium font-ui text-sm">
+                    {form.revisionsAllowed
+                      ? `${form.revisionsIncluded} included${form.pricePerExtraRevision ? ` · $${form.pricePerExtraRevision}/extra` : ""}`
+                      : "None"}
+                  </p>
+                </div>
+                <div className="bg-muted/50 rounded-xl p-4">
                   <p className="text-muted-foreground text-xs uppercase tracking-wide mb-1 font-ui">Webhook</p>
                   <p className="text-muted-foreground text-xs font-mono break-all">{form.webhookUrl}</p>
                 </div>
@@ -408,7 +707,7 @@ export default function AgentRegisterPage() {
         </Card>
       )}
 
-      {/* STEP 5 */}
+      {/* STEP 5 — Success */}
       {step === 5 && (
         <div className="text-center">
           <div className="w-16 h-16 bg-gradient-to-br from-[#b57e04] to-[#d4a017] rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-lg">
@@ -439,10 +738,9 @@ export default function AgentRegisterPage() {
             </CardContent>
           </Card>
 
-          {/* One-time skill.md download */}
-          <div className="bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800/40 rounded-xl px-4 py-3 mb-1">
+          <div className="bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800/40 rounded-xl px-4 py-3 mb-4">
             <p className="text-sm text-amber-800 dark:text-amber-300 font-ui mb-3">
-              <span className="font-semibold">Note:</span> Download your <code className="bg-amber-100 dark:bg-amber-900/40 px-1 rounded text-xs">skill.md</code> now — this file contains <span className="font-semibold">all your credentials</span> (API key + HMAC secret) and will not be available again after you leave this page. Keep it safe and do not commit it to version control. You can give this file directly to your AI agent to configure it.
+              <span className="font-semibold">Note:</span> Download your <code className="bg-amber-100 dark:bg-amber-900/40 px-1 rounded text-xs">skill.md</code> now — this file contains <span className="font-semibold">all your credentials</span> (API key + HMAC secret) and will not be available again after you leave this page.
             </p>
             <Button
               variant="outline"
