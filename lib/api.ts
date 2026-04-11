@@ -136,10 +136,17 @@ export interface MyJobProposal {
   estimatedDays: number;
 }
 
+export interface JobAttachment {
+  url: string;
+  filename: string;
+  key: string;
+}
+
 export interface Job {
   id: string;
   title: string;
   description: string;
+  briefDetail?: string | null;
   category: string;
   budgetMin?: number;
   budgetMax?: number;
@@ -154,6 +161,14 @@ export interface Job {
   contract?: Contract | null;
   createdAt: string;
   updatedAt: string;
+  exampleUrls?: string[];
+  desiredDeliveryDays?: number | null;
+  expressRequested?: boolean;
+  preferredOutputFormats?: string[];
+  preferHuman?: boolean;
+  budgetFlexible?: boolean;
+  requiredLanguage?: string | null;
+  attachments?: JobAttachment[];
 }
 
 export interface JobWithProposals extends Job {
@@ -209,6 +224,7 @@ export interface ContractWithDetails extends Contract {
   delivery?: Delivery | null;
   payment?: Payment | null;
   messages?: Message[];
+  job?: Job | null;
 }
 
 export interface MessageSender {
@@ -442,10 +458,53 @@ export const api = {
     if (!res.ok) throw new Error(`File upload failed (${res.status})`);
   },
 
+  updateJob: (id: string, body: Partial<{
+    title: string;
+    description: string;
+    budget: number;
+    currency: string;
+    deadline: string;
+    briefDetail: string;
+    exampleUrls: string[];
+    desiredDeliveryDays: number;
+    expressRequested: boolean;
+    preferHuman: boolean;
+    budgetFlexible: boolean;
+    requiredLanguage: string;
+    preferredOutputFormats: string[];
+    attachmentKeys: string[];
+    attachmentNames: string[];
+    proposalDeadlineHours: number;
+    maxProposals: number | null;
+  }>) =>
+    apiClient<{ job: Job }>(`/api/jobs/${id}`, {
+      method: "PATCH",
+      body: JSON.stringify(body),
+    }),
+
+  addJobAttachment: (jobId: string, key: string, filename: string) =>
+    apiClient<{ attachments: { key: string; filename: string }[] }>(
+      `/api/jobs/${jobId}/attachments`,
+      { method: "POST", body: JSON.stringify({ key, filename }) },
+    ),
+
+  removeJobAttachment: (jobId: string, key: string) =>
+    apiClient<{ attachments: { key: string; filename: string }[] }>(
+      `/api/jobs/${jobId}/attachments`,
+      { method: "DELETE", body: JSON.stringify({ key }) },
+    ),
+
+  getJobAttachments: (jobId: string) =>
+    apiClient<{ attachments: JobAttachment[] }>(`/api/jobs/${jobId}/attachments`)
+      .then((r) => r.attachments),
+
   getJob: async (id: string) => {
     const res = await apiClient<{ job: JobWithProposals }>(`/api/jobs/${id}`);
     return res.job;
   },
+
+  deleteJob: (id: string) =>
+    apiClient<{ success: boolean }>(`/api/jobs/${id}`, { method: "DELETE" }),
 
   getMyJobs: (params?: { status?: JobStatus; limit?: number; offset?: number }) => {
     const entries = Object.entries(params ?? {})

@@ -1,12 +1,29 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api, Job, JobStatus, ContractStatus } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+  DialogDescription,
+} from "@/components/ui/dialog";
+import { EditJobModal } from "@/components/jobs/EditJobModal";
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+} from "@/components/ui/dropdown-menu";
 import {
   Briefcase,
   Clock,
@@ -16,6 +33,9 @@ import {
   ArrowRight,
   MessageSquare,
   AlertTriangle,
+  Pencil,
+  Trash2,
+  MoreHorizontal,
 } from "lucide-react";
 import { useUser } from "@/hooks/useUser";
 
@@ -59,6 +79,11 @@ function contractStatus(job: Job): ContractStatus | null {
 
 export default function BuyerDashboardPage() {
   const { user } = useUser();
+  const queryClient = useQueryClient();
+
+  const [editJob, setEditJob] = useState<Job | null>(null);
+  const [deleteJob, setDeleteJob] = useState<Job | null>(null);
+
   const { data: jobs, isLoading } = useQuery({
     queryKey: ["my-jobs"],
     queryFn: () => api.getMyJobs(),
@@ -68,6 +93,15 @@ export default function BuyerDashboardPage() {
     queryKey: ["buyer-stats"],
     queryFn: () => api.getBuyerStats(),
     enabled: !!user,
+  });
+
+  const { mutate: confirmDelete, isPending: isDeleting, error: deleteError } = useMutation({
+    mutationFn: (jobId: string) => api.deleteJob(jobId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["my-jobs"] });
+      queryClient.invalidateQueries({ queryKey: ["buyer-stats"] });
+      setDeleteJob(null);
+    },
   });
 
   // Sort: SIGNED_BOTH contracts come first so buyer can't miss pending payments
@@ -80,6 +114,9 @@ export default function BuyerDashboardPage() {
     : [];
 
   const pendingPaymentCount = jobs?.filter((j) => contractStatus(j) === "SIGNED_BOTH").length ?? 0;
+
+  const deleteErrorMsg =
+    deleteError instanceof Error ? deleteError.message : deleteError ? "Failed to delete job" : null;
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
@@ -183,10 +220,20 @@ export default function BuyerDashboardPage() {
                   : `/contracts/${job.contract?.id ?? job.id}`;
               const actionLabel = job.status === "OPEN" ? "View proposals" : "View contract";
 
+              const hasProposals = (job.proposals?.length ?? 0) > 0 || (job.proposalCount ?? 0) > 0;
+              const hasContract = !!job.contract;
+
+              const editDisabledReason = hasProposals
+                ? "Cannot edit: this job already has proposals"
+                : null;
+              const deleteDisabledReason = hasContract
+                ? "Cannot delete: this job has an associated contract"
+                : null;
+
               return (
                 <div
                   key={job.id}
-                  className={`px-6 py-4 flex items-center gap-4 hover:bg-muted/30 transition-colors ${needsPayment ? "border-l-4 border-amber-400 pl-5" : ""}`}
+                  className={`px-6 py-4 flex items-center gap-3 hover:bg-muted/30 transition-colors ${needsPayment ? "border-l-4 border-amber-400 pl-5" : ""}`}
                 >
                   <div className="flex-1 min-w-0">
                     <p className="text-foreground font-medium truncate text-sm font-ui">{job.title}</p>
@@ -197,6 +244,7 @@ export default function BuyerDashboardPage() {
                       </span>
                     </div>
                   </div>
+
                   {job.proposals != null && (
                     <span className="flex items-center gap-1 text-muted-foreground text-xs flex-shrink-0 font-ui">
                       <MessageSquare className="w-3.5 h-3.5" />
@@ -214,6 +262,7 @@ export default function BuyerDashboardPage() {
                     </Badge>
                   )}
 
+                  {/* View action */}
                   {needsPayment ? (
                     <Link href={`/contracts/${job.contract?.id ?? job.id}`}>
                       <Button
@@ -232,12 +281,94 @@ export default function BuyerDashboardPage() {
                       </Button>
                     </Link>
                   )}
+
+                  {/* Kebab menu */}
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="h-8 w-8 p-0 flex-shrink-0 text-muted-foreground hover:text-foreground"
+                      >
+                        <MoreHorizontal className="w-4 h-4" />
+                        <span className="sr-only">Actions</span>
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-48">
+                      <DropdownMenuItem
+                        disabled={!!editDisabledReason}
+                        onClick={() => !editDisabledReason && setEditJob(job)}
+                        className="gap-2 cursor-pointer"
+                      >
+                        <Pencil className="w-3.5 h-3.5" />
+                        <span className="font-ui text-sm">Edit task</span>
+                        {editDisabledReason && (
+                          <span className="ml-auto text-[10px] text-muted-foreground leading-tight max-w-[80px] text-right">
+                            Has proposals
+                          </span>
+                        )}
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem
+                        disabled={!!deleteDisabledReason}
+                        onClick={() => !deleteDisabledReason && setDeleteJob(job)}
+                        className="gap-2 cursor-pointer text-red-600 focus:text-red-600 dark:text-red-400 dark:focus:text-red-400"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                        <span className="font-ui text-sm">Delete task</span>
+                        {deleteDisabledReason && (
+                          <span className="ml-auto text-[10px] text-muted-foreground leading-tight max-w-[80px] text-right">
+                            Has contract
+                          </span>
+                        )}
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </div>
               );
             })}
           </div>
         )}
       </div>
+
+      {/* Edit modal */}
+      <EditJobModal job={editJob} onClose={() => setEditJob(null)} />
+
+      {/* Delete confirmation dialog */}
+      <Dialog open={!!deleteJob} onOpenChange={(open) => { if (!open) setDeleteJob(null); }}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="font-display text-foreground">Delete Task</DialogTitle>
+            <DialogDescription className="font-ui text-sm">
+              Are you sure you want to delete{" "}
+              <span className="font-semibold text-foreground">&ldquo;{deleteJob?.title}&rdquo;</span>?
+              This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+
+          {deleteErrorMsg && (
+            <p className="text-red-600 dark:text-red-400 text-xs font-ui -mt-2">{deleteErrorMsg}</p>
+          )}
+
+          <DialogFooter className="gap-2">
+            <Button
+              variant="outline"
+              onClick={() => setDeleteJob(null)}
+              disabled={isDeleting}
+              className="font-ui text-sm"
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={() => deleteJob && confirmDelete(deleteJob.id)}
+              disabled={isDeleting}
+              className="bg-red-500 hover:bg-red-600 text-white font-ui text-sm"
+            >
+              {isDeleting ? "Deleting…" : "Delete"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
