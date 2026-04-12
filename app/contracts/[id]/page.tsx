@@ -309,15 +309,40 @@ export default function ContractPage() {
         </div>
 
         {/* Desktop: 3-column */}
-        <div className="hidden lg:grid grid-cols-3 gap-5 min-h-[700px]">
+        <div className="hidden lg:grid grid-cols-3 gap-5 h-[700px]">
           <div className="bg-card border border-border rounded-2xl overflow-hidden flex flex-col">
             <div className="px-5 py-4 border-b border-border flex items-center gap-2">
               <FileText className="w-4 h-4 text-muted-foreground" />
               <span className="text-foreground font-semibold text-sm font-ui">Contract Details</span>
             </div>
             <div className="flex-1 overflow-y-auto p-5">
-              <ContractDetails {...contractDetailsProps} />
+              <ContractDetails {...contractDetailsProps} hideActions />
             </div>
+            {/* Sticky action footer — always visible */}
+            {(!hasSigned && !isTimedOut) || (currentStatus === "SIGNED_BOTH" && isBuyer && !escrowPaid && !isTimedOut) || escrowPaid ? (
+              <div className="border-t border-border p-4 bg-card flex flex-col gap-2">
+                {!hasSigned && !isTimedOut && (
+                  <Button
+                    onClick={() => setSignConfirmOpen(true)}
+                    disabled={signing}
+                    className="w-full bg-gradient-to-r from-[#b57e04] to-[#d4a017] hover:from-[#9a6a03] hover:to-[#b57e04] text-white gap-2 font-ui font-medium"
+                  >
+                    {signing ? <Loader2 className="w-4 h-4 animate-spin" /> : <PenLine className="w-4 h-4" />}
+                    Sign as {isBuyer ? "Client" : "Agent"}
+                  </Button>
+                )}
+                {currentStatus === "SIGNED_BOTH" && isBuyer && !escrowPaid && !isTimedOut && (
+                  <Button onClick={() => setPayNowOpen(true)} className="w-full bg-indigo-600 hover:bg-indigo-500 text-white gap-2 font-ui font-medium">
+                    Pay & Secure Escrow
+                  </Button>
+                )}
+                {escrowPaid && (
+                  <div className="flex items-center gap-2 bg-emerald-50 border border-emerald-200 dark:bg-emerald-950/30 dark:border-emerald-900 rounded-lg px-4 py-2.5 text-emerald-700 dark:text-emerald-400 text-sm font-ui">
+                    <CheckCircle className="w-4 h-4 flex-shrink-0" /> Funds secured in escrow
+                  </div>
+                )}
+              </div>
+            ) : null}
           </div>
 
           <div
@@ -416,6 +441,7 @@ function ContractDetails({
   isTimedOut,
   onSign,
   onPay,
+  hideActions,
 }: {
   contract: Awaited<ReturnType<typeof api.getContract>>;
   isBuyer: boolean;
@@ -428,6 +454,7 @@ function ContractDetails({
   isTimedOut: boolean;
   onSign: () => void;
   onPay: () => void;
+  hideActions?: boolean;
 }) {
   const needsPayment = currentStatus === "SIGNED_BOTH" && isBuyer && !escrowPaid && !isTimedOut;
 
@@ -511,7 +538,7 @@ function ContractDetails({
       </div>
 
       {/* Sign button */}
-      {!hasSigned && !isTimedOut && (
+      {!hideActions && !hasSigned && !isTimedOut && (
         <Button
           onClick={onSign}
           disabled={signing}
@@ -522,13 +549,13 @@ function ContractDetails({
         </Button>
       )}
 
-      {needsPayment && (
+      {!hideActions && needsPayment && (
         <Button onClick={onPay} className="w-full bg-indigo-600 hover:bg-indigo-500 text-white gap-2 font-ui font-medium">
           Pay & Secure Escrow
         </Button>
       )}
 
-      {escrowPaid && (
+      {!hideActions && escrowPaid && (
         <div className="flex items-center gap-2 bg-emerald-50 border border-emerald-200 dark:bg-emerald-950/30 dark:border-emerald-900 rounded-lg px-4 py-2.5 text-emerald-700 dark:text-emerald-400 text-sm font-ui">
           <CheckCircle className="w-4 h-4 flex-shrink-0" /> Funds secured in escrow
         </div>
