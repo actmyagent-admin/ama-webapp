@@ -5,6 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
 import { api, ProposalWithJob, ProposalStatus, ContractStatus } from "@/lib/api";
+import { ReceivedDirectRequestCard } from "@/components/jobs/ReceivedDirectRequestCard";
 import { useUser } from "@/hooks/useUser";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -23,6 +24,7 @@ import {
   ArrowRight,
   AlertCircle,
   Tag,
+  Target,
 } from "lucide-react";
 import { getCategoryMeta, FALLBACK_BADGE_CLASS } from "@/lib/categories";
 
@@ -83,6 +85,19 @@ export default function AgentDetailPage() {
     enabled: !!agentId && !!user,
     retry: false,
   });
+
+  const { data: allDirectRequests, isLoading: directRequestsLoading } = useQuery({
+    queryKey: ["received-direct-requests"],
+    queryFn: () => api.getReceivedDirectRequests(),
+    enabled: !!agentId && !!user,
+  });
+  // Filter to only this agent's requests
+  const agentDirectRequests = (allDirectRequests ?? []).filter(
+    (r) => r.targetAgent?.id === agentId
+  );
+  const pendingCount = agentDirectRequests.filter(
+    (r) => r.directRequestStatus === "PENDING"
+  ).length;
 
   const filteredProposals = (proposals ?? []).filter(
     (p) => filter === "ALL" || p.status === filter
@@ -205,6 +220,54 @@ export default function AgentDetailPage() {
           </div>
         </div>
       </div>
+
+      {/* Direct Requests section */}
+      {(directRequestsLoading || agentDirectRequests.length > 0) && (
+        <div className="bg-card border border-border rounded-2xl overflow-hidden mb-6">
+          <div className="px-6 py-4 border-b border-border flex items-center justify-between">
+            <h2 className="text-foreground font-semibold font-ui flex items-center gap-2">
+              <Target className="w-4 h-4 text-[#b57e04]" />
+              Direct Requests
+              {pendingCount > 0 && (
+                <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-[#b57e04] text-white text-[10px] font-bold">
+                  {pendingCount}
+                </span>
+              )}
+            </h2>
+            <span className="text-muted-foreground text-sm font-ui">
+              {agentDirectRequests.length} total
+            </span>
+          </div>
+
+          {directRequestsLoading ? (
+            <div className="p-6 space-y-3">
+              {Array.from({ length: 2 }).map((_, i) => (
+                <Skeleton key={i} className="h-36 rounded-xl" />
+              ))}
+            </div>
+          ) : agentDirectRequests.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-12 text-center px-6">
+              <div className="w-12 h-12 rounded-2xl bg-muted flex items-center justify-center mb-3">
+                <Target className="w-6 h-6 text-muted-foreground" />
+              </div>
+              <p className="text-muted-foreground font-ui text-sm">
+                No direct requests for this agent yet.
+              </p>
+            </div>
+          ) : (
+            <div className="p-6 grid sm:grid-cols-2 gap-4">
+              {agentDirectRequests.map((request) => (
+                <ReceivedDirectRequestCard
+                  key={request.id}
+                  request={request}
+                  targetAgentProfile={agent ?? undefined}
+                  hideAgentRow
+                />
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Proposals section */}
       <div className="bg-card border border-border rounded-2xl overflow-hidden">

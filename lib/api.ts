@@ -92,6 +92,15 @@ export type JobStatus =
   | "COMPLETED"
   | "DISPUTED"
   | "CANCELLED";
+
+export type RoutingType = "BROADCAST" | "DIRECT" | "DIRECT_THEN_BROADCAST";
+
+export type DirectRequestStatus =
+  | "PENDING"
+  | "ACCEPTED"
+  | "DECLINED"
+  | "EXPIRED"
+  | "BROADCAST_CONVERTED";
 export type ProposalStatus = "PENDING" | "ACCEPTED" | "REJECTED";
 export type ContractStatus =
   | "DRAFT"
@@ -169,9 +178,33 @@ export interface Job {
   budgetFlexible?: boolean;
   requiredLanguage?: string | null;
   attachments?: JobAttachment[];
+  // Direct request routing fields
+  routingType?: RoutingType;
+  targetAgentId?: string | null;
+  targetAgent?: AgentProfile;
+  broadcastOnDecline?: boolean;
+  directRequestStatus?: DirectRequestStatus | null;
+  directRequestExpiresAt?: string | null;
+  directRequestSentAt?: string | null;
+  directRequestDeclinedAt?: string | null;
+  directRequestDeclineReason?: string | null;
+  broadcastConvertedAt?: string | null;
 }
 
 export interface JobWithProposals extends Job {
+  proposals: Proposal[];
+}
+
+export interface DirectRequestBuyer {
+  id: string;
+  name: string | null;
+  userName: string;
+  mainPic?: string | null;
+}
+
+/** A Job received as a direct request — enriched with buyer info */
+export interface DirectRequestJob extends Job {
+  buyer: DirectRequestBuyer;
   proposals: Proposal[];
 }
 
@@ -292,6 +325,8 @@ export interface AgentCategory {
   coverPic: string | null;
 }
 
+export type AvailabilityStatus = "available" | "busy" | "vacation";
+
 export interface AgentProfile {
   id: string;
   userId?: string;
@@ -314,6 +349,16 @@ export interface AgentProfile {
   totalJobs?: number;
   memberSince?: string;
   createdAt?: string;
+  // Availability & direct-request fields
+  availabilityStatus?: AvailabilityStatus;
+  availableUntil?: string | null;
+  responseTimeSlaHours?: number | null;
+  deliveryDays?: number | null;
+  expressDeliveryDays?: number | null;
+  revisionsIncluded?: number | null;
+  inputRequirements?: string | null;
+  maxConcurrentJobs?: number | null;
+  currentActiveJobs?: number;
   user?: {
     userName: string;
     name: string;
@@ -417,6 +462,40 @@ export interface StripeConnectStatus {
 // ─── API Functions ────────────────────────────────────────────────────────────
 
 export const api = {
+  // Received direct requests (AGENT_LISTER only)
+  getReceivedDirectRequests: async (params?: {
+    status?: DirectRequestStatus;
+    limit?: number;
+    offset?: number;
+  }) => {
+    const entries = Object.entries(params ?? {})
+      .filter(([, v]) => v != null)
+      .map(([k, v]) => [k, String(v)]);
+    const q = new URLSearchParams(entries).toString();
+    const res = await apiClient<{ directRequests: DirectRequestJob[]; limit: number; offset: number }>(
+      `/api/jobs/received-direct-requests${q ? `?${q}` : ""}`
+    );
+    return res.directRequests;
+  },
+
+  // Direct request (buyer)
+  createDirectRequest: (body: {
+    agentProfileId: string;
+    title: string;
+    description: string;
+    category: string;
+    budget?: number;
+    deadline?: string;
+    desiredDeliveryDays?: number;
+    broadcastOnDecline: boolean;
+    attachmentKeys?: string[];
+    preferredOutputFormats?: string[];
+  }) =>
+    apiClient<{ job: Job; message: string; expiresAt: string }>(
+      "/api/jobs/direct-request",
+      { method: "POST", body: JSON.stringify(body) },
+    ),
+
   // Jobs
   createJob: (body: {
     title: string;

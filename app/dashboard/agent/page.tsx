@@ -1,8 +1,9 @@
 "use client";
 
 import Link from "next/link";
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { api, Job, Contract, ContractStatus } from "@/lib/api";
+import { api, Job, Contract, ContractStatus, AgentProfile } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -15,10 +16,14 @@ import {
   ArrowRight,
   Cpu,
   Info,
+  Target,
+  ChevronDown,
+  ChevronUp,
 } from "lucide-react";
 import { useUser } from "@/hooks/useUser";
 import { JobCard } from "@/components/jobs/JobCard";
 import { StripeRequiredBanner } from "@/components/dashboard/StripeRequiredBanner";
+import { ReceivedDirectRequestCard } from "@/components/jobs/ReceivedDirectRequestCard";
 
 function StatCard({
   icon: Icon,
@@ -71,10 +76,16 @@ const CONTRACT_STATUS_CONFIG: Partial<Record<ContractStatus, { label: string; cl
 
 export default function AgentDashboardPage() {
   const { user } = useUser();
+  const [showAllRequests, setShowAllRequests] = useState(false);
 
   const { data: stats } = useQuery({
     queryKey: ["agent-stats"],
     queryFn: () => api.getAgentStats(),
+    enabled: !!user,
+  });
+  const { data: directRequests, isLoading: directRequestsLoading } = useQuery({
+    queryKey: ["received-direct-requests"],
+    queryFn: () => api.getReceivedDirectRequests(),
     enabled: !!user,
   });
   const { data: openJobs, isLoading: jobsLoading } = useQuery({
@@ -119,6 +130,22 @@ export default function AgentDashboardPage() {
   const activeContracts = contracts?.filter(
     (c: Contract) => c.status === "ACTIVE" || c.status === "SIGNED_BOTH"
   ) ?? [];
+
+  const pendingDirectRequests = (directRequests ?? []).filter(
+    (r) => r.directRequestStatus === "PENDING"
+  );
+  const otherDirectRequests = (directRequests ?? []).filter(
+    (r) => r.directRequestStatus !== "PENDING"
+  );
+  const visibleRequests = showAllRequests
+    ? (directRequests ?? [])
+    : pendingDirectRequests;
+
+  /** Look up a full AgentProfile from me.agentProfiles by agent ID */
+  const getAgentProfile = (agentId?: string | null): AgentProfile | undefined =>
+    agentId
+      ? me?.agentProfiles?.find((a) => a.id === agentId)
+      : undefined;
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
@@ -190,6 +217,60 @@ export default function AgentDashboardPage() {
           iconClass="bg-purple-100 text-purple-600 dark:bg-purple-900/20 dark:text-purple-400"
         />
       </div>
+
+      {/* Direct Requests section */}
+      {(directRequestsLoading || (directRequests && directRequests.length > 0)) && (
+        <div className="bg-card border border-border rounded-2xl overflow-hidden mb-6">
+          <div className="px-6 py-4 border-b border-border flex items-center justify-between">
+            <h2 className="text-foreground font-semibold font-ui flex items-center gap-2">
+              <Target className="w-4 h-4 text-[#b57e04]" />
+              Direct Requests
+              {pendingDirectRequests.length > 0 && (
+                <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-[#b57e04] text-white text-[10px] font-bold">
+                  {pendingDirectRequests.length}
+                </span>
+              )}
+            </h2>
+            {otherDirectRequests.length > 0 && (
+              <button
+                onClick={() => setShowAllRequests((v) => !v)}
+                className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground font-ui transition-colors"
+              >
+                {showAllRequests ? (
+                  <>Hide older <ChevronUp className="w-3.5 h-3.5" /></>
+                ) : (
+                  <>+{otherDirectRequests.length} older <ChevronDown className="w-3.5 h-3.5" /></>
+                )}
+              </button>
+            )}
+          </div>
+
+          {directRequestsLoading ? (
+            <div className="p-6 grid sm:grid-cols-2 gap-4">
+              {Array.from({ length: 2 }).map((_, i) => (
+                <Skeleton key={i} className="h-40 rounded-xl" />
+              ))}
+            </div>
+          ) : visibleRequests.length === 0 && pendingDirectRequests.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-12 text-center px-6">
+              <div className="w-12 h-12 rounded-2xl bg-muted flex items-center justify-center mb-3">
+                <Target className="w-6 h-6 text-muted-foreground" />
+              </div>
+              <p className="text-muted-foreground font-ui text-sm">No pending direct requests.</p>
+            </div>
+          ) : (
+            <div className="p-6 grid sm:grid-cols-2 gap-4">
+              {visibleRequests.map((request) => (
+                <ReceivedDirectRequestCard
+                  key={request.id}
+                  request={request}
+                  targetAgentProfile={getAgentProfile(request.targetAgentId)}
+                />
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Active contracts */}
       {activeContracts.length > 0 && (

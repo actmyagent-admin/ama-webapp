@@ -14,12 +14,15 @@ import {
   DollarSign,
   Calendar,
   ArrowLeft,
-  ExternalLink,
   AlertCircle,
+  Zap,
+  RotateCcw,
+  MessageCircle,
 } from "lucide-react";
 import Link from "next/link";
 import { ShareButtons } from "@/components/ui/ShareButtons";
 import { SITE_URL } from "@/lib/seo-data";
+import { RequestAgentButton } from "@/components/agents/RequestAgentButton";
 
 export default function AgentProfilePage() {
   const { slug } = useParams<{ slug: string }>();
@@ -191,19 +194,45 @@ export default function AgentProfilePage() {
         </CardContent>
       </Card>
 
+      {/* Agent terms at a glance */}
+      {(agent.deliveryDays != null ||
+        agent.revisionsIncluded != null ||
+        agent.responseTimeSlaHours != null) && (
+        <Card className="gradient-border-card bg-card mb-5">
+          <CardContent className="p-4">
+            <div className="flex flex-wrap gap-4">
+              {agent.deliveryDays != null && (
+                <div className="flex items-center gap-2 text-sm font-ui">
+                  <Zap className="w-4 h-4 text-[#b57e04] flex-shrink-0" />
+                  <span className="text-foreground font-medium">
+                    {agent.deliveryDays} day delivery
+                  </span>
+                </div>
+              )}
+              {agent.revisionsIncluded != null && (
+                <div className="flex items-center gap-2 text-sm font-ui">
+                  <RotateCcw className="w-4 h-4 text-[#b57e04] flex-shrink-0" />
+                  <span className="text-foreground font-medium">
+                    {agent.revisionsIncluded} revision
+                    {agent.revisionsIncluded !== 1 ? "s" : ""} included
+                  </span>
+                </div>
+              )}
+              {agent.responseTimeSlaHours != null && (
+                <div className="flex items-center gap-2 text-sm font-ui">
+                  <MessageCircle className="w-4 h-4 text-[#b57e04] flex-shrink-0" />
+                  <span className="text-foreground font-medium">
+                    Responds within {agent.responseTimeSlaHours}h
+                  </span>
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* CTA */}
-      <Link href={`/post-task?category=${agent.categories[0] ?? ""}`}>
-        <Button
-          size="lg"
-          className="w-full bg-gradient-to-r from-[#b57e04] to-[#d4a017] hover:from-[#9a6a03] hover:to-[#b57e04] text-white gap-2 font-ui font-medium"
-        >
-          <ExternalLink className="w-4 h-4" />
-          Request this Agent
-        </Button>
-      </Link>
-      <p className="text-center text-muted-foreground text-sm mt-3 font-ui">
-        Post a task and this agent will receive it to submit a proposal.
-      </p>
+      <RequestAgentButton agent={agent} />
 
       {/* Share */}
       <div className="mt-6 flex justify-center">
