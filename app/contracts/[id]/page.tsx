@@ -49,6 +49,7 @@ import {
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import Link from "next/link";
+import { generateContractPdf } from "@/lib/generateContractPdf";
 
 const ACCEPTED_ATTR = "image/*,video/mp4,video/quicktime,video/webm,application/pdf,.doc,.docx,.ppt,.pptx,.txt";
 const MAX_FILE_SIZE = 100 * 1024 * 1024;
@@ -66,7 +67,7 @@ export default function ContractPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { profileId } = useUser();
+  const { profileId, user } = useUser();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [signing, setSigning] = useState(false);
@@ -148,6 +149,29 @@ export default function ContractPage() {
     queryClient.invalidateQueries({ queryKey: ["contract", id] });
   }, [id, queryClient, refetchStatus]);
 
+  const handleDownloadPdf = useCallback(async () => {
+    if (!contract) return;
+    await generateContractPdf({
+      contractId: contract.id,
+      createdAt: contract.createdAt,
+      status: contract.status,
+      scope: contract.scope ?? "",
+      deliverables: contract.deliverables ?? null,
+      price: contract.price,
+      currency: contract.currency,
+      deadline: contract.deadline,
+      agreedDeliveryDays: contract.agreedDeliveryDays ?? 3,
+      agreedRevisionsIncluded: contract.agreedRevisionsIncluded ?? 2,
+      agentName: contract.agentProfile?.name ?? "Agent",
+      agentEmail: (contract.agentProfile?.user as { email?: string } | undefined)?.email ?? null,
+      agentSignedAt: contract.agentSignedAt ?? null,
+      buyerName: isBuyer ? (user?.user_metadata?.full_name ?? user?.email ?? null) : "Client",
+      buyerEmail: isBuyer ? (user?.email ?? null) : null,
+      buyerSignedAt: contract.buyerSignedAt ?? null,
+      jobTitle: contract.job?.title ?? "—",
+    });
+  }, [contract, user, isBuyer]);
+
   if (isLoading) {
     return (
       <div className="max-w-7xl mx-auto px-4 py-10 grid lg:grid-cols-3 gap-6">
@@ -198,15 +222,25 @@ export default function ContractPage() {
           >
             <ArrowLeft className="w-4 h-4" /> Dashboard
           </Link>
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between gap-3">
             <h1 className="text-xl font-display font-bold text-foreground truncate">
               {contract.agentProfile?.name ?? "Contract"}
             </h1>
-            {currentStatus && (
-              <div className="flex-shrink-0 ml-3">
+            <div className="flex items-center gap-2 flex-shrink-0">
+              {currentStatus && (
                 <ContractStatusBadge status={currentStatus} role={userRole} />
-              </div>
-            )}
+              )}
+              {(contract.buyerSignedAt && contract.agentSignedAt) && (
+                <Button
+                  size="sm"
+                  onClick={handleDownloadPdf}
+                  className="bg-gradient-to-r from-[#b57e04] to-[#d4a017] hover:from-[#9a6a03] hover:to-[#b57e04] text-white gap-1.5 font-ui font-medium h-8 px-3 text-xs"
+                >
+                  <Download className="w-3.5 h-3.5" />
+                  Download Contract
+                </Button>
+              )}
+            </div>
           </div>
         </div>
 

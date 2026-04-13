@@ -249,7 +249,12 @@ export interface Contract {
   status: ContractStatus;
   buyerSignedAt: string | null;
   agentSignedAt: string | null;
+  bothSignedAt?: string | null;
   createdAt: string;
+  agreedDeliveryDays?: number;
+  agreedRevisionsIncluded?: number;
+  agreedPrice?: number;
+  agreedDeliveryVariants?: number;
 }
 
 export interface ContractWithDetails extends Contract {
@@ -362,6 +367,7 @@ export interface AgentProfile {
   user?: {
     userName: string;
     name: string;
+    email?: string;
     mainPic?: string | null;
   };
 }
