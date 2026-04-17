@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { getBrowserClient } from "@/lib/supabase";
 import { api, Message } from "@/lib/api";
 
@@ -38,6 +38,13 @@ export function useRealtimeMessages(contractId: string): UseRealtimeMessagesRetu
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
+  // Each hook instance gets a stable unique suffix so that two ChatPanel
+  // instances on the same page (mobile + desktop) don't share the same
+  // Phoenix channel topic. Sharing a topic causes the Supabase Realtime
+  // server to reject the second join, leaving one panel unable to receive
+  // INSERT events.
+  const instanceId = useRef(Math.random().toString(36).slice(2, 8));
+
   const supabase = getBrowserClient();
 
   useEffect(() => {
@@ -57,18 +64,20 @@ export function useRealtimeMessages(contractId: string): UseRealtimeMessagesRetu
         setIsLoading(false);
       }
 
-      // Supabase Realtime evaluates RLS using auth.uid() on the realtime connection.
-      // setAuth MUST be called before .subscribe() — doing it after is a race condition
-      // that causes the channel to subscribe unauthenticated, failing the RLS policy.
-      const { data } = await supabase.auth.getSession();
-      const token = data.session?.access_token;
-      if (token) supabase.realtime.setAuth(token);
-
-      // Bail out if the effect was cleaned up while we were awaiting
+      // Auth is kept in sync automatically via onAuthStateChange in getBrowserClient().
+      // Bail out if the component unmounted while we were fetching.
       if (!refreshOnError) return;
 
+      // Log the auth state at subscription time so we can confirm the JWT
+      // is present when the phx_join is sent.
+      supabase.auth.getSession().then(({ data }) => {
+        const uid = data.session?.user?.id ?? "none";
+        const hasToken = !!data.session?.access_token;
+        console.log(`[Realtime] subscribing contractId=${contractId} auth.uid=${uid} hasToken=${hasToken}`);
+      });
+
       channel = supabase
-        .channel(`messages:${contractId}`)
+        .channel(`messages:${contractId}:${instanceId.current}`)
         .on(
           "postgres_changes",
           {
@@ -77,12 +86,18 @@ export function useRealtimeMessages(contractId: string): UseRealtimeMessagesRetu
             table: "Message",
           },
           (payload) => {
+            console.log(`[Realtime] INSERT full payload:`, JSON.stringify(payload.new));
             const raw = payload.new as RawMessagePayload;
+            console.log(`[Realtime] INSERT received contractId=${raw.contractId} id=${raw.id} — expecting=${contractId} match=${raw.contractId === contractId}`);
             // client-side filter — camelCase column names can't be used in Realtime filter syntax
             if (raw.contractId !== contractId) return;
             const newMsg = fromRaw(raw);
             setMessages((prev) => {
-              if (prev.some((m) => m.id === newMsg.id)) return prev;
+              if (prev.some((m) => m.id === newMsg.id)) {
+                console.log(`[Realtime] INSERT id=${newMsg.id} skipped (duplicate)`);
+                return prev;
+              }
+              console.log(`[Realtime] INSERT id=${newMsg.id} added to state`);
               return [...prev, newMsg];
             });
           }
@@ -96,6 +111,7 @@ export function useRealtimeMessages(contractId: string): UseRealtimeMessagesRetu
           },
           (payload) => {
             const raw = payload.new as RawMessagePayload;
+            console.log(`[Realtime] UPDATE received id=${raw.id} contractId=${raw.contractId}`);
             if (raw.contractId !== contractId) return;
             const updated = fromRaw(raw);
             setMessages((prev) =>
@@ -104,7 +120,7 @@ export function useRealtimeMessages(contractId: string): UseRealtimeMessagesRetu
           }
         )
         .subscribe((status, err) => {
-          console.log(`[Realtime] channel=messages:${contractId} status=${status}`, err ?? "");
+          console.log(`[Realtime] channel=messages:${contractId}:${instanceId.current} status=${status}`, err ?? "");
           if ((status === "CHANNEL_ERROR" || status === "TIMED_OUT") && refreshOnError) {
             // Realtime unavailable — fall back to polling every 5 s
             console.warn("[Realtime] falling back to HTTP polling");
