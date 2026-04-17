@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { api, Job, JobStatus, ContractStatus } from "@/lib/api";
+import { api, Job, ContractStatus } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -32,7 +32,6 @@ import {
   DollarSign,
   Plus,
   ArrowRight,
-  MessageSquare,
   AlertTriangle,
   Pencil,
   Trash2,
@@ -41,13 +40,97 @@ import {
 } from "lucide-react";
 import { useUser } from "@/hooks/useUser";
 
-const STATUS_CONFIG: Record<JobStatus, { label: string; class: string }> = {
-  OPEN: { label: "Open", class: "bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-300 dark:border-blue-800" },
-  IN_PROGRESS: { label: "In Progress", class: "bg-amber-100 text-amber-700 border-amber-200 dark:bg-amber-900/30 dark:text-amber-300 dark:border-amber-800" },
-  COMPLETED: { label: "Completed", class: "bg-emerald-100 text-emerald-700 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-300 dark:border-emerald-800" },
-  DISPUTED: { label: "Disputed", class: "bg-red-100 text-red-700 border-red-200 dark:bg-red-900/30 dark:text-red-300 dark:border-red-800" },
-  CANCELLED: { label: "Cancelled", class: "bg-muted text-muted-foreground border-border" },
+// Shared badge colour tokens
+const CLS = {
+  amber:   "bg-amber-100 text-amber-700 border-amber-200 dark:bg-amber-900/30 dark:text-amber-300 dark:border-amber-800",
+  blue:    "bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-300 dark:border-blue-800",
+  emerald: "bg-emerald-100 text-emerald-700 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-300 dark:border-emerald-800",
+  red:     "bg-red-100 text-red-700 border-red-200 dark:bg-red-900/30 dark:text-red-300 dark:border-red-800",
+  muted:   "bg-muted text-muted-foreground border-border",
+} as const;
+
+type RowDisplayState = {
+  badge: { label: string; cls: string };
+  action: { label: string; href: string };
+  /** Render the action button amber ("Pay Now") */
+  urgent?: boolean;
+  /** Render the action button gold ("Sign Contract") */
+  needsSignature?: boolean;
 };
+
+/**
+ * Derives the badge text/colour and CTA label/href for a job row.
+ * Contract status always takes priority over job status so stale
+ * job.status values ("OPEN") don't mislead the buyer.
+ */
+function getRowDisplayState(job: Job): RowDisplayState {
+  const cs = (job.contract?.status as ContractStatus) ?? null;
+  const contractHref = job.contract
+    ? `/contracts/${job.contract.id}`
+    : `/jobs/${job.id}`;
+  const jobHref = `/jobs/${job.id}`;
+
+  // ── Contract-driven states (highest priority) ──────────────────────────
+  if (cs === "SIGNED_BOTH") {
+    return { badge: { label: "Payment Required", cls: CLS.amber }, action: { label: "Pay Now", href: contractHref }, urgent: true };
+  }
+  if (cs === "SIGNED_AGENT") {
+    return { badge: { label: "Awaiting Your Signature", cls: CLS.amber }, action: { label: "Sign Contract", href: contractHref }, needsSignature: true };
+  }
+  if (cs === "SIGNED_BUYER") {
+    return { badge: { label: "Awaiting Agent Signature", cls: CLS.blue }, action: { label: "View Contract", href: contractHref } };
+  }
+  if (cs === "ACTIVE") {
+    return { badge: { label: "In Progress", cls: CLS.amber }, action: { label: "View Contract", href: contractHref } };
+  }
+  if (cs === "DISPUTED") {
+    return { badge: { label: "Disputed", cls: CLS.red }, action: { label: "View Contract", href: contractHref } };
+  }
+  if (cs === "COMPLETED") {
+    return { badge: { label: "Completed", cls: CLS.emerald }, action: { label: "View Contract", href: contractHref } };
+  }
+  if (cs === "VOIDED") {
+    return { badge: { label: "Contract Voided", cls: CLS.muted }, action: { label: "View Contract", href: contractHref } };
+  }
+  if (cs === "DRAFT") {
+    // Proposal accepted, contract not yet signed by anyone
+    return { badge: { label: "Proposal Accepted", cls: CLS.emerald }, action: { label: "View Contract", href: contractHref } };
+  }
+
+  // ── No contract — derive from job status + proposals ──────────────────
+  if (job.status === "CANCELLED") {
+    return { badge: { label: "Cancelled", cls: CLS.muted }, action: { label: "View Job", href: jobHref } };
+  }
+  if (job.status === "COMPLETED") {
+    return { badge: { label: "Completed", cls: CLS.emerald }, action: { label: "View Job", href: jobHref } };
+  }
+  if (job.status === "DISPUTED") {
+    return { badge: { label: "Disputed", cls: CLS.red }, action: { label: "View Job", href: jobHref } };
+  }
+  if (job.status === "IN_PROGRESS") {
+    return { badge: { label: "In Progress", cls: CLS.amber }, action: { label: "View Job", href: jobHref } };
+  }
+
+  // ── Open job — proposal-driven ─────────────────────────────────────────
+  const proposals = job.proposals ?? [];
+  const pendingCount  = proposals.filter((p) => p.status === "PENDING").length;
+  const acceptedCount = proposals.filter((p) => p.status === "ACCEPTED").length;
+  const totalCount    = proposals.length || (job.proposalCount ?? 0);
+
+  if (acceptedCount > 0 && !job.contract) {
+    // Edge-case: accepted proposal but contract not yet generated
+    return { badge: { label: "Proposal Accepted", cls: CLS.emerald }, action: { label: "Review Proposals", href: jobHref } };
+  }
+  if (pendingCount > 0) {
+    const label = pendingCount === 1 ? "1 proposal received" : `${pendingCount} proposals received`;
+    return { badge: { label, cls: CLS.blue }, action: { label: "Review Proposals", href: jobHref } };
+  }
+  if (totalCount > 0) {
+    return { badge: { label: `${totalCount} proposal${totalCount !== 1 ? "s" : ""}`, cls: CLS.muted }, action: { label: "View Job", href: jobHref } };
+  }
+
+  return { badge: { label: "Open · No proposals yet", cls: CLS.muted }, action: { label: "View Job", href: jobHref } };
+}
 
 type FilterTab = "all" | "direct" | "broadcast" | "active" | "completed";
 
@@ -296,16 +379,8 @@ export default function BuyerDashboardPage() {
         ) : (
           <div className="divide-y divide-border">
             {filteredJobs.map((job: Job) => {
-              const cs = contractStatus(job);
-              const needsPayment = cs === "SIGNED_BOTH";
-              const status = STATUS_CONFIG[job.status];
+              const ds = getRowDisplayState(job);
               const isDirect = isDirectRequest(job);
-              const actionHref =
-                job.status === "OPEN"
-                  ? `/jobs/${job.id}`
-                  : `/contracts/${job.contract?.id ?? job.id}`;
-              const actionLabel = job.status === "OPEN" ? "View proposals" : "View contract";
-
               const hasProposals = (job.proposals?.length ?? 0) > 0 || (job.proposalCount ?? 0) > 0;
               const hasContract = !!job.contract;
 
@@ -316,19 +391,24 @@ export default function BuyerDashboardPage() {
                 ? "Cannot delete: this job has an associated contract"
                 : null;
 
+              // Left-border accent for states that need immediate action
+              const accentBorder = ds.urgent
+                ? "border-l-4 border-amber-400 pl-3"
+                : ds.needsSignature
+                ? "border-l-4 border-[#b57e04] pl-3"
+                : "";
+
               return (
                 <div key={job.id} className="px-6 py-4">
-                  {/* Direct request status card (shown for DIRECT jobs) */}
+                  {/* Direct request status card */}
                   {isDirect && job.directRequestStatus && (
                     <div className="mb-3">
                       <DirectRequestStatusCard job={job} />
                     </div>
                   )}
 
-                  {/* Regular job row */}
-                  <div
-                    className={`flex items-center gap-3 hover:bg-muted/30 transition-colors rounded-lg ${needsPayment ? "border-l-4 border-amber-400 pl-3" : ""}`}
-                  >
+                  {/* Job row */}
+                  <div className={`flex items-center gap-3 hover:bg-muted/30 transition-colors rounded-lg ${accentBorder}`}>
                     <div className="flex-1 min-w-0">
                       <p className="text-foreground font-medium truncate text-sm font-ui flex items-center gap-1.5">
                         {isDirect && (
@@ -344,42 +424,28 @@ export default function BuyerDashboardPage() {
                       </div>
                     </div>
 
-                    {job.proposals != null && (
-                      <span className="flex items-center gap-1 text-muted-foreground text-xs flex-shrink-0 font-ui">
-                        <MessageSquare className="w-3.5 h-3.5" />
-                        {job.proposals.length}
-                      </span>
-                    )}
+                    {/* Status badge — contract state takes priority over job.status */}
+                    <Badge className={`text-xs border flex-shrink-0 ${ds.badge.cls}`}>
+                      {ds.badge.label}
+                    </Badge>
 
-                    {needsPayment ? (
-                      <Badge className="text-xs border bg-amber-100 text-amber-700 border-amber-200 dark:bg-amber-900/30 dark:text-amber-300 dark:border-amber-800 flex-shrink-0">
-                        Payment Required
-                      </Badge>
-                    ) : (
-                      <Badge className={`text-xs border flex-shrink-0 ${status.class}`}>
-                        {status.label}
-                      </Badge>
-                    )}
-
-                    {/* View action */}
-                    {needsPayment ? (
-                      <Link href={`/contracts/${job.contract?.id ?? job.id}`}>
-                        <Button
-                          size="sm"
-                          className="bg-amber-500 hover:bg-amber-400 text-white gap-1 text-xs flex-shrink-0 font-ui font-medium"
-                        >
-                          Pay Now
-                          <ArrowRight className="w-3.5 h-3.5" />
-                        </Button>
-                      </Link>
-                    ) : (
-                      <Link href={actionHref}>
-                        <Button size="sm" variant="ghost" className="text-muted-foreground hover:text-[#b57e04] gap-1 text-xs flex-shrink-0 font-ui">
-                          {actionLabel}
-                          <ArrowRight className="w-3.5 h-3.5" />
-                        </Button>
-                      </Link>
-                    )}
+                    {/* CTA button */}
+                    <Link href={ds.action.href}>
+                      <Button
+                        size="sm"
+                        className={
+                          ds.urgent
+                            ? "bg-amber-500 hover:bg-amber-400 text-white gap-1 text-xs flex-shrink-0 font-ui font-medium"
+                            : ds.needsSignature
+                            ? "bg-gradient-to-r from-[#b57e04] to-[#d4a017] hover:from-[#9a6a03] hover:to-[#b57e04] text-white gap-1 text-xs flex-shrink-0 font-ui font-medium"
+                            : "text-muted-foreground hover:text-[#b57e04] gap-1 text-xs flex-shrink-0 font-ui"
+                        }
+                        variant={ds.urgent || ds.needsSignature ? "default" : "ghost"}
+                      >
+                        {ds.action.label}
+                        <ArrowRight className="w-3.5 h-3.5" />
+                      </Button>
+                    </Link>
 
                     {/* Kebab menu */}
                     <DropdownMenu>
