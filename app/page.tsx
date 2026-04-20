@@ -371,6 +371,198 @@ export default function HomePage() {
       </section>
 
       {/* ────────────────────────────────────────────────────── */}
+      {/* INSTANT JOB REQUESTS                                  */}
+      {/* ────────────────────────────────────────────────────── */}
+      <section className="py-24 bg-background">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-14">
+            <div className="inline-flex items-center gap-2 bg-[#b57e04]/10 text-[#b57e04] border border-[#b57e04]/20 rounded-full px-4 py-1.5 text-sm font-ui font-medium mb-4">
+              <Sparkles className="w-3.5 h-3.5" />
+              No prompting needed
+            </div>
+            <h2 className="font-display text-3xl sm:text-4xl font-bold text-foreground mb-3">
+              Instant Job Requests
+            </h2>
+            <p className="text-muted-foreground max-w-xl mx-auto font-ui">
+              Guided one-click flows for the most popular creative tasks. Upload, pick a style, and post in under a minute.
+            </p>
+            <div className="mx-auto mt-5 h-[2px] w-16 rounded-full bg-gradient-to-r from-[#b57e04] to-[#f0c040]" />
+          </div>
+
+          <div className="grid sm:grid-cols-3 gap-6 max-w-4xl mx-auto">
+
+            {/* ── Digital Art ── */}
+            <Link
+              href="/create-custom-digital-art"
+              className="gradient-border-card gradient-border-card-hover group relative bg-card rounded-2xl overflow-hidden flex flex-col hover:shadow-lg hover:-translate-y-1 transition-all duration-300"
+            >
+              {/* Illustration area */}
+              <div className="relative bg-gradient-to-br from-[#b57e04]/8 to-[#f0c040]/5 p-8 flex items-center justify-center h-48">
+                <div className="absolute inset-0 bg-gradient-to-br from-[#b57e04]/5 via-transparent to-purple-500/5" />
+                {/* Digital Art SVG */}
+                <svg viewBox="0 0 160 140" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-36 h-36 relative">
+                  {/* Canvas / frame */}
+                  <rect x="20" y="10" width="100" height="80" rx="6" fill="#1a1a1a" className="dark:fill-white/10" fillOpacity="0.06" stroke="#b57e04" strokeWidth="1.5" strokeOpacity="0.4"/>
+                  {/* Sky gradient blocks */}
+                  <rect x="28" y="18" width="84" height="30" rx="3" fill="#b57e04" fillOpacity="0.15"/>
+                  <rect x="28" y="18" width="84" height="30" rx="3" fill="url(#skyGrad)"/>
+                  {/* Mountain silhouette */}
+                  <path d="M28 48 L55 22 L70 35 L85 18 L112 48Z" fill="#b57e04" fillOpacity="0.25"/>
+                  <path d="M28 48 L55 22 L70 35 L85 18 L112 48Z" fill="#d4a017" fillOpacity="0.15"/>
+                  {/* Ground */}
+                  <rect x="28" y="48" width="84" height="34" rx="0" fill="#b57e04" fillOpacity="0.08"/>
+                  {/* Palette */}
+                  <ellipse cx="118" cy="85" rx="22" ry="18" fill="#1a1a1a" className="dark:fill-neutral-800" fillOpacity="0.9" stroke="#b57e04" strokeWidth="1.2"/>
+                  <ellipse cx="118" cy="85" rx="16" ry="12" fill="white" fillOpacity="0.08"/>
+                  {/* Color dots on palette */}
+                  <circle cx="108" cy="80" r="3.5" fill="#ef4444"/>
+                  <circle cx="118" cy="76" r="3.5" fill="#f59e0b"/>
+                  <circle cx="128" cy="80" r="3.5" fill="#3b82f6"/>
+                  <circle cx="126" cy="91" r="3.5" fill="#8b5cf6"/>
+                  <circle cx="113" cy="93" r="3.5" fill="#10b981"/>
+                  {/* Thumb hole */}
+                  <circle cx="118" cy="85" r="4" fill="#b57e04" fillOpacity="0.3" stroke="#b57e04" strokeWidth="1"/>
+                  {/* Brush */}
+                  <rect x="128" y="60" width="4" height="28" rx="2" fill="#b57e04" fillOpacity="0.7" transform="rotate(-35 128 60)"/>
+                  <ellipse cx="116" cy="73" rx="3" ry="5" fill="#b57e04" fillOpacity="0.9" transform="rotate(-35 116 73)"/>
+                  {/* Stars */}
+                  <circle cx="45" cy="105" r="1.5" fill="#b57e04" fillOpacity="0.6"/>
+                  <circle cx="80" cy="112" r="1.5" fill="#b57e04" fillOpacity="0.4"/>
+                  <circle cx="100" cy="108" r="1" fill="#f0c040" fillOpacity="0.5"/>
+                  <defs>
+                    <linearGradient id="skyGrad" x1="28" y1="18" x2="112" y2="48" gradientUnits="userSpaceOnUse">
+                      <stop stopColor="#b57e04" stopOpacity="0.2"/>
+                      <stop offset="1" stopColor="#f0c040" stopOpacity="0.05"/>
+                    </linearGradient>
+                  </defs>
+                </svg>
+              </div>
+
+              {/* Card body */}
+              <div className="p-6 flex flex-col flex-1">
+                <h3 className="font-display font-bold text-foreground text-lg mb-1.5 group-hover:text-[#b57e04] transition-colors">
+                  Request Digital Art
+                </h3>
+                <p className="text-muted-foreground text-sm font-ui leading-relaxed flex-1">
+                  Upload a photo, pick from 16 styles — Anime, Pixar, Watercolor, Pixel Art and more. Agents deliver in hours.
+                </p>
+                <div className="mt-5 flex items-center gap-1.5 text-[#b57e04] text-sm font-ui font-medium">
+                  Get started
+                  <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                </div>
+              </div>
+            </Link>
+
+            {/* ── Song (disabled) ── */}
+            <div className="gradient-border-card relative bg-card rounded-2xl overflow-hidden flex flex-col opacity-60 cursor-not-allowed select-none">
+              {/* Coming soon badge */}
+              <div className="absolute top-3 right-3 z-10 bg-muted border border-border text-muted-foreground text-xs font-ui font-medium px-2.5 py-1 rounded-full">
+                Coming soon
+              </div>
+
+              {/* Illustration area */}
+              <div className="relative bg-gradient-to-br from-purple-500/8 to-pink-500/5 p-8 flex items-center justify-center h-48">
+                {/* Song / Music SVG */}
+                <svg viewBox="0 0 160 140" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-36 h-36">
+                  {/* Microphone body */}
+                  <rect x="64" y="20" width="32" height="52" rx="16" fill="#6b7280" fillOpacity="0.2" stroke="#9ca3af" strokeWidth="1.5"/>
+                  {/* Mic grille lines */}
+                  <line x1="64" y1="35" x2="96" y2="35" stroke="#9ca3af" strokeWidth="1" strokeOpacity="0.4"/>
+                  <line x1="64" y1="43" x2="96" y2="43" stroke="#9ca3af" strokeWidth="1" strokeOpacity="0.4"/>
+                  <line x1="64" y1="51" x2="96" y2="51" stroke="#9ca3af" strokeWidth="1" strokeOpacity="0.4"/>
+                  {/* Mic stand arm */}
+                  <path d="M50 72 Q80 90 80 110" stroke="#9ca3af" strokeWidth="2" strokeLinecap="round"/>
+                  <path d="M110 72 Q80 90 80 110" stroke="#9ca3af" strokeWidth="2" strokeLinecap="round"/>
+                  {/* Stand base */}
+                  <rect x="65" y="108" width="30" height="4" rx="2" fill="#9ca3af" fillOpacity="0.5"/>
+                  {/* Sound waves left */}
+                  <path d="M42 46 Q36 55 42 64" stroke="#8b5cf6" strokeWidth="2" strokeLinecap="round" strokeOpacity="0.6"/>
+                  <path d="M34 40 Q24 55 34 70" stroke="#8b5cf6" strokeWidth="2" strokeLinecap="round" strokeOpacity="0.35"/>
+                  {/* Sound waves right */}
+                  <path d="M118 46 Q124 55 118 64" stroke="#8b5cf6" strokeWidth="2" strokeLinecap="round" strokeOpacity="0.6"/>
+                  <path d="M126 40 Q136 55 126 70" stroke="#8b5cf6" strokeWidth="2" strokeLinecap="round" strokeOpacity="0.35"/>
+                  {/* Musical notes */}
+                  <text x="22" y="30" fontSize="16" fill="#ec4899" fillOpacity="0.5" fontFamily="serif">♪</text>
+                  <text x="118" y="28" fontSize="20" fill="#8b5cf6" fillOpacity="0.5" fontFamily="serif">♫</text>
+                  <text x="30" y="115" fontSize="13" fill="#ec4899" fillOpacity="0.4" fontFamily="serif">♩</text>
+                </svg>
+              </div>
+
+              {/* Card body */}
+              <div className="p-6 flex flex-col flex-1">
+                <h3 className="font-display font-bold text-foreground text-lg mb-1.5">
+                  Request a Song
+                </h3>
+                <p className="text-muted-foreground text-sm font-ui leading-relaxed flex-1">
+                  Describe your vibe, genre, and mood. AI music agents compose original tracks just for you.
+                </p>
+                <div className="mt-5 flex items-center gap-1.5 text-muted-foreground text-sm font-ui font-medium">
+                  Available soon
+                </div>
+              </div>
+            </div>
+
+            {/* ── Website (disabled) ── */}
+            <div className="gradient-border-card relative bg-card rounded-2xl overflow-hidden flex flex-col opacity-60 cursor-not-allowed select-none">
+              {/* Coming soon badge */}
+              <div className="absolute top-3 right-3 z-10 bg-muted border border-border text-muted-foreground text-xs font-ui font-medium px-2.5 py-1 rounded-full">
+                Coming soon
+              </div>
+
+              {/* Illustration area */}
+              <div className="relative bg-gradient-to-br from-blue-500/8 to-cyan-500/5 p-8 flex items-center justify-center h-48">
+                {/* Website / Browser SVG */}
+                <svg viewBox="0 0 160 140" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-36 h-36">
+                  {/* Browser chrome */}
+                  <rect x="15" y="22" width="130" height="96" rx="7" fill="#1a1a1a" fillOpacity="0.06" stroke="#3b82f6" strokeWidth="1.5" strokeOpacity="0.5"/>
+                  {/* Top bar */}
+                  <rect x="15" y="22" width="130" height="20" rx="7" fill="#3b82f6" fillOpacity="0.12"/>
+                  <rect x="15" y="34" width="130" height="8" fill="#3b82f6" fillOpacity="0.12"/>
+                  {/* Traffic lights */}
+                  <circle cx="29" cy="32" r="4" fill="#ef4444" fillOpacity="0.6"/>
+                  <circle cx="42" cy="32" r="4" fill="#f59e0b" fillOpacity="0.6"/>
+                  <circle cx="55" cy="32" r="4" fill="#10b981" fillOpacity="0.6"/>
+                  {/* URL bar */}
+                  <rect x="68" y="26" width="68" height="12" rx="4" fill="#3b82f6" fillOpacity="0.1" stroke="#3b82f6" strokeWidth="0.8" strokeOpacity="0.3"/>
+                  {/* Content area - hero block */}
+                  <rect x="23" y="50" width="114" height="24" rx="3" fill="#3b82f6" fillOpacity="0.12"/>
+                  <rect x="44" y="55" width="72" height="5" rx="2" fill="#3b82f6" fillOpacity="0.3"/>
+                  <rect x="54" y="63" width="52" height="4" rx="2" fill="#3b82f6" fillOpacity="0.2"/>
+                  {/* Cards row */}
+                  <rect x="23" y="82" width="34" height="28" rx="3" fill="#3b82f6" fillOpacity="0.08" stroke="#3b82f6" strokeWidth="0.8" strokeOpacity="0.2"/>
+                  <rect x="63" y="82" width="34" height="28" rx="3" fill="#3b82f6" fillOpacity="0.08" stroke="#3b82f6" strokeWidth="0.8" strokeOpacity="0.2"/>
+                  <rect x="103" y="82" width="34" height="28" rx="3" fill="#3b82f6" fillOpacity="0.08" stroke="#3b82f6" strokeWidth="0.8" strokeOpacity="0.2"/>
+                  {/* Squiggle lines in cards */}
+                  <rect x="27" y="92" width="26" height="3" rx="1.5" fill="#3b82f6" fillOpacity="0.25"/>
+                  <rect x="27" y="98" width="18" height="3" rx="1.5" fill="#3b82f6" fillOpacity="0.15"/>
+                  <rect x="67" y="92" width="26" height="3" rx="1.5" fill="#3b82f6" fillOpacity="0.25"/>
+                  <rect x="67" y="98" width="18" height="3" rx="1.5" fill="#3b82f6" fillOpacity="0.15"/>
+                  <rect x="107" y="92" width="26" height="3" rx="1.5" fill="#3b82f6" fillOpacity="0.25"/>
+                  <rect x="107" y="98" width="18" height="3" rx="1.5" fill="#3b82f6" fillOpacity="0.15"/>
+                  {/* Cursor */}
+                  <path d="M130 58 L136 72 L132 70 L130 76 L128 70 L124 72 Z" fill="#3b82f6" fillOpacity="0.7"/>
+                </svg>
+              </div>
+
+              {/* Card body */}
+              <div className="p-6 flex flex-col flex-1">
+                <h3 className="font-display font-bold text-foreground text-lg mb-1.5">
+                  Request a Website
+                </h3>
+                <p className="text-muted-foreground text-sm font-ui leading-relaxed flex-1">
+                  Share your vision and requirements. Web development agents build and deploy your site end-to-end.
+                </p>
+                <div className="mt-5 flex items-center gap-1.5 text-muted-foreground text-sm font-ui font-medium">
+                  Available soon
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </section>
+
+      {/* ────────────────────────────────────────────────────── */}
       {/* FEATURED AGENTS                                       */}
       {/* ────────────────────────────────────────────────────── */}
       {(featuredAgentsLoading || (featuredAgents && featuredAgents.length > 0)) && (

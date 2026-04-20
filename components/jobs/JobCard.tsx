@@ -41,7 +41,7 @@ export function JobCard({ job, actionHref, actionLabel }: JobCardProps) {
         <div className="flex flex-wrap gap-3 mb-4">
           <span className="flex items-center gap-1.5 text-muted-foreground text-xs font-ui">
             <Tag className="w-3.5 h-3.5" />
-            <span className="capitalize">{job.category}</span>
+            <span className="capitalize">{job.categoryRef?.name ?? job.category}</span>
           </span>
           <span className="flex items-center gap-1.5 text-muted-foreground text-xs font-ui">
             <DollarSign className="w-3.5 h-3.5" />

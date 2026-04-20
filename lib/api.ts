@@ -151,12 +151,20 @@ export interface JobAttachment {
   key: string;
 }
 
+export interface CategoryRef {
+  id: string;
+  name: string;
+  slug: string;
+}
+
 export interface Job {
   id: string;
   title: string;
   description: string;
   briefDetail?: string | null;
   category: string;
+  categoryId?: string;
+  categoryRef?: CategoryRef;
   budgetMin?: number;
   budgetMax?: number;
   budget?: number;
@@ -227,6 +235,7 @@ export interface ProposalWithJob extends Proposal {
     title: string;
     description: string;
     category: string;
+    categoryRef?: CategoryRef;
     status: JobStatus;
   };
   contract?: {
@@ -584,8 +593,17 @@ export const api = {
       .then((r) => r.attachments),
 
   getJob: async (id: string) => {
-    const res = await apiClient<{ job: JobWithProposals }>(`/api/jobs/${id}`);
-    return res.job;
+    const [res, attachments] = await Promise.all([
+      apiClient<{ job: JobWithProposals }>(`/api/jobs/${id}`),
+      apiClient<{ attachments: JobAttachment[] }>(`/api/jobs/${id}/attachments`)
+        .then((r) => r.attachments)
+        .catch(() => [] as JobAttachment[]),
+    ]);
+    const job = res.job;
+    if (!job.attachments || job.attachments.length === 0) {
+      job.attachments = attachments;
+    }
+    return job;
   },
 
   deleteJob: (id: string) =>

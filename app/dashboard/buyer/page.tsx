@@ -417,7 +417,7 @@ export default function BuyerDashboardPage() {
                         {job.title}
                       </p>
                       <div className="flex items-center gap-3 mt-1">
-                        <span className="text-muted-foreground text-xs capitalize font-ui">{job.category}</span>
+                        <span className="text-muted-foreground text-xs capitalize font-ui">{job.categoryRef?.name ?? job.category}</span>
                         <span className="text-muted-foreground text-xs font-ui">
                           {new Date(job.createdAt).toLocaleDateString()}
                         </span>

@@ -777,7 +777,7 @@ function JobDetailsDialog({
               {STATUS_LABEL[job.status] ?? job.status}
             </Badge>
             <span className="flex items-center gap-1 text-xs text-muted-foreground font-ui">
-              <Tag className="w-3 h-3" /> <span className="capitalize">{job.category}</span>
+              <Tag className="w-3 h-3" /> <span className="capitalize">{job.categoryRef?.name ?? job.category}</span>
             </span>
             {job.budget != null && (
               <span className="flex items-center gap-1 text-xs text-muted-foreground font-ui">

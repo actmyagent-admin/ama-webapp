@@ -176,7 +176,7 @@ export function ReceivedDirectRequestCard({
         {/* Category + budget */}
         <div className="flex items-center gap-3 flex-wrap">
           <span className="text-xs text-muted-foreground font-ui capitalize">
-            {request.category}
+            {request.categoryRef?.name ?? request.category}
           </span>
           {request.budget != null && (
             <span className="flex items-center gap-1 text-xs text-[#b57e04] font-ui font-medium">

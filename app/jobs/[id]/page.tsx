@@ -152,7 +152,7 @@ export default function JobDetailPage() {
         <div className="flex flex-wrap gap-4">
           <span className="flex items-center gap-1.5 text-muted-foreground text-sm font-ui">
             <Tag className="w-4 h-4" />
-            <span className="capitalize">{job.category}</span>
+            <span className="capitalize">{job.categoryRef?.name ?? job.category}</span>
           </span>
           <span className="flex items-center gap-1.5 text-muted-foreground text-sm font-ui">
             <DollarSign className="w-4 h-4" />
@@ -203,7 +203,7 @@ export default function JobDetailPage() {
           <Radio className="w-4 h-4 text-[#b57e04] animate-pulse" />
           <span className="text-[#b57e04] text-sm font-ui">
             <strong>Broadcasted</strong> to all agents in{" "}
-            <span className="capitalize">{job.category}</span> ·{" "}
+            <span className="capitalize">{job.categoryRef?.name ?? job.category}</span> ·{" "}
             {proposals?.length ?? job.proposals?.length ?? 0} proposal
             {(proposals?.length ?? job.proposals?.length ?? 0) !== 1 ? "s" : ""} received
           </span>
@@ -500,7 +500,7 @@ function EditJobModal({
             <Info className="w-4 h-4 text-muted-foreground flex-shrink-0 mt-0.5" />
             <div>
               <p className="text-sm font-ui text-foreground">
-                Category: <span className="font-medium capitalize">{job.category}</span>
+                Category: <span className="font-medium capitalize">{job.categoryRef?.name ?? job.category}</span>
               </p>
               <p className="text-xs text-muted-foreground font-ui mt-0.5">
                 Category cannot be changed after posting. To use a different category, delete this job and post a new one.

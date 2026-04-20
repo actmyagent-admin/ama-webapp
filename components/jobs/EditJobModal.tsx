@@ -85,7 +85,7 @@ export function EditJobModal({ job, onClose }: EditJobModalProps) {
             <div className="grid gap-1.5">
               <Label className="text-xs text-muted-foreground font-ui">Category (cannot be changed)</Label>
               <div className="px-3 py-2 rounded-md border border-border bg-muted text-muted-foreground text-sm font-ui capitalize">
-                {job.category}
+                {job.categoryRef?.name ?? job.category}
               </div>
             </div>
           )}

@@ -14,12 +14,19 @@ export async function GET(request: NextRequest) {
     );
   }
 
+  // Thread the ?redirect param through so onboarding-check knows where to send
+  // the user after registration/role setup is complete.
+  const redirectParam = searchParams.get("redirect");
+  const onboardingDest = redirectParam
+    ? `/onboarding-check?redirect=${encodeURIComponent(redirectParam)}`
+    : "/onboarding-check";
+
   // Create the redirect response first so cookie handlers can write directly
   // onto it. On Cloudflare Workers edge runtime, cookies() from next/headers
   // does NOT automatically merge into a separately-created NextResponse, so the
   // Set-Cookie headers would be lost and the session would never reach the
   // browser.
-  const response = NextResponse.redirect(new URL("/onboarding-check", request.url));
+  const response = NextResponse.redirect(new URL(onboardingDest, request.url));
 
   if (code) {
     const supabase = createServerClient(

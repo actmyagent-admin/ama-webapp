@@ -41,7 +41,8 @@ export function DirectRequestStatusCard({ job }: Props) {
   const agent = job.targetAgent;
   const agentName = agent?.name ?? "the agent";
   const agentInitials = agentName.slice(0, 2).toUpperCase();
-  const category = job.category;
+  const category = job.category; // slug — used for URL params
+  const categoryName = job.categoryRef?.name ?? job.category;
   const status = job.directRequestStatus;
 
   // Progress bar calculation (PENDING state)
@@ -265,7 +266,7 @@ export function DirectRequestStatusCard({ job }: Props) {
         </div>
         <p className="text-xs text-blue-700 dark:text-blue-300 font-ui">
           Your request was broadcast to all{" "}
-          <span className="capitalize font-medium">{category}</span> agents.
+          <span className="capitalize font-medium">{categoryName}</span> agents.
           {proposalCount > 0 && (
             <span className="font-semibold">
               {" "}
