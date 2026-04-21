@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { api, Job, ContractStatus } from "@/lib/api";
+import { api, Job, ContractStatus, InhouseOrder, InhouseOrderStatus } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -37,6 +37,8 @@ import {
   Trash2,
   MoreHorizontal,
   Target,
+  ShoppingBag,
+  Sparkles,
 } from "lucide-react";
 import { useUser } from "@/hooks/useUser";
 
@@ -132,7 +134,7 @@ function getRowDisplayState(job: Job): RowDisplayState {
   return { badge: { label: "Open · No proposals yet", cls: CLS.muted }, action: { label: "View Job", href: jobHref } };
 }
 
-type FilterTab = "all" | "direct" | "broadcast" | "active" | "completed";
+type FilterTab = "all" | "direct" | "broadcast" | "active" | "completed" | "inhouse";
 
 function StatCard({
   icon: Icon,
@@ -168,6 +170,19 @@ function isDirectRequest(job: Job): boolean {
   return (
     job.routingType === "DIRECT" || job.routingType === "DIRECT_THEN_BROADCAST"
   );
+}
+
+function inhouseOrderStatusLabel(status: InhouseOrderStatus): { label: string; cls: string } {
+  switch (status) {
+    case "pending_payment": return { label: "Payment Required", cls: CLS.amber };
+    case "paid":            return { label: "Paid · Queued", cls: CLS.blue };
+    case "in_progress":     return { label: "In Progress", cls: CLS.amber };
+    case "delivered":       return { label: "Review Delivery", cls: CLS.emerald };
+    case "completed":       return { label: "Completed", cls: CLS.emerald };
+    case "refunded":        return { label: "Refunded", cls: CLS.muted };
+    case "disputed":        return { label: "Disputed", cls: CLS.red };
+    default:                return { label: status, cls: CLS.muted };
+  }
 }
 
 /** Sort rank: lower = higher in list */
@@ -210,6 +225,12 @@ export default function BuyerDashboardPage() {
     enabled: !!user,
   });
 
+  const { data: inhouseOrders, isLoading: inhouseLoading } = useQuery({
+    queryKey: ["my-inhouse-orders"],
+    queryFn: () => api.getMyInhouseOrders({ limit: 50 }),
+    enabled: !!user,
+  });
+
   const { mutate: confirmDelete, isPending: isDeleting, error: deleteError } = useMutation({
     mutationFn: (jobId: string) => api.deleteJob(jobId),
     onSuccess: () => {
@@ -236,14 +257,16 @@ export default function BuyerDashboardPage() {
 
   const pendingPaymentCount = jobs?.filter((j) => contractStatus(j) === "SIGNED_BOTH").length ?? 0;
   const pendingDirectCount = jobs?.filter((j) => isDirectRequest(j) && j.directRequestStatus === "PENDING").length ?? 0;
+  const pendingInhousePaymentCount = inhouseOrders?.filter((o) => o.status === "pending_payment").length ?? 0;
 
   const deleteErrorMsg =
     deleteError instanceof Error ? deleteError.message : deleteError ? "Failed to delete job" : null;
 
   const TABS: { key: FilterTab; label: string }[] = [
-    { key: "all", label: "All" },
-    { key: "direct", label: "Direct Requests" },
-    { key: "broadcast", label: "Broadcast" },
+    { key: "all", label: "All Tasks" },
+    { key: "broadcast", label: "Broadcast Tasks" },
+    { key: "direct", label: "Direct Request Tasks" },
+    { key: "inhouse", label: "Direct Orders" },
     { key: "active", label: "Active" },
     { key: "completed", label: "Completed" },
   ];
@@ -274,6 +297,21 @@ export default function BuyerDashboardPage() {
             </p>
             <p className="text-[#b57e04]/80 text-xs font-ui mt-0.5">
               Agents have a limited window to respond. Check the status below.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* Pending inhouse order payment alert */}
+      {pendingInhousePaymentCount > 0 && (
+        <div className="mb-4 flex items-start gap-3 rounded-xl border border-amber-300 bg-amber-50 dark:border-amber-900 dark:bg-amber-950/30 px-5 py-4">
+          <ShoppingBag className="w-5 h-5 text-amber-500 mt-0.5 flex-shrink-0" />
+          <div>
+            <p className="text-amber-800 dark:text-amber-200 font-semibold font-ui text-sm">
+              {pendingInhousePaymentCount} direct order{pendingInhousePaymentCount > 1 ? "s" : ""} awaiting payment
+            </p>
+            <p className="text-amber-700 dark:text-amber-300 text-xs font-ui mt-0.5">
+              Your order{pendingInhousePaymentCount > 1 ? "s are" : " is"} placed but not yet paid. Pay to start delivery.
             </p>
           </div>
         </div>
@@ -351,13 +389,94 @@ export default function BuyerDashboardPage() {
           ))}
         </div>
 
-        {isLoading ? (
+        {activeTab === "inhouse" ? (
+          // ── Instant Orders (inhouse) tab ─────────────────────────────────
+          inhouseLoading ? (
+            <div className="p-6 space-y-3">
+              {Array.from({ length: 3 }).map((_, i) => (
+                <Skeleton key={i} className="h-16 rounded-lg" />
+              ))}
+            </div>
+          ) : !inhouseOrders || inhouseOrders.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-20 text-center">
+              <div className="w-14 h-14 rounded-2xl bg-muted flex items-center justify-center mb-4">
+                <ShoppingBag className="w-7 h-7 text-muted-foreground" />
+              </div>
+              <p className="text-muted-foreground mb-4 font-ui">No direct orders yet.</p>
+              <Link href="/create-custom-digital-art">
+                <Button className="bg-gradient-to-r from-[#b57e04] to-[#d4a017] hover:from-[#9a6a03] hover:to-[#b57e04] text-white gap-2 font-ui font-medium">
+                  <Sparkles className="w-4 h-4" />
+                  Order Digital Art
+                </Button>
+              </Link>
+            </div>
+          ) : (
+            <div className="divide-y divide-border">
+              {inhouseOrders.map((order: InhouseOrder) => {
+                const badge = inhouseOrderStatusLabel(order.status);
+                const contractHref = `/contracts/${order.contractId}`;
+                const isUrgentPayment = order.status === "pending_payment";
+                const isReviewReady = order.status === "delivered";
+                const title = order.service
+                  ? `${order.service.packageName} — ${order.service.pageSlug.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())}`
+                  : "Direct Order";
+                const accentBorder = isUrgentPayment
+                  ? "border-l-4 border-amber-400 pl-3"
+                  : isReviewReady
+                  ? "border-l-4 border-[#b57e04] pl-3"
+                  : "";
+
+                return (
+                  <div key={order.id} className="px-6 py-4">
+                    <div className={`flex items-center gap-3 hover:bg-muted/30 transition-colors rounded-lg ${accentBorder}`}>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-foreground font-medium truncate text-sm font-ui flex items-center gap-1.5">
+                          <ShoppingBag className="w-3.5 h-3.5 text-[#b57e04] flex-shrink-0" />
+                          {title}
+                        </p>
+                        <div className="flex items-center gap-3 mt-1">
+                          <span className="text-muted-foreground text-xs font-ui">
+                            ${(order.priceCents / 100).toFixed(2)} · {order.service?.deliveryDays ?? "—"} day delivery
+                          </span>
+                          <span className="text-muted-foreground text-xs font-ui">
+                            {new Date(order.createdAt).toLocaleDateString()}
+                          </span>
+                        </div>
+                      </div>
+
+                      <Badge className={`text-xs border flex-shrink-0 ${badge.cls}`}>
+                        {badge.label}
+                      </Badge>
+
+                      <Link href={contractHref}>
+                        <Button
+                          size="sm"
+                          className={
+                            isUrgentPayment
+                              ? "bg-amber-500 hover:bg-amber-400 text-white gap-1 text-xs flex-shrink-0 font-ui font-medium"
+                              : isReviewReady
+                              ? "bg-gradient-to-r from-[#b57e04] to-[#d4a017] hover:from-[#9a6a03] hover:to-[#b57e04] text-white gap-1 text-xs flex-shrink-0 font-ui font-medium"
+                              : "text-muted-foreground hover:text-[#b57e04] gap-1 text-xs flex-shrink-0 font-ui"
+                          }
+                          variant={isUrgentPayment || isReviewReady ? "default" : "ghost"}
+                        >
+                          {isUrgentPayment ? "Pay Now" : isReviewReady ? "Review Delivery" : "View Order"}
+                          <ArrowRight className="w-3.5 h-3.5" />
+                        </Button>
+                      </Link>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )
+        ) : isLoading || (activeTab === "all" && inhouseLoading) ? (
           <div className="p-6 space-y-3">
             {Array.from({ length: 4 }).map((_, i) => (
               <Skeleton key={i} className="h-16 rounded-lg" />
             ))}
           </div>
-        ) : !filteredJobs || filteredJobs.length === 0 ? (
+        ) : filteredJobs.length === 0 && (activeTab !== "all" || !inhouseOrders?.length) ? (
           <div className="flex flex-col items-center justify-center py-20 text-center">
             <div className="w-14 h-14 rounded-2xl bg-muted flex items-center justify-center mb-4">
               <Briefcase className="w-7 h-7 text-muted-foreground" />
@@ -493,6 +612,69 @@ export default function BuyerDashboardPage() {
                 </div>
               );
             })}
+
+            {/* Direct Orders appended to "All Tasks" tab */}
+            {activeTab === "all" && inhouseOrders && inhouseOrders.length > 0 && (
+              <>
+                <div className="px-6 py-2 bg-muted/30 border-b border-border">
+                  <p className="text-xs font-ui text-muted-foreground font-medium uppercase tracking-wide">Instant Orders</p>
+                </div>
+                {inhouseOrders.map((order: InhouseOrder) => {
+                  const badge = inhouseOrderStatusLabel(order.status);
+                  const contractHref = `/contracts/${order.contractId}`;
+                  const isUrgentPayment = order.status === "pending_payment";
+                  const isReviewReady = order.status === "delivered";
+                  const title = order.service
+                    ? `${order.service.packageName} — ${order.service.pageSlug.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())}`
+                    : "Direct Order";
+                  const accentBorder = isUrgentPayment
+                    ? "border-l-4 border-amber-400 pl-3"
+                    : isReviewReady
+                    ? "border-l-4 border-[#b57e04] pl-3"
+                    : "";
+
+                  return (
+                    <div key={order.id} className="px-6 py-4">
+                      <div className={`flex items-center gap-3 hover:bg-muted/30 transition-colors rounded-lg ${accentBorder}`}>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-foreground font-medium truncate text-sm font-ui flex items-center gap-1.5">
+                            <ShoppingBag className="w-3.5 h-3.5 text-[#b57e04] flex-shrink-0" />
+                            {title}
+                          </p>
+                          <div className="flex items-center gap-3 mt-1">
+                            <span className="text-muted-foreground text-xs font-ui">
+                              ${(order.priceCents / 100).toFixed(2)} · {order.service?.deliveryDays ?? "—"} day delivery
+                            </span>
+                            <span className="text-muted-foreground text-xs font-ui">
+                              {new Date(order.createdAt).toLocaleDateString()}
+                            </span>
+                          </div>
+                        </div>
+                        <Badge className={`text-xs border flex-shrink-0 ${badge.cls}`}>
+                          {badge.label}
+                        </Badge>
+                        <Link href={contractHref}>
+                          <Button
+                            size="sm"
+                            className={
+                              isUrgentPayment
+                                ? "bg-amber-500 hover:bg-amber-400 text-white gap-1 text-xs flex-shrink-0 font-ui font-medium"
+                                : isReviewReady
+                                ? "bg-gradient-to-r from-[#b57e04] to-[#d4a017] hover:from-[#9a6a03] hover:to-[#b57e04] text-white gap-1 text-xs flex-shrink-0 font-ui font-medium"
+                                : "text-muted-foreground hover:text-[#b57e04] gap-1 text-xs flex-shrink-0 font-ui"
+                            }
+                            variant={isUrgentPayment || isReviewReady ? "default" : "ghost"}
+                          >
+                            {isUrgentPayment ? "Pay Now" : isReviewReady ? "Review Delivery" : "View Order"}
+                            <ArrowRight className="w-3.5 h-3.5" />
+                          </Button>
+                        </Link>
+                      </div>
+                    </div>
+                  );
+                })}
+              </>
+            )}
           </div>
         )}
       </div>

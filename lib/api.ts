@@ -264,6 +264,22 @@ export interface Contract {
   agreedRevisionsIncluded?: number;
   agreedPrice?: number;
   agreedDeliveryVariants?: number;
+  isInhouse?: boolean;
+  buyer?: {
+    id: string;
+    name: string | null;
+    userName: string;
+  };
+  agentProfile?: {
+    id: string;
+    name: string;
+    slug?: string;
+  };
+  job?: {
+    id: string;
+    title: string;
+    category: string;
+  } | null;
 }
 
 export interface ContractWithDetails extends Contract {
@@ -272,6 +288,7 @@ export interface ContractWithDetails extends Contract {
   payment?: Payment | null;
   messages?: Message[];
   job?: Job | null;
+  inhouseOrder?: InhouseOrder | null;
 }
 
 export interface MessageSender {
@@ -454,6 +471,136 @@ export interface PublicProfile {
   discord: string | null;
   roles: UserRole[];
   agentProfiles?: AgentProfile[];
+}
+
+// ─── Admin helpers ────────────────────────────────────────────────────────────
+
+const ADMIN_EMAILS = (process.env.NEXT_PUBLIC_ADMIN_EMAILS ?? "")
+  .split(",")
+  .map((e) => e.trim().toLowerCase())
+  .filter(Boolean);
+
+export function isAdminEmail(email: string | undefined | null): boolean {
+  return !!email && ADMIN_EMAILS.includes(email.toLowerCase());
+}
+
+// ─── Inhouse Service / Order types ───────────────────────────────────────────
+
+export interface InhouseInputField {
+  field: string;
+  label: string;
+  type: "select" | "textarea" | "text" | "url_list";
+  options?: string[];
+  required: boolean;
+}
+
+export interface InhouseService {
+  id: string;
+  pageSlug: string;
+  category: string;
+  packageName: string;
+  tagline: string;
+  description: string;
+  priceCents: number;
+  deliveryDays: number;
+  revisionsIncluded: number;
+  deliveryVariants: number;
+  pricePerExtraRevisionCents: number | null;
+  pricePerExtraVariantCents: number | null;
+  whatsIncluded: string[];
+  whatsNotIncluded: string[];
+  perfectFor: string[];
+  inputSchema: InhouseInputField[];
+  sortOrder: number;
+  isHighlighted: boolean;
+}
+
+export type InhouseOrderStatus =
+  | "pending_payment"
+  | "paid"
+  | "in_progress"
+  | "delivered"
+  | "completed"
+  | "refunded"
+  | "disputed";
+
+export interface InhouseOrder {
+  id: string;
+  serviceId: string;
+  buyerId: string;
+  priceCents: number;
+  currency: string;
+  buyerInputs: Record<string, unknown>;
+  description: string | null;
+  exampleUrls: string[];
+  attachments: JobAttachment[];
+  contractId: string;
+  status: InhouseOrderStatus;
+  extraRevisions: number;
+  extraVariants: number;
+  extrasCents: number;
+  createdAt: string;
+  updatedAt: string;
+  service?: {
+    id: string;
+    pageSlug: string;
+    packageName: string;
+    tagline: string | null;
+    description: string;
+    priceCents: number;
+    deliveryDays: number;
+    revisionsIncluded: number;
+    deliveryVariants: number;
+    whatsIncluded: string[];
+  };
+  contract?: {
+    id: string;
+    status: ContractStatus;
+    paymentDeadline: string | null;
+    payment: Payment | null;
+    delivery: Delivery | null;
+  };
+}
+
+export interface AdminInhouseOrder {
+  id: string;
+  serviceId: string;
+  buyerId: string;
+  priceCents: number;
+  currency: string;
+  buyerInputs: Record<string, unknown>;
+  attachmentKeys: string[];
+  attachmentNames: string[];
+  description: string | null;
+  exampleUrls: string[];
+  contractId: string;
+  status: InhouseOrderStatus;
+  extraRevisions: number;
+  extraVariants: number;
+  extrasCents: number;
+  createdAt: string;
+  updatedAt: string;
+  buyer: {
+    id: string;
+    name: string | null;
+    email: string;
+    userName: string;
+    mainPic: string | null;
+  };
+  service?: {
+    id: string;
+    pageSlug: string;
+    packageName: string;
+    priceCents: number;
+    deliveryDays: number;
+  };
+  contract?: {
+    id: string;
+    status: ContractStatus;
+    paymentDeadline: string | null;
+    payment: Payment | null;
+    delivery: Delivery | null;
+  };
 }
 
 export interface FeaturedAgent {
@@ -922,4 +1069,54 @@ export const api = {
       pendingProposals: number;
       avgRating: number;
     }>("/api/users/me/stats/agent"),
+
+  // Inhouse Services & Orders
+  getInhouseServices: (pageSlug: string) =>
+    apiClient<{ services: InhouseService[] }>(`/api/inhouse/services/${pageSlug}`)
+      .then((r) => r.services),
+
+  createInhouseOrder: (body: {
+    serviceId: string;
+    buyerInputs?: Record<string, unknown>;
+    description?: string;
+    exampleUrls?: string[];
+    attachmentKeys?: string[];
+    attachmentNames?: string[];
+  }) =>
+    apiClient<{
+      order: InhouseOrder;
+      contract: { id: string; status: ContractStatus; paymentDeadline: string; agreedPrice: number; currency: string };
+    }>("/api/inhouse/orders", {
+      method: "POST",
+      body: JSON.stringify(body),
+    }),
+
+  getAllInhouseOrders: (params?: {
+    status?: InhouseOrderStatus;
+    limit?: number;
+    offset?: number;
+  }) => {
+    const entries = Object.entries(params ?? {})
+      .filter(([, v]) => v != null)
+      .map(([k, v]) => [k, String(v)]);
+    const q = new URLSearchParams(entries).toString();
+    return apiClient<{ orders: AdminInhouseOrder[]; limit: number; offset: number }>(
+      `/api/inhouse/orders/all${q ? `?${q}` : ""}`
+    ).then((r) => r.orders);
+  },
+
+  getMyInhouseOrders: (params?: {
+    status?: InhouseOrderStatus;
+    limit?: number;
+    offset?: number;
+  }) => {
+    const entries = Object.entries(params ?? {})
+      .filter(([, v]) => v != null)
+      .map(([k, v]) => [k, String(v)]);
+    const q = new URLSearchParams(entries).toString();
+    return apiClient<{ orders: InhouseOrder[]; limit: number; offset: number }>(
+      `/api/inhouse/orders/my${q ? `?${q}` : ""}`
+    ).then((r) => r.orders);
+  },
+
 };

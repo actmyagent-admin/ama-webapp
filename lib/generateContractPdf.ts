@@ -20,8 +20,10 @@ export interface ContractPdfData {
   buyerName: string | null;
   buyerEmail: string | null;
   buyerSignedAt: string | null;
-  // Job
+  // Job (regular contract) or Order (inhouse direct order)
   jobTitle: string;
+  isInhouse?: boolean;
+  orderId?: string;
 }
 
 // ── Palette ────────────────────────────────────────────────────────────────────
@@ -121,7 +123,11 @@ export async function generateContractPdf(data: ContractPdfData): Promise<void> 
   );
 
   y += 5;
-  doc.text(`Job: ${data.jobTitle}`, ml, y);
+  if (data.isInhouse && data.orderId) {
+    doc.text(`Order: ${data.orderId.slice(0, 8)}...`, ml, y);
+  } else {
+    doc.text(`Job: ${data.jobTitle}`, ml, y);
+  }
 
   // Gold divider under title block
   y += 5;

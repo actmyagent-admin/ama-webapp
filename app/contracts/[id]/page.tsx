@@ -93,9 +93,12 @@ export default function ContractPage() {
     },
   });
 
+  const isInhouse = contract?.isInhouse ?? false;
   const isBuyer = !!profileId && contract?.buyerId === profileId;
   const isAgent = !!profileId && contract?.agentProfile?.userId === profileId;
   const userRole = isBuyer ? "BUYER" : "AGENT_LISTER";
+
+  const inhouseOrder = contract?.inhouseOrder ?? null;
 
   const buyerSigned = !!contract?.buyerSignedAt;
   const agentSigned = !!contract?.agentSignedAt;
@@ -168,9 +171,11 @@ export default function ContractPage() {
       buyerName: isBuyer ? (user?.user_metadata?.full_name ?? user?.email ?? null) : "Client",
       buyerEmail: isBuyer ? (user?.email ?? null) : null,
       buyerSignedAt: contract.buyerSignedAt ?? null,
+      isInhouse,
+      orderId: inhouseOrder?.id,
       jobTitle: contract.job?.title ?? "—",
     });
-  }, [contract, user, isBuyer]);
+  }, [contract, user, isBuyer, isInhouse, inhouseOrder]);
 
   if (isLoading) {
     return (
@@ -193,9 +198,13 @@ export default function ContractPage() {
     return <VoidedContractState role={userRole} jobId={contract.jobId} />;
   }
 
-  const panelsDimmed = currentStatus === "SIGNED_BOTH";
+  // For inhouse direct orders the chat/delivery panels stay enabled even while
+  // payment is pending — both parties can communicate before escrow clears.
+  const panelsDimmed = !isInhouse && currentStatus === "SIGNED_BOTH";
   const job = contract.job;
-  const attachments: JobAttachment[] = job?.attachments ?? [];
+  const attachments: JobAttachment[] = isInhouse
+    ? (inhouseOrder?.attachments ?? [])
+    : (job?.attachments ?? []);
   const contractDetailsProps = {
     contract,
     isBuyer,
@@ -271,18 +280,22 @@ export default function ContractPage() {
 
         {/* ── Job context bar — full width, above panels ── */}
         <div className="bg-card border border-border rounded-2xl mb-4 overflow-hidden">
-          {/* Job title row */}
+          {/* Job / Order title row */}
           <div className="flex items-center justify-between gap-3 px-5 py-3.5 border-b border-border">
             <div className="flex items-center gap-2.5 min-w-0">
               <FileText className="w-4 h-4 text-muted-foreground flex-shrink-0" />
               <div className="min-w-0">
-                <p className="text-xs text-muted-foreground font-ui uppercase tracking-wide leading-none mb-0.5">Job</p>
+                <p className="text-xs text-muted-foreground font-ui uppercase tracking-wide leading-none mb-0.5">
+                  {isInhouse ? "Order" : "Job"}
+                </p>
                 <p className="text-sm font-semibold font-ui text-foreground truncate">
-                  {job?.title ?? "—"}
+                  {isInhouse
+                    ? (inhouseOrder?.service?.packageName ?? "Direct Order")
+                    : (job?.title ?? "—")}
                 </p>
               </div>
             </div>
-            {job && (
+            {(isInhouse ? !!inhouseOrder : !!job) && (
               <Button
                 variant="outline"
                 size="sm"
@@ -301,6 +314,7 @@ export default function ContractPage() {
               isBuyer={isBuyer}
               jobId={job?.id ?? contract.jobId}
               contractId={id}
+              readOnly={isInhouse}
             />
           </div>
         </div>
@@ -450,14 +464,20 @@ export default function ContractPage() {
         />
       )}
 
-      {/* View Job dialog */}
-      {contract.job && (
+      {/* View Job / Order dialog */}
+      {isInhouse && inhouseOrder ? (
+        <OrderDetailsDialog
+          open={jobDetailsOpen}
+          onClose={() => setJobDetailsOpen(false)}
+          order={inhouseOrder}
+        />
+      ) : contract.job ? (
         <JobDetailsDialog
           open={jobDetailsOpen}
           onClose={() => setJobDetailsOpen(false)}
           job={contract.job}
         />
-      )}
+      ) : null}
     </>
   );
 }
@@ -604,11 +624,13 @@ function AttachmentsSection({
   isBuyer,
   jobId,
   contractId,
+  readOnly,
 }: {
   attachments: JobAttachment[];
   isBuyer: boolean;
   jobId: string;
   contractId: string;
+  readOnly?: boolean;
 }) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -662,15 +684,18 @@ function AttachmentsSection({
   };
 
   const hasAttachments = attachments.length > 0;
-  const canAdd = isBuyer && attachments.length < MAX_ATTACHMENTS;
+  const canAdd = isBuyer && attachments.length < MAX_ATTACHMENTS && !readOnly;
 
   return (
     <div>
       <div className="flex items-center justify-between mb-2">
         <p className="text-muted-foreground text-xs uppercase tracking-wide font-ui">
-          Attachments{hasAttachments ? ` (${attachments.length}/${MAX_ATTACHMENTS})` : ""}
+          Attachments{hasAttachments ? ` (${attachments.length})` : ""}
+          {readOnly && hasAttachments && (
+            <span className="ml-1.5 text-[10px] normal-case text-muted-foreground/70">(submitted with order)</span>
+          )}
         </p>
-        {isBuyer && canAdd && (
+        {canAdd && (
           <button
             type="button"
             onClick={() => fileInputRef.current?.click()}
@@ -683,7 +708,7 @@ function AttachmentsSection({
         )}
       </div>
 
-      {isBuyer && (
+      {!readOnly && isBuyer && (
         <input
           ref={fileInputRef}
           type="file"
@@ -695,7 +720,7 @@ function AttachmentsSection({
       )}
 
       {!hasAttachments ? (
-        isBuyer ? (
+        !readOnly && isBuyer ? (
           <button
             type="button"
             onClick={() => fileInputRef.current?.click()}
@@ -713,17 +738,19 @@ function AttachmentsSection({
             <div key={att.key} className="flex items-center gap-2 bg-muted/50 rounded-lg px-2.5 py-1.5">
               <span className="text-muted-foreground flex-shrink-0">{extIcon(att.filename)}</span>
               <span className="text-xs font-ui text-foreground flex-1 truncate">{att.filename}</span>
-              <a
-                href={att.url}
-                download={att.filename}
-                target="_blank"
-                rel="noreferrer"
-                className="flex-shrink-0 p-0.5 text-muted-foreground hover:text-[#b57e04] transition-colors"
-                title="Download"
-              >
-                <Download className="w-3.5 h-3.5" />
-              </a>
-              {isBuyer && (
+              {att.url ? (
+                <a
+                  href={att.url}
+                  download={att.filename}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="flex-shrink-0 p-0.5 text-muted-foreground hover:text-[#b57e04] transition-colors"
+                  title="Download"
+                >
+                  <Download className="w-3.5 h-3.5" />
+                </a>
+              ) : null}
+              {!readOnly && isBuyer && (
                 <button
                   onClick={() => handleRemove(att.key)}
                   disabled={removingKey === att.key}
@@ -878,6 +905,111 @@ function JobDetailsDialog({
           <div className="pt-1">
             <p className="text-xs text-muted-foreground font-ui">
               Posted {new Date(job.createdAt).toLocaleDateString()}
+            </p>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+// ─── Order details dialog (inhouse contracts) ─────────────────────────────────
+import type { InhouseOrder } from "@/lib/api";
+
+function OrderDetailsDialog({
+  open,
+  onClose,
+  order,
+}: {
+  open: boolean;
+  onClose: () => void;
+  order: InhouseOrder;
+}) {
+  const style = (order.buyerInputs?.style as string) ?? null;
+  const vision = (order.buyerInputs?.description as string) ?? order.description ?? null;
+
+  return (
+    <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
+      <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle className="font-display leading-snug pr-6">
+            {order.service?.packageName ?? "Direct Order"}
+          </DialogTitle>
+          <DialogDescription className="sr-only">Order details</DialogDescription>
+        </DialogHeader>
+
+        <div className="space-y-4 pt-1">
+          {/* Meta */}
+          <div className="flex flex-wrap items-center gap-2">
+            <Badge className="bg-[#b57e04]/10 text-[#b57e04] border border-[#b57e04]/30 text-xs font-ui">
+              Direct Order
+            </Badge>
+            <span className="flex items-center gap-1 text-xs text-muted-foreground font-ui">
+              <DollarSign className="w-3 h-3" /> ${(order.priceCents / 100).toFixed(2)} {order.currency.toUpperCase()}
+            </span>
+            {order.service?.deliveryDays && (
+              <span className="flex items-center gap-1 text-xs text-muted-foreground font-ui">
+                <Clock className="w-3 h-3" /> {order.service.deliveryDays}-day delivery
+              </span>
+            )}
+          </div>
+
+          {/* Art style */}
+          {style && (
+            <div>
+              <p className="text-muted-foreground text-xs uppercase tracking-wide mb-1.5 font-ui">Style</p>
+              <p className="text-foreground text-sm font-ui">{style}</p>
+            </div>
+          )}
+
+          {/* Vision / description */}
+          {vision && (
+            <div>
+              <p className="text-muted-foreground text-xs uppercase tracking-wide mb-1.5 font-ui">Brief</p>
+              <p className="text-foreground text-sm leading-relaxed font-ui">{vision}</p>
+            </div>
+          )}
+
+          {/* Service description */}
+          {order.service?.description && (
+            <div className="bg-muted/50 rounded-xl p-3.5">
+              <p className="text-muted-foreground text-xs uppercase tracking-wide mb-1.5 font-ui">Package</p>
+              <p className="text-foreground text-sm leading-relaxed font-ui">{order.service.description}</p>
+            </div>
+          )}
+
+          {/* Attachments */}
+          {order.attachments.length > 0 && (
+            <div>
+              <p className="text-muted-foreground text-xs uppercase tracking-wide mb-1.5 font-ui">
+                Reference Files
+              </p>
+              <div className="space-y-1.5">
+                {order.attachments.map((att) => (
+                  <div key={att.key} className="flex items-center gap-2 bg-muted/50 rounded-lg px-2.5 py-1.5">
+                    <span className="text-muted-foreground flex-shrink-0">{extIcon(att.filename)}</span>
+                    <span className="text-xs font-ui text-foreground flex-1 truncate">{att.filename}</span>
+                    {att.url && (
+                      <a
+                        href={att.url}
+                        download={att.filename}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="flex-shrink-0 p-0.5 text-muted-foreground hover:text-[#b57e04] transition-colors"
+                        title="Download"
+                      >
+                        <Download className="w-3.5 h-3.5" />
+                      </a>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          <div className="pt-1">
+            <p className="text-xs text-muted-foreground font-ui">
+              Order ID: {order.id.slice(0, 8)}... · Placed {new Date(order.createdAt).toLocaleDateString()}
             </p>
           </div>
         </div>

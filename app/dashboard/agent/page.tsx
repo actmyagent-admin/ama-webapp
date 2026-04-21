@@ -1,9 +1,10 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { api, Job, Contract, ContractStatus, AgentProfile } from "@/lib/api";
+import { api, Job, Contract, ContractStatus, AgentProfile, AdminInhouseOrder, InhouseOrderStatus, isAdminEmail } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -19,6 +20,9 @@ import {
   Target,
   ChevronDown,
   ChevronUp,
+  Zap,
+  User,
+  ExternalLink,
 } from "lucide-react";
 import { useUser } from "@/hooks/useUser";
 import { JobCard } from "@/components/jobs/JobCard";
@@ -51,6 +55,117 @@ function StatCard({
   );
 }
 
+const INHOUSE_STATUS_CONFIG: Record<InhouseOrderStatus, { label: string; class: string }> = {
+  pending_payment: {
+    label: "Pending Payment",
+    class: "bg-amber-100 text-amber-700 border-amber-200 dark:bg-amber-900/30 dark:text-amber-300 dark:border-amber-800",
+  },
+  paid: {
+    label: "Paid",
+    class: "bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-300 dark:border-blue-800",
+  },
+  in_progress: {
+    label: "In Progress",
+    class: "bg-emerald-100 text-emerald-700 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-300 dark:border-emerald-800",
+  },
+  delivered: {
+    label: "Delivered",
+    class: "bg-purple-100 text-purple-700 border-purple-200 dark:bg-purple-900/30 dark:text-purple-300 dark:border-purple-800",
+  },
+  completed: {
+    label: "Completed",
+    class: "bg-muted text-muted-foreground border-border",
+  },
+  refunded: {
+    label: "Refunded",
+    class: "bg-muted text-muted-foreground border-border",
+  },
+  disputed: {
+    label: "Disputed",
+    class: "bg-red-100 text-red-700 border-red-200 dark:bg-red-900/30 dark:text-red-300 dark:border-red-800",
+  },
+};
+
+function InstantOrderCard({ order }: { order: AdminInhouseOrder }) {
+  const style = (order.buyerInputs?.style as string) ?? null;
+  const statusCfg = INHOUSE_STATUS_CONFIG[order.status];
+
+  return (
+    <div className="rounded-xl border border-border bg-card hover:border-[#b57e04]/40 transition-colors p-4 space-y-3">
+      {/* Header row */}
+      <div className="flex items-start justify-between gap-2">
+        <div className="min-w-0">
+          <p className="text-foreground font-ui font-semibold text-sm truncate">
+            {order.service?.packageName ?? "Direct Order"}
+          </p>
+          {style && (
+            <p className="text-muted-foreground text-xs font-ui mt-0.5">{style}</p>
+          )}
+        </div>
+        <Badge className={`text-[10px] border flex-shrink-0 ${statusCfg.class}`}>
+          {statusCfg.label}
+        </Badge>
+      </div>
+
+      {/* Buyer */}
+      <Link
+        href={`/profile/${order.buyer.userName}`}
+        target="_blank"
+        rel="noreferrer"
+        className="flex items-center gap-2.5 group w-fit"
+      >
+        <div className="w-7 h-7 rounded-full bg-muted flex-shrink-0 overflow-hidden border border-border">
+          {order.buyer.mainPic ? (
+            <Image
+              src={order.buyer.mainPic}
+              alt={order.buyer.name ?? order.buyer.userName}
+              width={28}
+              height={28}
+              className="object-cover w-full h-full"
+            />
+          ) : (
+            <div className="w-full h-full flex items-center justify-center">
+              <User className="w-3.5 h-3.5 text-muted-foreground" />
+            </div>
+          )}
+        </div>
+        <div className="min-w-0">
+          <p className="text-foreground text-xs font-ui font-medium group-hover:text-[#b57e04] transition-colors flex items-center gap-1 truncate">
+            {order.buyer.name ?? order.buyer.userName}
+            <ExternalLink className="w-3 h-3 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity" />
+          </p>
+          <p className="text-muted-foreground text-[11px] font-ui truncate">{order.buyer.email}</p>
+        </div>
+      </Link>
+
+      {/* Footer row */}
+      <div className="flex items-center justify-between pt-1 border-t border-border">
+        <div className="flex items-center gap-1 text-xs font-ui text-muted-foreground">
+          <DollarSign className="w-3 h-3 text-[#b57e04]" />
+          <span className="text-foreground font-semibold">${(order.priceCents / 100).toFixed(2)}</span>
+          <span>{order.currency.toUpperCase()}</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="text-[11px] text-muted-foreground font-ui">
+            {new Date(order.createdAt).toLocaleDateString()}
+          </span>
+          {order.contractId && (
+            <Link href={`/contracts/${order.contractId}`}>
+              <Button
+                size="sm"
+                variant="ghost"
+                className="h-6 px-2 text-[11px] text-muted-foreground hover:text-[#b57e04] gap-1 font-ui"
+              >
+                View <ArrowRight className="w-3 h-3" />
+              </Button>
+            </Link>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 const CONTRACT_STATUS_CONFIG: Partial<Record<ContractStatus, { label: string; class: string }>> = {
   SIGNED_BOTH: {
     label: "Waiting for Payment",
@@ -77,6 +192,7 @@ const CONTRACT_STATUS_CONFIG: Partial<Record<ContractStatus, { label: string; cl
 export default function AgentDashboardPage() {
   const { user } = useUser();
   const [showAllRequests, setShowAllRequests] = useState(false);
+  const [showAllInstantOrders, setShowAllInstantOrders] = useState(false);
 
   const { data: stats } = useQuery({
     queryKey: ["agent-stats"],
@@ -98,6 +214,16 @@ export default function AgentDashboardPage() {
     queryFn: () => api.getMe(),
     enabled: !!user,
   });
+
+  const isAdmin = isAdminEmail(me?.email);
+
+  const { data: instantOrders, isLoading: instantOrdersLoading } = useQuery({
+    queryKey: ["all-inhouse-orders"],
+    queryFn: () => api.getAllInhouseOrders({ limit: 50 }),
+    enabled: isAdmin,
+    staleTime: 60 * 1000,
+  });
+
   const { data: contracts, isLoading: contractsLoading } = useQuery({
     queryKey: ["my-contracts"],
     queryFn: () => api.getMyContracts(),
@@ -140,6 +266,12 @@ export default function AgentDashboardPage() {
   const visibleRequests = showAllRequests
     ? (directRequests ?? [])
     : pendingDirectRequests;
+
+  const INSTANT_PREVIEW = 6;
+  const visibleInstantOrders = showAllInstantOrders
+    ? (instantOrders ?? [])
+    : (instantOrders ?? []).slice(0, INSTANT_PREVIEW);
+  const hiddenInstantOrdersCount = (instantOrders?.length ?? 0) - INSTANT_PREVIEW;
 
   /** Look up a full AgentProfile from me.agentProfiles by agent ID */
   const getAgentProfile = (agentId?: string | null): AgentProfile | undefined =>
@@ -218,6 +350,56 @@ export default function AgentDashboardPage() {
         />
       </div>
 
+      {/* Instant Orders section (admin only) */}
+      {isAdmin && (instantOrdersLoading || (instantOrders && instantOrders.length > 0)) && (
+        <div className="bg-card border border-border rounded-2xl overflow-hidden mb-6">
+          <div className="px-6 py-4 border-b border-border flex items-center justify-between">
+            <h2 className="text-foreground font-semibold font-ui flex items-center gap-2">
+              <Zap className="w-4 h-4 text-[#b57e04]" />
+              Instant Orders
+              {instantOrders && instantOrders.length > 0 && (
+                <span className="inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-full bg-[#b57e04] text-white text-[10px] font-bold">
+                  {instantOrders.length}
+                </span>
+              )}
+            </h2>
+            {hiddenInstantOrdersCount > 0 && (
+              <button
+                onClick={() => setShowAllInstantOrders((v) => !v)}
+                className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground font-ui transition-colors"
+              >
+                {showAllInstantOrders ? (
+                  <>Show less <ChevronUp className="w-3.5 h-3.5" /></>
+                ) : (
+                  <>+{hiddenInstantOrdersCount} more <ChevronDown className="w-3.5 h-3.5" /></>
+                )}
+              </button>
+            )}
+          </div>
+
+          {instantOrdersLoading ? (
+            <div className="p-6 grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {Array.from({ length: 3 }).map((_, i) => (
+                <Skeleton key={i} className="h-36 rounded-xl" />
+              ))}
+            </div>
+          ) : visibleInstantOrders.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-12 text-center px-6">
+              <div className="w-12 h-12 rounded-2xl bg-muted flex items-center justify-center mb-3">
+                <Zap className="w-6 h-6 text-muted-foreground" />
+              </div>
+              <p className="text-muted-foreground font-ui text-sm">No instant orders yet.</p>
+            </div>
+          ) : (
+            <div className="p-6 grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {visibleInstantOrders.map((order) => (
+                <InstantOrderCard key={order.id} order={order} />
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Direct Requests section */}
       {(directRequestsLoading || (directRequests && directRequests.length > 0)) && (
         <div className="bg-card border border-border rounded-2xl overflow-hidden mb-6">
@@ -288,6 +470,7 @@ export default function AgentDashboardPage() {
             <div className="divide-y divide-border">
               {activeContracts.map((contract: Contract) => {
                 const statusConfig = CONTRACT_STATUS_CONFIG[contract.status as ContractStatus];
+                const buyer = contract.buyer;
                 return (
                   <div
                     key={contract.id}
@@ -295,11 +478,25 @@ export default function AgentDashboardPage() {
                   >
                     <div className="flex-1 min-w-0">
                       <p className="text-foreground font-medium truncate text-sm font-ui">
-                        Contract #{contract.id.slice(0, 8)}
+                        {contract.job?.title ?? contract.agentProfile?.name ?? `Contract #${contract.id.slice(0, 8)}`}
                       </p>
-                      <p className="text-muted-foreground text-xs font-ui mt-0.5">
-                        {new Date(contract.createdAt).toLocaleDateString()}
-                      </p>
+                      <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+                        {buyer && (
+                          <Link
+                            href={`/profile/${buyer.userName}`}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="flex items-center gap-1 text-xs text-muted-foreground hover:text-[#b57e04] font-ui transition-colors group"
+                          >
+                            <User className="w-3 h-3" />
+                            <span>{buyer.name ?? buyer.userName}</span>
+                            <ExternalLink className="w-2.5 h-2.5 opacity-0 group-hover:opacity-100 transition-opacity" />
+                          </Link>
+                        )}
+                        <span className="text-muted-foreground text-xs font-ui">
+                          {new Date(contract.createdAt).toLocaleDateString()}
+                        </span>
+                      </div>
                     </div>
                     {statusConfig && (
                       <Badge className={`text-xs border flex-shrink-0 ${statusConfig.class}`}>

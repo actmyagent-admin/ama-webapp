@@ -3,13 +3,13 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
-import { api, JobAnalysis } from "@/lib/api";
+import { useQuery } from "@tanstack/react-query";
+import { api, InhouseService } from "@/lib/api";
 import { DIGITAL_ART_STYLES, DigitalArtStyle } from "@/lib/digital-art-styles";
 import { getBrowserClient } from "@/lib/supabase";
 import { useUser } from "@/hooks/useUser";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent } from "@/components/ui/card";
@@ -21,53 +21,46 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { Separator } from "@/components/ui/separator";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Badge } from "@/components/ui/badge";
 import {
   Upload, X, CheckCircle, Loader2, Sparkles, ArrowRight,
-  DollarSign, ImageIcon, Mail, Bot, Tag, Clock, ListChecks,
+  ImageIcon, Mail, Clock, RefreshCw, Layers, ShieldCheck,
+  CreditCard,
 } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
 const GOLD_BTN =
   "bg-gradient-to-r from-[#b57e04] to-[#d4a017] hover:from-[#9a6a03] hover:to-[#b57e04] text-white font-ui font-medium shadow-sm";
 
-const MAX_FILES = 1;
-const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10 MB per image
+const MAX_FILES = 3;
+const MAX_FILE_SIZE = 10 * 1024 * 1024;
 const LS_KEY = "digitalArtFormDraft";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 interface FormDraft {
+  serviceId: string;
   styleSlug: string;
-  budget: string;
-  extraDescription: string;
+  description: string;
   pendingSubmit: boolean;
   hadImages?: boolean;
 }
 
-// ─── Helpers ─────────────────────────────────────────────────────────────────
+// ─── Draft helpers ────────────────────────────────────────────────────────────
 
 function saveDraft(draft: FormDraft) {
-  try {
-    localStorage.setItem(LS_KEY, JSON.stringify(draft));
-  } catch {}
+  try { localStorage.setItem(LS_KEY, JSON.stringify(draft)); } catch {}
 }
-
 function loadDraft(): FormDraft | null {
   try {
     const raw = localStorage.getItem(LS_KEY);
-    if (!raw) return null;
-    return JSON.parse(raw) as FormDraft;
-  } catch {
-    return null;
-  }
+    return raw ? (JSON.parse(raw) as FormDraft) : null;
+  } catch { return null; }
 }
-
 function clearDraft() {
-  try {
-    localStorage.removeItem(LS_KEY);
-  } catch {}
+  try { localStorage.removeItem(LS_KEY); } catch {}
 }
 
 // ─── IndexedDB — persist File objects across OAuth redirects ──────────────────
@@ -112,13 +105,7 @@ async function clearFilesFromIDB(): Promise<void> {
 
 // ─── Auth Dialog ──────────────────────────────────────────────────────────────
 
-function AuthDialog({
-  open,
-  onOpenChange,
-}: {
-  open: boolean;
-  onOpenChange: (v: boolean) => void;
-}) {
+function AuthDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (v: boolean) => void }) {
   const [email, setEmail] = useState("");
   const [magicSent, setMagicSent] = useState(false);
   const [loadingMagic, setLoadingMagic] = useState(false);
@@ -169,10 +156,10 @@ function AuthDialog({
       <DialogContent className="sm:max-w-md bg-card border-border">
         <DialogHeader className="space-y-1">
           <DialogTitle className="font-display text-foreground text-xl">
-            Sign in to post your task
+            Sign in to place your order
           </DialogTitle>
           <DialogDescription className="font-ui text-muted-foreground text-sm">
-            Your art request is saved. Sign in and we'll submit it automatically.
+            Your order details are saved. Sign in and we&apos;ll submit automatically.
           </DialogDescription>
         </DialogHeader>
 
@@ -228,12 +215,12 @@ function AuthDialog({
                 <Label className="text-foreground text-sm font-ui">Email address</Label>
                 <div className="relative">
                   <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                  <Input
+                  <input
                     type="email"
                     placeholder="you@example.com"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    className="pl-9 focus-visible:ring-[#b57e04] font-ui"
+                    className="w-full pl-9 pr-3 py-2 rounded-md border border-input bg-background text-sm font-ui focus:outline-none focus:ring-2 focus:ring-[#b57e04]"
                     required
                   />
                 </div>
@@ -243,11 +230,7 @@ function AuthDialog({
                 disabled={loadingMagic || !email}
                 className={`w-full gap-2 ${GOLD_BTN}`}
               >
-                {loadingMagic ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                ) : (
-                  <Mail className="w-4 h-4" />
-                )}
+                {loadingMagic ? <Loader2 className="w-4 h-4 animate-spin" /> : <Mail className="w-4 h-4" />}
                 Send magic link
               </Button>
             </form>
@@ -262,18 +245,101 @@ function AuthDialog({
   );
 }
 
-// ─── Success Screen ───────────────────────────────────────────────────────────
+// ─── Package Card ─────────────────────────────────────────────────────────────
 
-function SuccessScreen({
-  jobId,
-  broadcastCount,
-  analysis,
-  styleName,
+function PackageCard({
+  service,
+  selected,
+  onSelect,
 }: {
-  jobId: string;
-  broadcastCount: number;
-  analysis: JobAnalysis;
+  service: InhouseService;
+  selected: boolean;
+  onSelect: () => void;
+}) {
+  const price = `$${(service.priceCents / 100).toFixed(0)}`;
+  return (
+    <button
+      type="button"
+      onClick={onSelect}
+      className={`relative rounded-2xl border-2 p-5 text-left transition-all w-full ${
+        selected
+          ? "border-[#b57e04] ring-2 ring-[#b57e04]/30 bg-[#b57e04]/5 dark:bg-[#b57e04]/10"
+          : "border-border hover:border-[#b57e04]/50 bg-card"
+      }`}
+      aria-pressed={selected}
+    >
+      {service.isHighlighted && (
+        <div className="absolute -top-3 left-1/2 -translate-x-1/2">
+          <Badge className={`${GOLD_BTN} text-xs px-3 py-0.5 border-0`}>
+            Most Popular
+          </Badge>
+        </div>
+      )}
+
+      <div className="space-y-3">
+        <div className="flex items-start justify-between gap-2">
+          <div>
+            <p className={`font-display font-bold text-lg leading-tight ${selected ? "text-[#b57e04]" : "text-foreground"}`}>
+              {service.packageName}
+            </p>
+            <p className="text-muted-foreground text-xs font-ui mt-0.5">{service.tagline}</p>
+          </div>
+          {selected && (
+            <div className="w-5 h-5 bg-[#b57e04] rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+              <CheckCircle className="w-3 h-3 text-white" />
+            </div>
+          )}
+        </div>
+
+        <div className="flex items-baseline gap-1">
+          <span className={`text-3xl font-display font-bold ${selected ? "text-[#b57e04]" : "text-foreground"}`}>
+            {price}
+          </span>
+          <span className="text-muted-foreground text-sm font-ui">USD</span>
+        </div>
+
+        <div className="space-y-1.5 border-t border-border pt-3">
+          <div className="flex items-center gap-2 text-xs font-ui text-muted-foreground">
+            <Clock className="w-3 h-3 flex-shrink-0 text-[#b57e04]" />
+            {service.deliveryDays} day{service.deliveryDays !== 1 ? "s" : ""} delivery
+          </div>
+          <div className="flex items-center gap-2 text-xs font-ui text-muted-foreground">
+            <RefreshCw className="w-3 h-3 flex-shrink-0 text-[#b57e04]" />
+            {service.revisionsIncluded} revision{service.revisionsIncluded !== 1 ? "s" : ""} included
+          </div>
+          {service.deliveryVariants > 1 && (
+            <div className="flex items-center gap-2 text-xs font-ui text-muted-foreground">
+              <Layers className="w-3 h-3 flex-shrink-0 text-[#b57e04]" />
+              {service.deliveryVariants} variants
+            </div>
+          )}
+        </div>
+
+        <ul className="space-y-1">
+          {service.whatsIncluded.map((item, i) => (
+            <li key={i} className="flex items-start gap-2 text-xs font-ui">
+              <CheckCircle className="w-3 h-3 text-[#b57e04] flex-shrink-0 mt-0.5" />
+              <span className="text-foreground">{item}</span>
+            </li>
+          ))}
+        </ul>
+      </div>
+    </button>
+  );
+}
+
+// ─── Order Success Screen ─────────────────────────────────────────────────────
+
+function OrderSuccessScreen({
+  contractId,
+  priceCents,
+  styleName,
+  packageName,
+}: {
+  contractId: string;
+  priceCents: number;
   styleName: string;
+  packageName: string;
 }) {
   const router = useRouter();
   return (
@@ -284,63 +350,37 @@ function SuccessScreen({
             <CheckCircle className="w-8 h-8 text-emerald-600 dark:text-emerald-400" />
           </div>
           <h2 className="text-foreground font-display font-bold text-2xl mb-1">
-            Your art request is live!
+            Order placed!
           </h2>
-          <p className="text-muted-foreground font-ui text-sm flex items-center gap-1.5">
-            <Bot className="w-4 h-4 text-[#b57e04]" />
-            <span>
-              <span className="text-[#b57e04] font-semibold">{broadcastCount}</span>{" "}
-              agent{broadcastCount !== 1 ? "s" : ""} notified for your{" "}
-              <span className="text-foreground font-medium">{styleName}</span> artwork
-            </span>
+          <p className="text-muted-foreground font-ui text-sm">
+            Your <span className="text-foreground font-medium">{packageName} — {styleName}</span> order is ready.
+            Complete payment to get started.
           </p>
         </div>
 
-        {analysis && (
-          <div className="bg-muted/50 rounded-xl p-4 space-y-3">
-            <div className="flex items-center gap-2 mb-1">
-              <Sparkles className="w-4 h-4 text-[#b57e04]" />
-              <span className="text-foreground text-sm font-semibold font-ui">AI Analysis</span>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              {analysis.suggestedCategory && (
-                <Badge className="bg-[#b57e04]/10 text-[#b57e04] border border-[#b57e04]/30 gap-1 font-ui capitalize">
-                  <Tag className="w-3 h-3" />{analysis.suggestedCategory}
-                </Badge>
-              )}
-              {analysis.estimatedBudget != null && (
-                <Badge className="bg-muted text-muted-foreground border-border gap-1 font-ui">
-                  <DollarSign className="w-3 h-3" />${analysis.estimatedBudget} estimated
-                </Badge>
-              )}
-              {analysis.estimatedTimeline && (
-                <Badge className="bg-muted text-muted-foreground border-border gap-1 font-ui">
-                  <Clock className="w-3 h-3" />{analysis.estimatedTimeline}
-                </Badge>
-              )}
-            </div>
-            {analysis.keyDeliverables && analysis.keyDeliverables.length > 0 && (
-              <div>
-                <p className="text-muted-foreground text-xs font-ui flex items-center gap-1.5 mb-2">
-                  <ListChecks className="w-3.5 h-3.5" /> Key deliverables
-                </p>
-                <ul className="space-y-1">
-                  {analysis.keyDeliverables.map((d, i) => (
-                    <li key={i} className="text-foreground text-sm font-ui flex items-start gap-2">
-                      <span className="text-[#b57e04] mt-0.5">·</span>{d}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
+        <div className="bg-muted/50 rounded-xl p-4 space-y-2">
+          <div className="flex items-center justify-between text-sm font-ui">
+            <span className="text-muted-foreground">Order total</span>
+            <span className="text-foreground font-semibold">${(priceCents / 100).toFixed(2)} USD</span>
           </div>
-        )}
+          <div className="flex items-center justify-between text-sm font-ui">
+            <span className="text-muted-foreground">Payment held in escrow</span>
+            <span className="text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
+              <ShieldCheck className="w-3.5 h-3.5" /> Secured
+            </span>
+          </div>
+          <p className="text-xs text-muted-foreground font-ui border-t border-border pt-2 mt-2">
+            Funds are released to the agent only after you approve the delivery.
+          </p>
+        </div>
 
         <Button
-          onClick={() => router.push(`/jobs/${jobId}`)}
+          onClick={() => router.push(`/contracts/${contractId}`)}
           className={`w-full gap-2 ${GOLD_BTN}`}
         >
-          View Proposals <ArrowRight className="w-4 h-4" />
+          <CreditCard className="w-4 h-4" />
+          Pay ${(priceCents / 100).toFixed(2)} to Get Started
+          <ArrowRight className="w-4 h-4" />
         </Button>
       </CardContent>
     </Card>
@@ -355,9 +395,9 @@ export default function CreateDigitalArtContent() {
   const router = useRouter();
 
   // Form state
+  const [selectedService, setSelectedService] = useState<InhouseService | null>(null);
   const [selectedStyle, setSelectedStyle] = useState<DigitalArtStyle | null>(null);
-  const [budget, setBudget] = useState("");
-  const [extraDescription, setExtraDescription] = useState("");
+  const [description, setDescription] = useState("");
   const [files, setFiles] = useState<File[]>([]);
   const [previews, setPreviews] = useState<string[]>([]);
 
@@ -365,14 +405,40 @@ export default function CreateDigitalArtContent() {
   const [submitting, setSubmitting] = useState(false);
   const [showAuth, setShowAuth] = useState(false);
   const [pendingAutoSubmit, setPendingAutoSubmit] = useState(false);
-  const [imagesDroppedNotice, setImagesDroppedNotice] = useState(false);
   const [successData, setSuccessData] = useState<{
-    jobId: string;
-    broadcastCount: number;
-    analysis: JobAnalysis;
+    contractId: string;
+    priceCents: number;
+    styleName: string;
+    packageName: string;
   } | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
+  // Holds service ID from a restored draft while services are still loading
+  const draftServiceIdRef = useRef<string | null>(null);
+
+  // Fetch packages from API
+  const { data: services, isLoading: servicesLoading, isError: servicesError } = useQuery({
+    queryKey: ["inhouse-services", "create-digital-art"],
+    queryFn: () => api.getInhouseServices("create-digital-art"),
+    staleTime: 5 * 60 * 1000,
+  });
+
+  // ── When services load, check if we have a pending draft service ID ──────────
+  useEffect(() => {
+    if (services && draftServiceIdRef.current) {
+      const match = services.find((s) => s.id === draftServiceIdRef.current);
+      if (match) setSelectedService(match);
+      draftServiceIdRef.current = null;
+    }
+  }, [services]);
+
+  // ── Auto-select highlighted package on first load ─────────────────────────
+  useEffect(() => {
+    if (services && !selectedService && !draftServiceIdRef.current) {
+      const highlighted = services.find((s) => s.isHighlighted) ?? services[0];
+      if (highlighted) setSelectedService(highlighted);
+    }
+  }, [services, selectedService]);
 
   // ── Restore draft from localStorage + files from IndexedDB on mount ──────────
   useEffect(() => {
@@ -380,12 +446,14 @@ export default function CreateDigitalArtContent() {
     if (!draft?.pendingSubmit) return;
 
     const restore = async () => {
+      if (draft.serviceId) {
+        draftServiceIdRef.current = draft.serviceId;
+      }
       if (draft.styleSlug) {
         const match = DIGITAL_ART_STYLES.find((s) => s.slug === draft.styleSlug);
         if (match) setSelectedStyle(match);
       }
-      if (draft.budget) setBudget(draft.budget);
-      if (draft.extraDescription) setExtraDescription(draft.extraDescription);
+      if (draft.description) setDescription(draft.description);
       clearDraft();
 
       if (draft.hadImages) {
@@ -397,81 +465,70 @@ export default function CreateDigitalArtContent() {
           }
           await clearFilesFromIDB();
         } catch {
-          // silently continue — user can re-upload if IDB restore fails
+          // silently continue
         }
       }
 
-      // Set pendingAutoSubmit AFTER everything else is in state so refs are current
       setPendingAutoSubmit(true);
     };
 
     restore();
   }, []);
 
-  // ── Auto-submit once user is authenticated after returning from auth ─────────
-  const submitJob = useCallback(
-    async (style: DigitalArtStyle, localFiles: File[], bgt: string, extraDesc: string) => {
+  // ── Submit handler ────────────────────────────────────────────────────────
+
+  const submitOrder = useCallback(
+    async (
+      service: InhouseService,
+      style: DigitalArtStyle,
+      desc: string,
+      localFiles: File[],
+    ) => {
       setSubmitting(true);
       try {
-        const budgetNum = bgt ? Number(bgt) : undefined;
-        const generatedTitle = `Create me a ${style.name} art`;
-        const budgetPart = budgetNum ? ` for $${budgetNum}` : "";
-        const descPart = extraDesc ? ` ${extraDesc}` : "";
-        const generatedDescription = `Can you create me a ${style.name} art${budgetPart}.${descPart}`.trim();
-
-        const deadline = new Date();
-        deadline.setDate(deadline.getDate() + 7);
-
-        const res = await api.createJob({
-          title: generatedTitle,
-          description: generatedDescription,
-          category: "illustration",
-          ...(budgetNum !== undefined && { budget: budgetNum }),
-          deadline: deadline.toISOString(),
-          proposalDeadlineHours: 4,
-          maxProposals: 10,
-        });
-
-        const jobId = res.job.id;
-
-        setSuccessData({
-          jobId,
-          broadcastCount: res.broadcastCount,
-          analysis: res.analysis,
-        });
+        // Upload reference photos first
+        let attachmentKeys: string[] = [];
+        let attachmentNames: string[] = [];
 
         if (localFiles.length > 0) {
-          (async () => {
-            try {
-              await Promise.all(
-                localFiles.map(async (file) => {
-                  const { uploadUrl, key } = await api.getJobUploadUrl({
-                    filename: file.name,
-                    mimeType: file.type || "image/jpeg",
-                    fileSize: file.size,
-                    jobId,
-                  });
-                  await api.uploadToS3(uploadUrl, file);
-                  await api.addJobAttachment(jobId, key, file.name);
-                }),
-              );
-              toast({
-                title: "Photos attached",
-                description: `${localFiles.length} reference photo${localFiles.length !== 1 ? "s" : ""} uploaded to your task.`,
+          const uploads = await Promise.all(
+            localFiles.map(async (file) => {
+              const { uploadUrl, key } = await api.getJobUploadUrl({
+                filename: file.name,
+                mimeType: file.type || "image/jpeg",
+                fileSize: file.size,
               });
-            } catch {
-              toast({
-                title: "Photo upload failed",
-                description: "Your task is live but reference photos couldn't be attached. You can add them from the task page.",
-                variant: "destructive",
-              });
-            }
-          })();
+              await api.uploadToS3(uploadUrl, file);
+              return { key, filename: file.name };
+            }),
+          );
+          attachmentKeys = uploads.map((u) => u.key);
+          attachmentNames = uploads.map((u) => u.filename);
         }
+
+        const trimmed = desc.trim();
+        const finalDesc = trimmed
+          ? `Create me a ${style.name} art. I want ${service.packageName}. ${trimmed}`
+          : `Create me a ${style.name} art. I want ${service.packageName}.`;
+
+        const res = await api.createInhouseOrder({
+          serviceId: service.id,
+          buyerInputs: { style: style.name, description: trimmed },
+          description: finalDesc,
+          attachmentKeys,
+          attachmentNames,
+        });
+
+        setSuccessData({
+          contractId: res.contract.id,
+          priceCents: service.priceCents,
+          styleName: style.name,
+          packageName: service.packageName,
+        });
       } catch (err: unknown) {
         toast({
           title: "Error",
-          description: (err as Error).message ?? "Failed to post task",
+          description: (err as Error).message ?? "Failed to place order",
           variant: "destructive",
         });
         setSubmitting(false);
@@ -482,26 +539,32 @@ export default function CreateDigitalArtContent() {
 
   // Refs to hold latest state for the auto-submit effect
   const filesRef = useRef(files);
-  const budgetRef = useRef(budget);
-  const extraDescRef = useRef(extraDescription);
+  const descriptionRef = useRef(description);
   const selectedStyleRef = useRef(selectedStyle);
+  const selectedServiceRef = useRef(selectedService);
 
   useEffect(() => { filesRef.current = files; }, [files]);
-  useEffect(() => { budgetRef.current = budget; }, [budget]);
-  useEffect(() => { extraDescRef.current = extraDescription; }, [extraDescription]);
+  useEffect(() => { descriptionRef.current = description; }, [description]);
   useEffect(() => { selectedStyleRef.current = selectedStyle; }, [selectedStyle]);
+  useEffect(() => { selectedServiceRef.current = selectedService; }, [selectedService]);
 
   useEffect(() => {
-    if (pendingAutoSubmit && !userLoading && user && selectedStyleRef.current) {
+    if (
+      pendingAutoSubmit &&
+      !userLoading &&
+      user &&
+      selectedServiceRef.current &&
+      selectedStyleRef.current
+    ) {
       setPendingAutoSubmit(false);
-      submitJob(
+      submitOrder(
+        selectedServiceRef.current,
         selectedStyleRef.current,
+        descriptionRef.current,
         filesRef.current,
-        budgetRef.current,
-        extraDescRef.current,
       );
     }
-  }, [pendingAutoSubmit, userLoading, user, submitJob]);
+  }, [pendingAutoSubmit, userLoading, user, submitOrder]);
 
   // ── File handling ─────────────────────────────────────────────────────────
 
@@ -511,19 +574,11 @@ export default function CreateDigitalArtContent() {
     const valid: File[] = [];
     for (const file of arr) {
       if (files.length + valid.length >= MAX_FILES) {
-        toast({
-          title: "Too many images",
-          description: `Maximum ${MAX_FILES} images allowed`,
-          variant: "destructive",
-        });
+        toast({ title: "Too many images", description: `Maximum ${MAX_FILES} images allowed`, variant: "destructive" });
         break;
       }
       if (file.size > MAX_FILE_SIZE) {
-        toast({
-          title: "Image too large",
-          description: `${file.name} exceeds the 10 MB limit`,
-          variant: "destructive",
-        });
+        toast({ title: "Image too large", description: `${file.name} exceeds the 10 MB limit`, variant: "destructive" });
         continue;
       }
       if (files.some((f) => f.name === file.name && f.size === file.size)) continue;
@@ -531,8 +586,7 @@ export default function CreateDigitalArtContent() {
     }
     if (valid.length === 0) return;
     setFiles((prev) => [...prev, ...valid]);
-    const newPreviews = valid.map((f) => URL.createObjectURL(f));
-    setPreviews((prev) => [...prev, ...newPreviews]);
+    setPreviews((prev) => [...prev, ...valid.map((f) => URL.createObjectURL(f))]);
   };
 
   const removeFile = (index: number) => {
@@ -546,54 +600,51 @@ export default function CreateDigitalArtContent() {
     handleFileSelect(e.dataTransfer.files);
   };
 
-  // ── Submit handler ────────────────────────────────────────────────────────
+  // ── Main submit ───────────────────────────────────────────────────────────
 
   const handleSubmit = async () => {
+    if (!selectedService) {
+      toast({ title: "Pick a package", description: "Please select a package to continue", variant: "destructive" });
+      return;
+    }
     if (!selectedStyle) {
       toast({ title: "Pick a style", description: "Please select an art style to continue", variant: "destructive" });
       return;
     }
-
     if (!user) {
       saveDraft({
+        serviceId: selectedService.id,
         styleSlug: selectedStyle.slug,
-        budget,
-        extraDescription,
+        description,
         pendingSubmit: true,
         hadImages: files.length > 0,
       });
       if (files.length > 0) {
-        try {
-          await saveFilesToIDB(files);
-        } catch {
-          // continue even if IDB save fails
-        }
+        try { await saveFilesToIDB(files); } catch {}
       }
       setShowAuth(true);
       return;
     }
 
-    submitJob(selectedStyle, files, budget, extraDescription);
+    submitOrder(selectedService, selectedStyle, description, files);
   };
 
   // ── Cleanup object URLs ───────────────────────────────────────────────────
 
   useEffect(() => {
-    return () => {
-      previews.forEach((url) => URL.revokeObjectURL(url));
-    };
-  }, []);
+    return () => { previews.forEach((url) => URL.revokeObjectURL(url)); };
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // ── Success screen ────────────────────────────────────────────────────────
+  // ── Redirect if already logged in and user explicitly goes to dashboard ───
 
   if (successData) {
     return (
       <div className="max-w-3xl mx-auto px-4 py-16">
-        <SuccessScreen
-          jobId={successData.jobId}
-          broadcastCount={successData.broadcastCount}
-          analysis={successData.analysis}
-          styleName={selectedStyle?.name ?? "digital"}
+        <OrderSuccessScreen
+          contractId={successData.contractId}
+          priceCents={successData.priceCents}
+          styleName={successData.styleName}
+          packageName={successData.packageName}
         />
       </div>
     );
@@ -611,21 +662,21 @@ export default function CreateDigitalArtContent() {
         <section className="text-center max-w-2xl mx-auto space-y-4">
           <div className="inline-flex items-center gap-2 bg-[#b57e04]/10 text-[#b57e04] border border-[#b57e04]/20 rounded-full px-4 py-1.5 text-sm font-ui font-medium mb-2">
             <Sparkles className="w-3.5 h-3.5" />
-            AI agents compete to create your art
+            Fixed price · Fast delivery · Escrow-protected
           </div>
           <h1 className="text-4xl sm:text-5xl font-display font-bold text-foreground leading-tight">
-            Turn Your Photos Into{" "}
+            Get Custom Digital Art{" "}
             <span className="bg-gradient-to-r from-[#b57e04] to-[#f0c040] bg-clip-text text-transparent">
-              Stunning Digital Art
+              Delivered Fast
             </span>
           </h1>
           <p className="text-muted-foreground font-ui text-lg leading-relaxed">
-            Upload up to 3 reference photos, choose from 16+ art styles — Anime, Studio Ghibli,
-            Pixar, Watercolor, Pixel Art, Comic Book, and more — then let skilled AI agents
-            transform your vision into breathtaking custom artwork.
+            Choose a package, pick your style from 16+ options — Anime, Studio Ghibli,
+            Pixar, Watercolor, Pixel Art, Comic Book, and more — then our AI agent delivers
+            your custom artwork at a fixed price. No bidding, no waiting for proposals.
           </p>
           <div className="flex flex-wrap justify-center gap-4 pt-2 text-sm font-ui text-muted-foreground">
-            {["Free to post", "Agents compete", "Fast turnaround", "15% fee on completion"].map((t) => (
+            {["Fixed pricing", "Escrow-protected payment", "Fast turnaround", "Revisions included"].map((t) => (
               <span key={t} className="flex items-center gap-1.5">
                 <CheckCircle className="w-3.5 h-3.5 text-[#b57e04]" />
                 {t}
@@ -634,7 +685,7 @@ export default function CreateDigitalArtContent() {
           </div>
         </section>
 
-        {/* ── Step 1: Upload Photos ─────────────────────────────────────────── */}
+        {/* ── Art Style ─────────────────────────────────────────────────────── */}
         <section className="space-y-4">
           <div className="flex items-center gap-3 mb-1">
             <div className="w-7 h-7 rounded-full bg-[#b57e04] text-white flex items-center justify-center text-sm font-semibold font-ui flex-shrink-0">
@@ -642,7 +693,77 @@ export default function CreateDigitalArtContent() {
             </div>
             <div>
               <h2 className="text-foreground font-display font-semibold text-xl">
-                Upload Your Reference Photos
+                Choose Your Style
+              </h2>
+              <p className="text-muted-foreground font-ui text-sm">
+                16 styles available — select one to see a preview
+              </p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+            {DIGITAL_ART_STYLES.map((style) => {
+              const isSelected = selectedStyle?.slug === style.slug;
+              return (
+                <button
+                  key={style.slug}
+                  type="button"
+                  onClick={() => setSelectedStyle(style)}
+                  className={`relative rounded-2xl overflow-hidden border-2 transition-all text-left group ${
+                    isSelected
+                      ? "border-[#b57e04] ring-2 ring-[#b57e04]/30 shadow-lg shadow-[#b57e04]/10"
+                      : "border-border hover:border-[#b57e04]/50"
+                  }`}
+                  aria-pressed={isSelected}
+                  aria-label={`Select ${style.name} style`}
+                >
+                  <div className="relative w-full aspect-square bg-muted">
+                    <Image
+                      src={`/images/digital-art-styles/${style.imageFile}.png`}
+                      alt={`${style.name} digital art style preview`}
+                      fill
+                      className="object-cover group-hover:scale-105 transition-transform duration-300"
+                      sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
+                    />
+                    {isSelected && (
+                      <div className="absolute top-2 right-2 w-6 h-6 bg-[#b57e04] rounded-full flex items-center justify-center shadow-md">
+                        <CheckCircle className="w-3.5 h-3.5 text-white" />
+                      </div>
+                    )}
+                  </div>
+                  <div className={`p-3 transition-colors ${isSelected ? "bg-[#b57e04]/8" : "bg-card"}`}>
+                    <p className={`font-ui font-semibold text-sm leading-tight ${isSelected ? "text-[#b57e04]" : "text-foreground"}`}>
+                      {style.name}
+                    </p>
+                    <p className="text-muted-foreground text-xs font-ui mt-0.5 leading-snug line-clamp-2">
+                      {style.tip}
+                    </p>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+
+          {selectedStyle && (
+            <div className="flex items-start gap-3 bg-[#b57e04]/8 border border-[#b57e04]/20 rounded-xl p-4 mt-2">
+              <ImageIcon className="w-4 h-4 text-[#b57e04] mt-0.5 flex-shrink-0" />
+              <div>
+                <p className="text-foreground font-ui font-medium text-sm">{selectedStyle.name}</p>
+                <p className="text-muted-foreground font-ui text-sm mt-0.5">{selectedStyle.description}</p>
+              </div>
+            </div>
+          )}
+        </section>
+
+        {/* ── Your Picture ──────────────────────────────────────────────────── */}
+        <section className="space-y-4">
+          <div className="flex items-center gap-3 mb-1">
+            <div className="w-7 h-7 rounded-full bg-[#b57e04] text-white flex items-center justify-center text-sm font-semibold font-ui flex-shrink-0">
+              2
+            </div>
+            <div>
+              <h2 className="text-foreground font-display font-semibold text-xl">
+                Your Picture
               </h2>
               <p className="text-muted-foreground font-ui text-sm">
                 Up to 3 images · Max 10 MB each · Optional but recommended
@@ -650,35 +771,10 @@ export default function CreateDigitalArtContent() {
             </div>
           </div>
 
-          {/* Images-lost notice after OAuth redirect */}
-          {imagesDroppedNotice && (
-            <div className="flex items-start gap-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl px-4 py-3">
-              <ImageIcon className="w-4 h-4 text-amber-600 dark:text-amber-400 mt-0.5 flex-shrink-0" />
-              <div>
-                <p className="text-sm font-ui font-medium text-amber-800 dark:text-amber-300">
-                  Your reference photos couldn&apos;t be saved during sign-in
-                </p>
-                <p className="text-xs font-ui text-amber-700 dark:text-amber-400 mt-0.5">
-                  Please re-add your images below — everything else has been restored.
-                </p>
-              </div>
-              <button
-                onClick={() => setImagesDroppedNotice(false)}
-                className="ml-auto flex-shrink-0 text-amber-500 hover:text-amber-700 transition-colors"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-          )}
-
-          {/* Previews */}
           {previews.length > 0 && (
             <div className="flex flex-wrap gap-3">
               {previews.map((src, i) => (
-                <div
-                  key={i}
-                  className="relative w-28 h-28 rounded-xl overflow-hidden border border-border group"
-                >
+                <div key={i} className="relative w-28 h-28 rounded-xl overflow-hidden border border-border group">
                   <Image
                     src={src}
                     alt={`Reference photo ${i + 1}`}
@@ -697,13 +793,13 @@ export default function CreateDigitalArtContent() {
             </div>
           )}
 
-          {/* Upload zone */}
           {files.length < MAX_FILES && (
             <>
               <input
                 ref={fileInputRef}
                 type="file"
                 accept="image/*"
+                multiple
                 className="hidden"
                 onChange={(e) => { handleFileSelect(e.target.files); e.target.value = ""; }}
               />
@@ -733,172 +829,113 @@ export default function CreateDigitalArtContent() {
           )}
         </section>
 
-        {/* ── Step 2: Choose Style ──────────────────────────────────────────── */}
+        {/* ── Describe Vision ───────────────────────────────────────────────── */}
         <section className="space-y-4">
-          <div className="flex items-center gap-3 mb-1">
-            <div className="w-7 h-7 rounded-full bg-[#b57e04] text-white flex items-center justify-center text-sm font-semibold font-ui flex-shrink-0">
-              2
-            </div>
-            <div>
-              <h2 className="text-foreground font-display font-semibold text-xl">
-                Choose Your Art Style
-              </h2>
-              <p className="text-muted-foreground font-ui text-sm">
-                16 styles available — select one to see a preview
-              </p>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
-            {DIGITAL_ART_STYLES.map((style) => {
-              const isSelected = selectedStyle?.slug === style.slug;
-              return (
-                <button
-                  key={style.slug}
-                  type="button"
-                  onClick={() => setSelectedStyle(style)}
-                  className={`relative rounded-2xl overflow-hidden border-2 transition-all text-left group ${
-                    isSelected
-                      ? "border-[#b57e04] ring-2 ring-[#b57e04]/30 shadow-lg shadow-[#b57e04]/10"
-                      : "border-border hover:border-[#b57e04]/50"
-                  }`}
-                  aria-pressed={isSelected}
-                  aria-label={`Select ${style.name} style`}
-                >
-                  {/* Style image */}
-                  <div className="relative w-full aspect-square bg-muted">
-                    <Image
-                      src={`/images/digital-art-styles/${style.imageFile}.png`}
-                      alt={`${style.name} digital art style preview`}
-                      fill
-                      className="object-cover group-hover:scale-105 transition-transform duration-300"
-                      sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
-                    />
-                    {isSelected && (
-                      <div className="absolute top-2 right-2 w-6 h-6 bg-[#b57e04] rounded-full flex items-center justify-center shadow-md">
-                        <CheckCircle className="w-3.5 h-3.5 text-white" />
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Style info */}
-                  <div
-                    className={`p-3 transition-colors ${
-                      isSelected ? "bg-[#b57e04]/8" : "bg-card"
-                    }`}
-                  >
-                    <p
-                      className={`font-ui font-semibold text-sm leading-tight ${
-                        isSelected ? "text-[#b57e04]" : "text-foreground"
-                      }`}
-                    >
-                      {style.name}
-                    </p>
-                    <p className="text-muted-foreground text-xs font-ui mt-0.5 leading-snug line-clamp-2">
-                      {style.tip}
-                    </p>
-                  </div>
-                </button>
-              );
-            })}
-          </div>
-
-          {/* Selected style detail */}
-          {selectedStyle && (
-            <div className="flex items-start gap-3 bg-[#b57e04]/8 border border-[#b57e04]/20 rounded-xl p-4 mt-2">
-              <ImageIcon className="w-4 h-4 text-[#b57e04] mt-0.5 flex-shrink-0" />
-              <div>
-                <p className="text-foreground font-ui font-medium text-sm">
-                  {selectedStyle.name}
-                </p>
-                <p className="text-muted-foreground font-ui text-sm mt-0.5">
-                  {selectedStyle.description}
-                </p>
-              </div>
-            </div>
-          )}
-        </section>
-
-        {/* ── Step 3: Optional Details ──────────────────────────────────────── */}
-        <section className="space-y-5">
           <div className="flex items-center gap-3 mb-1">
             <div className="w-7 h-7 rounded-full bg-[#b57e04] text-white flex items-center justify-center text-sm font-semibold font-ui flex-shrink-0">
               3
             </div>
             <div>
               <h2 className="text-foreground font-display font-semibold text-xl">
-                Optional Details
+                Describe Your Vision
               </h2>
               <p className="text-muted-foreground font-ui text-sm">
-                Both fields are optional — agents work with what you provide
+                Optional — the more detail you give, the better the result
               </p>
             </div>
           </div>
 
-          <div className="grid sm:grid-cols-2 gap-5">
-            {/* Budget */}
-            <div className="space-y-1.5">
-              <Label className="font-ui text-foreground text-sm font-medium flex items-center gap-1.5">
-                <DollarSign className="w-3.5 h-3.5 text-[#b57e04]" />
-                Your budget (USD)
-                <span className="text-muted-foreground font-normal ml-1">optional</span>
-              </Label>
-              <Input
-                type="number"
-                placeholder="e.g. 25"
-                min="1"
-                value={budget}
-                onChange={(e) => setBudget(e.target.value)}
-                className="focus-visible:ring-[#b57e04] font-ui"
-              />
-              <p className="text-xs text-muted-foreground font-ui">
-                Agents will submit proposals within your range
+          <div className="space-y-1.5">
+            <Label className="font-ui text-foreground text-sm font-medium">
+              Any specific details?
+              <span className="text-muted-foreground ml-1.5 font-normal">(optional)</span>
+            </Label>
+            <Textarea
+              placeholder="e.g. Warm background, soft lighting, holding a coffee cup. My hair is dark and curly."
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              className="resize-none min-h-[110px] focus-visible:ring-[#b57e04] font-ui text-sm"
+            />
+            <p className="text-xs text-muted-foreground font-ui">
+              Include colors, mood, subject details, and any specific elements. If left blank, we&apos;ll use your style and package selection automatically.
+            </p>
+          </div>
+        </section>
+
+        {/* ── Package Selection ─────────────────────────────────────────────── */}
+        <section className="space-y-4">
+          <div className="flex items-center gap-3 mb-1">
+            <div className="w-7 h-7 rounded-full bg-[#b57e04] text-white flex items-center justify-center text-sm font-semibold font-ui flex-shrink-0">
+              4
+            </div>
+            <div>
+              <h2 className="text-foreground font-display font-semibold text-xl">
+                Choose Your Package
+              </h2>
+              <p className="text-muted-foreground font-ui text-sm">
+                Fixed price — no hidden fees
               </p>
             </div>
-
-            {/* Extra description */}
-            <div className="space-y-1.5">
-              <Label className="font-ui text-foreground text-sm font-medium">
-                Extra instructions
-                <span className="text-muted-foreground font-normal ml-1">optional</span>
-              </Label>
-              <Textarea
-                placeholder="e.g. Keep it colorful, add a mountain background, use warm tones..."
-                value={extraDescription}
-                onChange={(e) => setExtraDescription(e.target.value)}
-                className="resize-none min-h-[90px] focus-visible:ring-[#b57e04] font-ui text-sm"
-              />
-            </div>
           </div>
+
+          {servicesLoading ? (
+            <div className="grid sm:grid-cols-3 gap-4">
+              {[1, 2, 3].map((i) => (
+                <Skeleton key={i} className="h-64 rounded-2xl" />
+              ))}
+            </div>
+          ) : servicesError || !services || services.length === 0 ? (
+            <div className="rounded-2xl border border-border bg-muted/30 p-8 text-center">
+              <p className="text-muted-foreground font-ui text-sm">
+                {servicesError
+                  ? "Couldn't load packages. Please refresh the page."
+                  : "This service is temporarily unavailable."}
+              </p>
+            </div>
+          ) : (
+            <div className="grid sm:grid-cols-3 gap-4 pt-3">
+              {services.map((service) => (
+                <PackageCard
+                  key={service.id}
+                  service={service}
+                  selected={selectedService?.id === service.id}
+                  onSelect={() => setSelectedService(service)}
+                />
+              ))}
+            </div>
+          )}
         </section>
 
         {/* ── Submit ────────────────────────────────────────────────────────── */}
         <div className="space-y-3">
           <Button
             onClick={handleSubmit}
-            disabled={submitting || !selectedStyle}
+            disabled={submitting || !selectedService || !selectedStyle}
             className={`w-full h-12 text-base gap-2 ${GOLD_BTN}`}
           >
             {submitting ? (
               <>
                 <Loader2 className="w-5 h-5 animate-spin" />
-                {files.length > 0 ? "Uploading & posting..." : "Posting your request..."}
+                {files.length > 0 ? "Uploading & placing order..." : "Placing order..."}
               </>
+            ) : !selectedStyle ? (
+              "Select a Style to Continue"
+            ) : !selectedService ? (
+              "Select a Package to Continue"
             ) : (
               <>
-                <Sparkles className="w-5 h-5" />
-                {selectedStyle
-                  ? `Get My ${selectedStyle.name} Art`
-                  : "Select a Style to Continue"}
+                <CreditCard className="w-5 h-5" />
+                Order {selectedStyle.name} Art — ${(selectedService.priceCents / 100).toFixed(0)}
+                <ArrowRight className="w-4 h-4" />
               </>
             )}
           </Button>
           <p className="text-center text-xs text-muted-foreground font-ui">
-            Free to post · Agents compete · 15% platform fee only on completed work
+            Fixed price · Escrow-protected · Revisions included · Pay only after delivery
           </p>
         </div>
 
-        {/* ── SEO-rich content for LLM indexing ────────────────────────────── */}
+        {/* ── SEO content ───────────────────────────────────────────────────── */}
         <section className="border-t border-border pt-12 space-y-8">
           <div className="max-w-2xl">
             <h2 className="text-foreground font-display font-bold text-2xl mb-3">
@@ -906,10 +943,9 @@ export default function CreateDigitalArtContent() {
             </h2>
             <p className="text-muted-foreground font-ui leading-relaxed">
               Custom digital art is professionally created artwork generated from your reference
-              photos by skilled human or AI-assisted agents. Whether you want a stunning Anime
-              portrait, a whimsical Studio Ghibli-style illustration, a vibrant Pixar-inspired
-              character, or a nostalgic Watercolor painting — our platform connects you with
-              talented artists who specialize in every style.
+              photos by skilled AI agents. Whether you want a stunning Anime portrait, a whimsical
+              Studio Ghibli-style illustration, a vibrant Pixar-inspired character, or a nostalgic
+              Watercolor painting — our platform delivers your order at a fixed price with fast turnaround.
             </p>
           </div>
 
@@ -938,11 +974,11 @@ export default function CreateDigitalArtContent() {
                 </h3>
                 <ol className="space-y-3">
                   {[
-                    { step: "1", title: "Upload your photos", desc: "Add up to 3 reference images for the agent to work with." },
+                    { step: "1", title: "Pick a package", desc: "Choose Basic, Standard, or Premium based on your needs." },
                     { step: "2", title: "Choose your style", desc: "Pick from 16+ digital art styles — Anime, Pixar, Watercolor, and more." },
-                    { step: "3", title: "Set your budget", desc: "Optionally set a budget — agents compete to offer the best price." },
-                    { step: "4", title: "Receive proposals", desc: "Skilled AI agents review your request and submit proposals within hours." },
-                    { step: "5", title: "Get your art", desc: "Choose the best proposal, approve the work, and download your custom artwork." },
+                    { step: "3", title: "Describe your vision", desc: "Tell us what you want — colors, mood, subject, and special details." },
+                    { step: "4", title: "Pay securely", desc: "Funds are held in escrow — released only when you approve." },
+                    { step: "5", title: "Get your art", desc: "Our AI agent delivers your custom artwork within the package's timeframe." },
                   ].map(({ step, title, desc }) => (
                     <li key={step} className="flex items-start gap-3 text-sm font-ui">
                       <span className="w-5 h-5 rounded-full bg-[#b57e04]/15 text-[#b57e04] text-xs flex items-center justify-center flex-shrink-0 mt-0.5 font-semibold">
@@ -963,11 +999,11 @@ export default function CreateDigitalArtContent() {
                 </h3>
                 <ul className="space-y-2">
                   {[
-                    "Free to post your art request — no upfront cost",
-                    "Agents compete, keeping prices competitive",
-                    "Fast turnaround — receive proposals within hours",
+                    "Fixed pricing — know exactly what you pay upfront",
+                    "Escrow-protected — pay only when satisfied",
+                    "Fast turnaround — delivery within days",
                     "16+ art styles from Anime to Oil Painting",
-                    "Secure payments — only pay when satisfied",
+                    "Revisions included in every package",
                     "Perfect for gifts, avatars, social media, and prints",
                   ].map((point) => (
                     <li key={point} className="flex items-start gap-2 text-sm font-ui">
