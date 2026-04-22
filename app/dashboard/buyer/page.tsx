@@ -172,17 +172,28 @@ function isDirectRequest(job: Job): boolean {
   );
 }
 
-function inhouseOrderStatusLabel(status: InhouseOrderStatus): { label: string; cls: string } {
-  switch (status) {
-    case "pending_payment": return { label: "Payment Required", cls: CLS.amber };
-    case "paid":            return { label: "Paid · Queued", cls: CLS.blue };
-    case "in_progress":     return { label: "In Progress", cls: CLS.amber };
-    case "delivered":       return { label: "Review Delivery", cls: CLS.emerald };
-    case "completed":       return { label: "Completed", cls: CLS.emerald };
-    case "refunded":        return { label: "Refunded", cls: CLS.muted };
-    case "disputed":        return { label: "Disputed", cls: CLS.red };
-    default:                return { label: status, cls: CLS.muted };
+function inhouseOrderStatusLabel(order: InhouseOrder): { label: string; cls: string; urgent: boolean; reviewReady: boolean } {
+  const c = order.contract;
+  const paymentStatus = c?.payment?.status;
+  const deliveryStatus = c?.delivery?.status;
+
+  if (deliveryStatus === "APPROVED" || order.status === "completed") {
+    return { label: "Completed", cls: CLS.emerald, urgent: false, reviewReady: false };
   }
+  if (deliveryStatus === "DISPUTED" || order.status === "disputed") {
+    return { label: "Disputed", cls: CLS.red, urgent: false, reviewReady: false };
+  }
+  if (deliveryStatus === "SUBMITTED") {
+    return { label: "Review Delivery", cls: CLS.emerald, urgent: false, reviewReady: true };
+  }
+  if (paymentStatus === "ESCROWED" || c?.status === "ACTIVE") {
+    return { label: "In Progress", cls: CLS.amber, urgent: false, reviewReady: false };
+  }
+  if (order.status === "refunded") {
+    return { label: "Refunded", cls: CLS.muted, urgent: false, reviewReady: false };
+  }
+  // pending_payment / SIGNED_BOTH / PENDING payment — buyer needs to pay
+  return { label: "Payment Required", cls: CLS.amber, urgent: true, reviewReady: false };
 }
 
 /** Sort rank: lower = higher in list */
@@ -257,7 +268,9 @@ export default function BuyerDashboardPage() {
 
   const pendingPaymentCount = jobs?.filter((j) => contractStatus(j) === "SIGNED_BOTH").length ?? 0;
   const pendingDirectCount = jobs?.filter((j) => isDirectRequest(j) && j.directRequestStatus === "PENDING").length ?? 0;
-  const pendingInhousePaymentCount = inhouseOrders?.filter((o) => o.status === "pending_payment").length ?? 0;
+  const pendingInhousePaymentCount = inhouseOrders?.filter(
+    (o) => !o.contract?.payment || o.contract.payment.status === "PENDING"
+  ).length ?? 0;
 
   const deleteErrorMsg =
     deleteError instanceof Error ? deleteError.message : deleteError ? "Failed to delete job" : null;
@@ -274,13 +287,13 @@ export default function BuyerDashboardPage() {
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
       {/* Header */}
-      <div className="flex items-center justify-between mb-8">
-        <div>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-8">
+        <div className="min-w-0">
           <h1 className="text-2xl font-display font-bold text-foreground">Buyer Dashboard</h1>
-          <p className="text-muted-foreground mt-1 font-ui text-sm">{user?.email}</p>
+          <p className="text-muted-foreground mt-1 font-ui text-sm truncate">{user?.email}</p>
         </div>
-        <Link href="/post-task">
-          <Button className="bg-gradient-to-r from-[#b57e04] to-[#d4a017] hover:from-[#9a6a03] hover:to-[#b57e04] text-white gap-2 font-ui font-medium shadow-sm">
+        <Link href="/post-task" className="flex-shrink-0">
+          <Button className="w-full sm:w-auto bg-gradient-to-r from-[#b57e04] to-[#d4a017] hover:from-[#9a6a03] hover:to-[#b57e04] text-white gap-2 font-ui font-medium shadow-sm">
             <Plus className="w-4 h-4" />
             Post a Task
           </Button>
@@ -413,10 +426,9 @@ export default function BuyerDashboardPage() {
           ) : (
             <div className="divide-y divide-border">
               {inhouseOrders.map((order: InhouseOrder) => {
-                const badge = inhouseOrderStatusLabel(order.status);
+                const badge = inhouseOrderStatusLabel(order);
+                const { urgent: isUrgentPayment, reviewReady: isReviewReady } = badge;
                 const contractHref = `/contracts/${order.contractId}`;
-                const isUrgentPayment = order.status === "pending_payment";
-                const isReviewReady = order.status === "delivered";
                 const title = order.service
                   ? `${order.service.packageName} — ${order.service.pageSlug.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())}`
                   : "Direct Order";
@@ -620,10 +632,9 @@ export default function BuyerDashboardPage() {
                   <p className="text-xs font-ui text-muted-foreground font-medium uppercase tracking-wide">Instant Orders</p>
                 </div>
                 {inhouseOrders.map((order: InhouseOrder) => {
-                  const badge = inhouseOrderStatusLabel(order.status);
+                  const badge = inhouseOrderStatusLabel(order);
+                  const { urgent: isUrgentPayment, reviewReady: isReviewReady } = badge;
                   const contractHref = `/contracts/${order.contractId}`;
-                  const isUrgentPayment = order.status === "pending_payment";
-                  const isReviewReady = order.status === "delivered";
                   const title = order.service
                     ? `${order.service.packageName} — ${order.service.pageSlug.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())}`
                     : "Direct Order";
