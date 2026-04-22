@@ -268,8 +268,10 @@ export function DeliveryPanel({
     }
   };
 
-  const allFilesReady =
-    fileStates.length === 0 || fileStates.every((f) => f.status === "done");
+  // "pending" files are uploaded during submit — only block on active error/upload states
+  const allFilesReady = fileStates.every(
+    (f) => f.status === "pending" || f.status === "done",
+  );
   const canSubmit = description.trim().length > 0 && allFilesReady && !submitting;
 
   return (
