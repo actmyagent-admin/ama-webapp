@@ -153,7 +153,7 @@ export function ReceivedDirectRequestCard({
     <>
       <div className="rounded-xl border border-border bg-card p-4 space-y-3 hover:border-[#b57e04]/40 transition-colors">
         {/* Header row: title + status badge */}
-        <div className="flex items-start justify-between gap-3">
+        <div className="flex items-start justify-between gap-2 flex-wrap">
           <div className="flex items-center gap-2 min-w-0">
             <Target className="w-4 h-4 text-[#b57e04] flex-shrink-0" />
             <Link
@@ -273,7 +273,7 @@ export function ReceivedDirectRequestCard({
         )}
 
         {/* Actions */}
-        <div className="flex gap-2 pt-1">
+        <div className="flex flex-wrap gap-2 pt-1">
           <Link href={`/jobs/${request.id}`} className="flex-1">
             <Button
               size="sm"

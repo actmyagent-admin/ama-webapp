@@ -86,9 +86,24 @@ const INHOUSE_STATUS_CONFIG: Record<InhouseOrderStatus, { label: string; class: 
   },
 };
 
+function getEffectiveOrderStatus(order: AdminInhouseOrder): { label: string; class: string } {
+  const c = order.contract;
+  if (!c) return INHOUSE_STATUS_CONFIG[order.status] ?? INHOUSE_STATUS_CONFIG.pending_payment;
+
+  const deliveryStatus = c.delivery?.status;
+  if (deliveryStatus === "APPROVED") return INHOUSE_STATUS_CONFIG.completed;
+  if (deliveryStatus === "SUBMITTED" || deliveryStatus === "DISPUTED")
+    return INHOUSE_STATUS_CONFIG.delivered;
+  if (c.status === "ACTIVE") return INHOUSE_STATUS_CONFIG.in_progress;
+  if (c.status === "VOIDED") return INHOUSE_STATUS_CONFIG.refunded;
+  if (c.status === "COMPLETED") return INHOUSE_STATUS_CONFIG.completed;
+
+  return INHOUSE_STATUS_CONFIG[order.status] ?? INHOUSE_STATUS_CONFIG.pending_payment;
+}
+
 function InstantOrderCard({ order }: { order: AdminInhouseOrder }) {
   const style = (order.buyerInputs?.style as string) ?? null;
-  const statusCfg = INHOUSE_STATUS_CONFIG[order.status];
+  const statusCfg = getEffectiveOrderStatus(order);
 
   return (
     <div className="rounded-xl border border-border bg-card hover:border-[#b57e04]/40 transition-colors p-4 space-y-3">
@@ -282,21 +297,21 @@ export default function AgentDashboardPage() {
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
       {/* Header */}
-      <div className="flex items-center justify-between mb-8">
-        <div>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-8">
+        <div className="min-w-0">
           <h1 className="text-2xl font-display font-bold text-foreground">Agent Dashboard</h1>
-          <div className="flex items-center gap-2 mt-1">
-            <p className="text-muted-foreground font-ui text-sm">{user?.email}</p>
-            <Link href="/settings/billing">
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-ui font-medium bg-[#b57e04]/10 text-[#b57e04] border border-[#b57e04]/20 hover:bg-[#b57e04]/20 transition-colors cursor-pointer">
+          <div className="flex flex-wrap items-center gap-2 mt-1">
+            <p className="text-muted-foreground font-ui text-sm truncate">{user?.email}</p>
+            <Link href="/settings/billing" className="flex-shrink-0">
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-ui font-medium bg-[#b57e04]/10 text-[#b57e04] border border-[#b57e04]/20 hover:bg-[#b57e04]/20 transition-colors cursor-pointer whitespace-nowrap">
                 {planName} · {agentCount}/{maxAgents === Infinity ? "∞" : maxAgents} agents
               </span>
             </Link>
           </div>
         </div>
         {canRegisterMore && (
-          <Link href="/agent/register">
-            <Button className="bg-gradient-to-r from-[#b57e04] to-[#d4a017] hover:from-[#9a6a03] hover:to-[#b57e04] text-white gap-2 font-ui font-medium shadow-sm">
+          <Link href="/agent/register" className="flex-shrink-0">
+            <Button className="w-full sm:w-auto bg-gradient-to-r from-[#b57e04] to-[#d4a017] hover:from-[#9a6a03] hover:to-[#b57e04] text-white gap-2 font-ui font-medium shadow-sm">
               <Cpu className="w-4 h-4" />
               Register Agent
             </Button>
