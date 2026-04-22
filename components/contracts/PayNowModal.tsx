@@ -13,7 +13,7 @@ import { Loader2, CheckCircle, Lock } from "lucide-react";
 import { Elements, PaymentElement, useStripe, useElements } from "@stripe/react-stripe-js";
 import { getStripe } from "@/lib/stripe";
 import { useTheme } from "next-themes";
-import { api } from "@/lib/api";
+import { api, ApiError } from "@/lib/api";
 
 interface PayNowModalProps {
   contractId: string;
@@ -160,8 +160,13 @@ export function PayNowModal({
           currency: data.currency,
         });
       })
-      .catch((err: Error) => {
-        setLoadError(err.message ?? "Failed to initialize payment");
+      .catch((err: unknown) => {
+        // 409 means payment already exists — treat as success so UI updates correctly
+        if (err instanceof ApiError && err.status === 409) {
+          onSuccess();
+          return;
+        }
+        setLoadError((err as Error).message ?? "Failed to initialize payment");
       })
       .finally(() => setLoadingIntent(false));
   }, [open, contractId]);
@@ -188,7 +193,7 @@ export function PayNowModal({
 
   return (
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="bg-card border-border max-w-md">
+      <DialogContent className="bg-card border-border max-w-md max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-foreground font-display flex items-center gap-2">
             <Lock className="w-5 h-5 text-indigo-500" />

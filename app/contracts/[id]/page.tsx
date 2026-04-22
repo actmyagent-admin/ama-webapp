@@ -67,13 +67,14 @@ export default function ContractPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { profileId, user } = useUser();
+  const { profileId, user, isLoading: userLoading } = useUser();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [signing, setSigning] = useState(false);
   const [signConfirmOpen, setSignConfirmOpen] = useState(false);
   const [payNowOpen, setPayNowOpen] = useState(false);
   const [jobDetailsOpen, setJobDetailsOpen] = useState(false);
+  const [paymentJustSucceeded, setPaymentJustSucceeded] = useState(false);
 
   const { data: contract, isLoading } = useQuery({
     queryKey: ["contract", id],
@@ -81,21 +82,31 @@ export default function ContractPage() {
     enabled: !!id,
   });
 
+  const statusPollAttempts = useRef(0);
+  const [pollExhausted, setPollExhausted] = useState(false);
+
   const { data: contractStatus, refetch: refetchStatus } = useQuery({
     queryKey: ["contract-status", id],
-    queryFn: () => api.getContractStatus(id),
+    queryFn: () => {
+      statusPollAttempts.current += 1;
+      if (statusPollAttempts.current >= 10) setPollExhausted(true);
+      return api.getContractStatus(id);
+    },
     enabled: !!id,
     refetchInterval: (query) => {
       const status = query.state.data?.status;
-      if (status === "SIGNED_BOTH") return 5000;
-      if (status === "ACTIVE") return 30000;
+      if (statusPollAttempts.current >= 10) return false;
+      if (status === "SIGNED_BOTH" || status === "ACTIVE") return 30000;
       return false;
     },
   });
 
+  const handleReloadStatus = () => window.location.reload();
+
   const isInhouse = contract?.isInhouse ?? false;
-  const isBuyer = !!profileId && contract?.buyerId === profileId;
-  const isAgent = !!profileId && contract?.agentProfile?.userId === profileId;
+  // Wait for auth to resolve before computing role — avoids AGENT_LISTER flash on initial load
+  const isBuyer = !userLoading && !!profileId && contract?.buyerId === profileId;
+  const isAgent = !userLoading && !!profileId && contract?.agentProfile?.userId === profileId;
   const userRole = isBuyer ? "BUYER" : "AGENT_LISTER";
 
   const inhouseOrder = contract?.inhouseOrder ?? null;
@@ -105,7 +116,7 @@ export default function ContractPage() {
   const hasSigned = isBuyer ? buyerSigned : agentSigned;
 
   const currentStatus = contractStatus?.status ?? contract?.status;
-  const escrowPaid = contractStatus?.payment.secured ?? (!!contract?.payment && contract.payment.status !== "PENDING");
+  const escrowPaid = paymentJustSucceeded || contractStatus?.payment.secured || (!!contract?.payment && contract.payment.status === "ESCROWED");
 
   const isTimedOut =
     contractStatus?.status === "SIGNED_BOTH" &&
@@ -142,6 +153,7 @@ export default function ContractPage() {
 
   const handlePaySuccess = useCallback(() => {
     setPayNowOpen(false);
+    setPaymentJustSucceeded(true);
     toast({ title: "Funds secured in escrow!", description: "The agent can now start working." });
     queryClient.invalidateQueries({ queryKey: ["contract", id] });
     refetchStatus();
@@ -252,6 +264,23 @@ export default function ContractPage() {
             </div>
           </div>
         </div>
+
+        {/* Status polling exhausted */}
+        {pollExhausted && !escrowPaid && (
+          <div className="flex items-center justify-between gap-3 bg-muted border border-border rounded-xl px-4 py-3 mb-4">
+            <p className="text-sm text-muted-foreground font-ui">
+              Auto-refresh paused. Reload to check the latest contract status.
+            </p>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={handleReloadStatus}
+              className="flex-shrink-0 border-border hover:border-[#b57e04] hover:text-[#b57e04] gap-1.5 font-ui text-xs h-7 px-3"
+            >
+              Reload
+            </Button>
+          </div>
+        )}
 
         {/* Contract timed out */}
         {isTimedOut && (
