@@ -84,16 +84,26 @@ export default function ContractPage() {
 
   const statusPollAttempts = useRef(0);
   const [pollExhausted, setPollExhausted] = useState(false);
+  // After payment confirmation, poll fast (3 s) until webhook makes contract ACTIVE
+  const [postPaymentPolling, setPostPaymentPolling] = useState(false);
+  const postPaymentTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const { data: contractStatus, refetch: refetchStatus } = useQuery({
     queryKey: ["contract-status", id],
-    queryFn: () => {
+    queryFn: async () => {
       statusPollAttempts.current += 1;
       if (statusPollAttempts.current >= 10) setPollExhausted(true);
-      return api.getContractStatus(id);
+      const result = await api.getContractStatus(id);
+      // Webhook landed — stop fast polling
+      if (result.status === "ACTIVE" && postPaymentPolling) {
+        setPostPaymentPolling(false);
+        if (postPaymentTimeout.current) clearTimeout(postPaymentTimeout.current);
+      }
+      return result;
     },
     enabled: !!id,
     refetchInterval: (query) => {
+      if (postPaymentPolling) return 3000;
       const status = query.state.data?.status;
       if (statusPollAttempts.current >= 10) return false;
       if (status === "SIGNED_BOTH" || status === "ACTIVE") return 30000;
@@ -126,13 +136,21 @@ export default function ContractPage() {
 
   useEffect(() => {
     if (searchParams.get("payment") === "success") {
-      toast({ title: "Payment confirmed!", description: "Agent notified. Contract is now active." });
+      // Stripe redirected back — start fast polling to catch webhook
+      statusPollAttempts.current = 0;
+      setPollExhausted(false);
+      setPostPaymentPolling(true);
+      postPaymentTimeout.current = setTimeout(() => setPostPaymentPolling(false), 30000);
+      toast({ title: "Payment confirmed!", description: "Waiting for contract to activate..." });
       refetchStatus();
       queryClient.invalidateQueries({ queryKey: ["contract", id] });
       const url = new URL(window.location.href);
       url.searchParams.delete("payment");
       router.replace(url.pathname, { scroll: false });
     }
+    return () => {
+      if (postPaymentTimeout.current) clearTimeout(postPaymentTimeout.current);
+    };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleSignConfirmed = async () => {
@@ -154,7 +172,12 @@ export default function ContractPage() {
   const handlePaySuccess = useCallback(() => {
     setPayNowOpen(false);
     setPaymentJustSucceeded(true);
-    toast({ title: "Funds secured in escrow!", description: "The agent can now start working." });
+    // Fast-poll every 3 s until webhook makes contract ACTIVE (max 30 s)
+    statusPollAttempts.current = 0;
+    setPollExhausted(false);
+    setPostPaymentPolling(true);
+    postPaymentTimeout.current = setTimeout(() => setPostPaymentPolling(false), 30000);
+    toast({ title: "Payment confirmed!", description: "Waiting for contract to activate..." });
     queryClient.invalidateQueries({ queryKey: ["contract", id] });
     refetchStatus();
   }, [id, queryClient, refetchStatus, toast]);
@@ -264,6 +287,16 @@ export default function ContractPage() {
             </div>
           </div>
         </div>
+
+        {/* Post-payment activation banner */}
+        {postPaymentPolling && !escrowPaid && (
+          <div className="flex items-center gap-3 bg-indigo-50 dark:bg-indigo-950/30 border border-indigo-200 dark:border-indigo-800 rounded-xl px-4 py-3 mb-4">
+            <Loader2 className="w-4 h-4 animate-spin text-indigo-500 flex-shrink-0" />
+            <p className="text-sm text-indigo-700 dark:text-indigo-300 font-ui">
+              Payment received — activating contract...
+            </p>
+          </div>
+        )}
 
         {/* Status polling exhausted */}
         {pollExhausted && !escrowPaid && (
