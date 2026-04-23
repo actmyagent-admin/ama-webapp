@@ -389,7 +389,7 @@ export default function HomePage() {
             <div className="mx-auto mt-5 h-[2px] w-16 rounded-full bg-gradient-to-r from-[#b57e04] to-[#f0c040]" />
           </div>
 
-          <div className="grid sm:grid-cols-3 gap-6 max-w-5xl mx-auto">
+          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6 max-w-7xl mx-auto">
 
             {/* ── Digital Art ── */}
             <Link
@@ -547,6 +547,46 @@ export default function HomePage() {
                 </h3>
                 <p className="text-muted-foreground text-sm font-ui leading-relaxed flex-1">
                   MVP to scalable SaaS — microservices backend, polished frontend, auth, DB, and cloud deployment at a fixed price.
+                </p>
+                <div className="mt-5 flex items-center gap-1.5 text-[#b57e04] text-sm font-ui font-medium">
+                  Get started
+                  <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                </div>
+              </div>
+            </Link>
+
+            {/* ── Wedding & Event Content ── */}
+            <Link
+              href="/create-events-wedding-service"
+              className="gradient-border-card gradient-border-card-hover group relative bg-card rounded-2xl overflow-hidden flex flex-col hover:shadow-lg hover:-translate-y-1 transition-all duration-300"
+            >
+              {/* Illustration area */}
+              <div className="relative bg-gradient-to-br from-rose-500/8 to-pink-500/5 p-8 flex items-center justify-center h-48">
+                <svg viewBox="0 0 160 140" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-36 h-36">
+                  {/* Large heart */}
+                  <path d="M80 110 C80 110 30 75 30 45 C30 30 42 20 55 20 C65 20 73 26 80 34 C87 26 95 20 105 20 C118 20 130 30 130 45 C130 75 80 110 80 110Z" fill="#b57e04" fillOpacity="0.18" stroke="#b57e04" strokeWidth="1.5" strokeOpacity="0.5"/>
+                  {/* Inner heart highlight */}
+                  <path d="M80 98 C80 98 40 70 40 47 C40 36 49 28 59 28 C67 28 74 33 80 40 C86 33 93 28 101 28 C111 28 120 36 120 47 C120 70 80 98 80 98Z" fill="#b57e04" fillOpacity="0.10"/>
+                  {/* Musical note left */}
+                  <path d="M38 55 L38 70 M38 55 C38 55 46 52 46 55 L46 70 M38 70 C38 73 34 74 34 71 C34 68 38 67 38 70 M46 70 C46 73 42 74 42 71 C42 68 46 67 46 70" stroke="#b57e04" strokeWidth="1.3" strokeLinecap="round" strokeOpacity="0.55"/>
+                  {/* Stars / sparkles */}
+                  <path d="M128 22 L129.5 26 L134 27.5 L129.5 29 L128 33 L126.5 29 L122 27.5 L126.5 26 Z" fill="#f0c040" fillOpacity="0.65"/>
+                  <path d="M18 50 L19 53 L22 54 L19 55 L18 58 L17 55 L14 54 L17 53 Z" fill="#f0c040" fillOpacity="0.45"/>
+                  <circle cx="135" cy="60" r="2" fill="#b57e04" fillOpacity="0.4"/>
+                  <circle cx="25" cy="35" r="1.5" fill="#b57e04" fillOpacity="0.35"/>
+                  {/* Ribbon / banner at base */}
+                  <path d="M58 115 Q80 122 102 115" stroke="#b57e04" strokeWidth="1.5" strokeLinecap="round" strokeOpacity="0.35" fill="none"/>
+                  <circle cx="80" cy="118" r="2.5" fill="#b57e04" fillOpacity="0.3"/>
+                </svg>
+              </div>
+
+              {/* Card body */}
+              <div className="p-6 flex flex-col flex-1">
+                <h3 className="font-display font-bold text-foreground text-lg mb-1.5 group-hover:text-[#b57e04] transition-colors">
+                  Request Wedding & Event Content
+                </h3>
+                <p className="text-muted-foreground text-sm font-ui leading-relaxed flex-1">
+                  Custom invitations, cinematic videos, original songs, speeches & event microsites — for weddings, birthdays, anniversaries & more.
                 </p>
                 <div className="mt-5 flex items-center gap-1.5 text-[#b57e04] text-sm font-ui font-medium">
                   Get started

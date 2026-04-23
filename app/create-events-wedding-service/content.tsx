@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { useQuery } from "@tanstack/react-query";
 import { api, InhouseService } from "@/lib/api";
-import { MOTION_AD_TYPES, MotionAdType } from "@/lib/motion-ad-types";
+import { WEDDING_EVENT_TYPES, WeddingEventType } from "@/lib/wedding-event-types";
 import { getBrowserClient } from "@/lib/supabase";
 import { useUser } from "@/hooks/useUser";
 import { useToast } from "@/hooks/use-toast";
@@ -25,7 +25,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import {
   Upload, X, CheckCircle, Loader2, Sparkles, ArrowRight,
-  Mail, Clock, RefreshCw, Layers, ShieldCheck, CreditCard,
+  Mail, Clock, RefreshCw, ShieldCheck, CreditCard, Layers,
 } from "lucide-react";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -33,15 +33,15 @@ import {
 const GOLD_BTN =
   "bg-gradient-to-r from-[#b57e04] to-[#d4a017] hover:from-[#9a6a03] hover:to-[#b57e04] text-white font-ui font-medium shadow-sm";
 
-const MAX_FILES = 3;
+const MAX_FILES = 5;
 const MAX_FILE_SIZE = 10 * 1024 * 1024;
-const LS_KEY = "motionAdFormDraft";
+const LS_KEY = "weddingEventFormDraft";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 interface FormDraft {
   serviceId: string;
-  adTypeSlug: string;
+  eventTypeSlug: string;
   description: string;
   pendingSubmit: boolean;
   hadImages?: boolean;
@@ -64,7 +64,7 @@ function clearDraft() {
 
 // ─── IndexedDB ────────────────────────────────────────────────────────────────
 
-const IDB_NAME = "motionAdDraft";
+const IDB_NAME = "weddingEventDraft";
 const IDB_STORE = "files";
 
 function openIDB(): Promise<IDBDatabase> {
@@ -113,7 +113,7 @@ function AuthDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (v: b
   const supabase = getBrowserClient();
 
   const REDIRECT_BACK = typeof window !== "undefined"
-    ? `${window.location.origin}/auth/callback?redirect=${encodeURIComponent("/create-motion-graphic-ad-for-brands-and-services")}`
+    ? `${window.location.origin}/auth/callback?redirect=${encodeURIComponent("/create-events-wedding-service")}`
     : "";
 
   const handleGoogle = async () => {
@@ -256,6 +256,7 @@ function PackageCard({
   onSelect: () => void;
 }) {
   const price = `$${(service.priceCents / 100).toFixed(0)}`;
+
   return (
     <button
       type="button"
@@ -277,7 +278,7 @@ function PackageCard({
 
       {/* Header: name + price */}
       <div className="flex items-start justify-between gap-3">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           <p className={`font-display font-bold text-xl leading-tight ${selected ? "text-[#b57e04]" : "text-foreground"}`}>
             {service.packageName}
           </p>
@@ -294,6 +295,13 @@ function PackageCard({
           <span className="text-muted-foreground text-xs font-ui block">USD</span>
         </div>
       </div>
+
+      {/* Tagline */}
+      {service.tagline && (
+        <p className="text-muted-foreground text-sm font-ui -mt-2 leading-snug">
+          {service.tagline}
+        </p>
+      )}
 
       {/* Perfect for */}
       {service.perfectFor.length > 0 && (
@@ -325,7 +333,7 @@ function PackageCard({
         )}
       </div>
 
-      {/* Whats included */}
+      {/* What's included */}
       {service.whatsIncluded.length > 0 && (
         <ul className="space-y-1.5 border-t border-border pt-4">
           {service.whatsIncluded.map((item, i) => (
@@ -345,12 +353,12 @@ function PackageCard({
 function OrderSuccessScreen({
   contractId,
   priceCents,
-  adTypeName,
+  eventTypeName,
   packageName,
 }: {
   contractId: string;
   priceCents: number;
-  adTypeName: string;
+  eventTypeName: string;
   packageName: string;
 }) {
   const router = useRouter();
@@ -365,7 +373,7 @@ function OrderSuccessScreen({
             Order placed!
           </h2>
           <p className="text-muted-foreground font-ui text-sm">
-            Your <span className="text-foreground font-medium">{packageName} — {adTypeName}</span> order is ready.
+            Your <span className="text-foreground font-medium">{packageName} — {eventTypeName}</span> order is ready.
             Complete payment to get started.
           </p>
         </div>
@@ -401,14 +409,14 @@ function OrderSuccessScreen({
 
 // ─── Main Content ─────────────────────────────────────────────────────────────
 
-export default function CreateMotionAdContent() {
+export default function CreateWeddingEventContent() {
   const { user, isLoading: userLoading } = useUser();
   const { toast } = useToast();
   const router = useRouter();
 
   // Form state
   const [selectedService, setSelectedService] = useState<InhouseService | null>(null);
-  const [selectedAdType, setSelectedAdType] = useState<MotionAdType | null>(null);
+  const [selectedEventType, setSelectedEventType] = useState<WeddingEventType | null>(null);
   const [description, setDescription] = useState("");
   const [files, setFiles] = useState<File[]>([]);
   const [previews, setPreviews] = useState<string[]>([]);
@@ -420,7 +428,7 @@ export default function CreateMotionAdContent() {
   const [successData, setSuccessData] = useState<{
     contractId: string;
     priceCents: number;
-    adTypeName: string;
+    eventTypeName: string;
     packageName: string;
   } | null>(null);
 
@@ -428,8 +436,8 @@ export default function CreateMotionAdContent() {
   const draftServiceIdRef = useRef<string | null>(null);
 
   const { data: services, isLoading: servicesLoading, isError: servicesError } = useQuery({
-    queryKey: ["inhouse-services", "create-motion-graphic-ad"],
-    queryFn: () => api.getInhouseServices("create-motion-graphic-ad"),
+    queryKey: ["inhouse-services", "create-events-wedding-service"],
+    queryFn: () => api.getInhouseServices("create-events-wedding-service"),
     staleTime: 5 * 60 * 1000,
   });
 
@@ -454,9 +462,9 @@ export default function CreateMotionAdContent() {
 
     const restore = async () => {
       if (draft.serviceId) draftServiceIdRef.current = draft.serviceId;
-      if (draft.adTypeSlug) {
-        const match = MOTION_AD_TYPES.find((t) => t.slug === draft.adTypeSlug);
-        if (match) setSelectedAdType(match);
+      if (draft.eventTypeSlug) {
+        const match = WEDDING_EVENT_TYPES.find((t) => t.slug === draft.eventTypeSlug);
+        if (match) setSelectedEventType(match);
       }
       if (draft.description) setDescription(draft.description);
       clearDraft();
@@ -481,7 +489,7 @@ export default function CreateMotionAdContent() {
   const submitOrder = useCallback(
     async (
       service: InhouseService,
-      adType: MotionAdType,
+      eventType: WeddingEventType,
       desc: string,
       localFiles: File[],
     ) => {
@@ -508,12 +516,12 @@ export default function CreateMotionAdContent() {
 
         const trimmed = desc.trim();
         const finalDesc = trimmed
-          ? `Create a ${adType.name} for me. I want ${service.packageName}. ${trimmed}`
-          : `Create a ${adType.name} for me. I want ${service.packageName}.`;
+          ? `Create ${eventType.name} content for me. I want the ${service.packageName} package. ${trimmed}`
+          : `Create ${eventType.name} content for me. I want the ${service.packageName} package.`;
 
         const res = await api.createInhouseOrder({
           serviceId: service.id,
-          buyerInputs: { adType: adType.name, description: trimmed },
+          buyerInputs: { eventType: eventType.name, description: trimmed },
           description: finalDesc,
           attachmentKeys,
           attachmentNames,
@@ -522,7 +530,7 @@ export default function CreateMotionAdContent() {
         setSuccessData({
           contractId: res.contract.id,
           priceCents: service.priceCents,
-          adTypeName: adType.name,
+          eventTypeName: eventType.name,
           packageName: service.packageName,
         });
       } catch (err: unknown) {
@@ -539,12 +547,12 @@ export default function CreateMotionAdContent() {
 
   const filesRef = useRef(files);
   const descriptionRef = useRef(description);
-  const selectedAdTypeRef = useRef(selectedAdType);
+  const selectedEventTypeRef = useRef(selectedEventType);
   const selectedServiceRef = useRef(selectedService);
 
   useEffect(() => { filesRef.current = files; }, [files]);
   useEffect(() => { descriptionRef.current = description; }, [description]);
-  useEffect(() => { selectedAdTypeRef.current = selectedAdType; }, [selectedAdType]);
+  useEffect(() => { selectedEventTypeRef.current = selectedEventType; }, [selectedEventType]);
   useEffect(() => { selectedServiceRef.current = selectedService; }, [selectedService]);
 
   useEffect(() => {
@@ -553,12 +561,12 @@ export default function CreateMotionAdContent() {
       !userLoading &&
       user &&
       selectedServiceRef.current &&
-      selectedAdTypeRef.current
+      selectedEventTypeRef.current
     ) {
       setPendingAutoSubmit(false);
       submitOrder(
         selectedServiceRef.current,
-        selectedAdTypeRef.current,
+        selectedEventTypeRef.current,
         descriptionRef.current,
         filesRef.current,
       );
@@ -571,11 +579,11 @@ export default function CreateMotionAdContent() {
     const valid: File[] = [];
     for (const file of arr) {
       if (files.length + valid.length >= MAX_FILES) {
-        toast({ title: "Too many images", description: `Maximum ${MAX_FILES} images allowed`, variant: "destructive" });
+        toast({ title: "Too many photos", description: `Maximum ${MAX_FILES} photos allowed`, variant: "destructive" });
         break;
       }
       if (file.size > MAX_FILE_SIZE) {
-        toast({ title: "Image too large", description: `${file.name} exceeds the 10 MB limit`, variant: "destructive" });
+        toast({ title: "Photo too large", description: `${file.name} exceeds the 10 MB limit`, variant: "destructive" });
         continue;
       }
       if (files.some((f) => f.name === file.name && f.size === file.size)) continue;
@@ -598,8 +606,8 @@ export default function CreateMotionAdContent() {
   };
 
   const handleSubmit = async () => {
-    if (!selectedAdType) {
-      toast({ title: "Pick a motion ad type", description: "Please select a motion ad type to continue", variant: "destructive" });
+    if (!selectedEventType) {
+      toast({ title: "Pick an event type", description: "Please select your event type to continue", variant: "destructive" });
       return;
     }
     if (!selectedService) {
@@ -609,7 +617,7 @@ export default function CreateMotionAdContent() {
     if (!user) {
       saveDraft({
         serviceId: selectedService.id,
-        adTypeSlug: selectedAdType.slug,
+        eventTypeSlug: selectedEventType.slug,
         description,
         pendingSubmit: true,
         hadImages: files.length > 0,
@@ -621,7 +629,7 @@ export default function CreateMotionAdContent() {
       return;
     }
 
-    submitOrder(selectedService, selectedAdType, description, files);
+    submitOrder(selectedService, selectedEventType, description, files);
   };
 
   useEffect(() => {
@@ -634,7 +642,7 @@ export default function CreateMotionAdContent() {
         <OrderSuccessScreen
           contractId={successData.contractId}
           priceCents={successData.priceCents}
-          adTypeName={successData.adTypeName}
+          eventTypeName={successData.eventTypeName}
           packageName={successData.packageName}
         />
       </div>
@@ -654,16 +662,15 @@ export default function CreateMotionAdContent() {
             Fixed price · Fast delivery · Escrow-protected
           </div>
           <h1 className="text-4xl sm:text-5xl font-display font-bold text-foreground leading-tight">
-            Custom Motion Graphic Ads{" "}
+            Beautiful Content for{" "}
             <span className="bg-gradient-to-r from-[#b57e04] to-[#f0c040] bg-clip-text text-transparent">
-              for Brands & Services
+              Your Special Day
             </span>
           </h1>
           <p className="text-muted-foreground font-ui text-lg leading-relaxed">
-            Commission professional motion graphic videos for your brand — product launches,
-            explainers, social media ads, cinematic brand videos, landing page animations, and
-            investor updates. AI agents deliver your custom video at a fixed price. No bidding,
-            no waiting for proposals.
+            From personalized digital invitations and cinematic video montages to custom original songs,
+            heartfelt speeches, and full event microsites — AI agents create a complete digital experience
+            for your wedding, birthday, anniversary, or celebration. Fixed price, no surprises.
           </p>
           <div className="flex flex-wrap justify-center gap-4 pt-2 text-sm font-ui text-muted-foreground">
             {["Fixed pricing", "Escrow-protected payment", "Fast turnaround", "Revisions included"].map((t) => (
@@ -675,7 +682,7 @@ export default function CreateMotionAdContent() {
           </div>
         </section>
 
-        {/* ── Step 1: Motion Ad Type ────────────────────────────────────────── */}
+        {/* ── Step 1: Event Type ────────────────────────────────────────────── */}
         <section className="space-y-4">
           <div className="flex items-center gap-3 mb-1">
             <div className="w-7 h-7 rounded-full bg-[#b57e04] text-white flex items-center justify-center text-sm font-semibold font-ui flex-shrink-0">
@@ -683,30 +690,30 @@ export default function CreateMotionAdContent() {
             </div>
             <div>
               <h2 className="text-foreground font-display font-semibold text-xl">
-                Motion Ad Type
+                What&apos;s the Occasion?
               </h2>
               <p className="text-muted-foreground font-ui text-sm">
-                6 video types available — select the one that fits your goal
+                6 event types — select the one that matches your celebration
               </p>
             </div>
           </div>
 
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {MOTION_AD_TYPES.map((adType) => {
-              const isSelected = selectedAdType?.slug === adType.slug;
-              const Icon = adType.icon;
+            {WEDDING_EVENT_TYPES.map((eventType) => {
+              const isSelected = selectedEventType?.slug === eventType.slug;
+              const Icon = eventType.icon;
               return (
                 <button
-                  key={adType.slug}
+                  key={eventType.slug}
                   type="button"
-                  onClick={() => setSelectedAdType(adType)}
+                  onClick={() => setSelectedEventType(eventType)}
                   className={`relative rounded-2xl border-2 p-5 text-left transition-all group ${
                     isSelected
                       ? "border-[#b57e04] ring-2 ring-[#b57e04]/30 bg-[#b57e04]/5 dark:bg-[#b57e04]/10"
                       : "border-border hover:border-[#b57e04]/50 bg-card"
                   }`}
                   aria-pressed={isSelected}
-                  aria-label={`Select ${adType.name}`}
+                  aria-label={`Select ${eventType.name}`}
                 >
                   <div className="space-y-3">
                     <div className="flex items-start justify-between gap-2">
@@ -724,23 +731,23 @@ export default function CreateMotionAdContent() {
 
                     <div>
                       <p className={`font-display font-bold text-base leading-tight ${isSelected ? "text-[#b57e04]" : "text-foreground"}`}>
-                        {adType.name}
+                        {eventType.name}
                       </p>
                       <span className={`inline-block text-xs font-ui px-2 py-0.5 rounded-full mt-1 ${
                         isSelected ? "bg-[#b57e04]/15 text-[#b57e04]" : "bg-muted text-muted-foreground"
                       }`}>
-                        {adType.category}
+                        {eventType.category}
                       </span>
                     </div>
 
                     <p className="text-muted-foreground text-xs font-ui leading-relaxed line-clamp-3">
-                      {adType.description}
+                      {eventType.description}
                     </p>
 
                     <p className={`text-xs font-ui italic border-t border-border pt-2 ${
                       isSelected ? "text-[#b57e04]/80" : "text-muted-foreground/70"
                     }`}>
-                      {adType.example}
+                      {eventType.example}
                     </p>
                   </div>
                 </button>
@@ -749,7 +756,7 @@ export default function CreateMotionAdContent() {
           </div>
         </section>
 
-        {/* ── Step 2: Reference & Brand Images ─────────────────────────────── */}
+        {/* ── Step 2: Upload Photos ─────────────────────────────────────────── */}
         <section className="space-y-4">
           <div className="flex items-center gap-3 mb-1">
             <div className="w-7 h-7 rounded-full bg-[#b57e04] text-white flex items-center justify-center text-sm font-semibold font-ui flex-shrink-0">
@@ -757,10 +764,10 @@ export default function CreateMotionAdContent() {
             </div>
             <div>
               <h2 className="text-foreground font-display font-semibold text-xl">
-                Reference & Brand Images
+                Your Photos & Media
               </h2>
               <p className="text-muted-foreground font-ui text-sm">
-                Upload your logo, product images, or creative references — up to 3 images · Max 10 MB each · Optional but recommended
+                Upload your favorite photos or video stills — up to 5 images · Max 10 MB each · Optional but recommended
               </p>
             </div>
           </div>
@@ -771,7 +778,7 @@ export default function CreateMotionAdContent() {
                 <div key={i} className="relative w-28 h-28 rounded-xl overflow-hidden border border-border group">
                   <Image
                     src={src}
-                    alt={`Brand reference ${i + 1}`}
+                    alt={`Event photo ${i + 1}`}
                     fill
                     className="object-cover"
                     sizes="112px"
@@ -809,13 +816,13 @@ export default function CreateMotionAdContent() {
                 </div>
                 <div className="text-center">
                   <p className="font-ui font-medium text-sm">
-                    Drag & drop images or{" "}
+                    Drag & drop photos or{" "}
                     <span className="text-[#b57e04] underline underline-offset-2">browse</span>
                   </p>
                   <p className="text-xs mt-1 font-ui">
                     {files.length > 0
-                      ? `${MAX_FILES - files.length} more image${MAX_FILES - files.length !== 1 ? "s" : ""} allowed`
-                      : "Logo, product photos, brand assets — PNG, JPG, WEBP up to 10 MB each"}
+                      ? `${MAX_FILES - files.length} more photo${MAX_FILES - files.length !== 1 ? "s" : ""} allowed`
+                      : "Couple photos, venue shots, family portraits — PNG, JPG, WEBP up to 10 MB each"}
                   </p>
                 </div>
               </button>
@@ -831,33 +838,33 @@ export default function CreateMotionAdContent() {
             </div>
             <div>
               <h2 className="text-foreground font-display font-semibold text-xl">
-                Describe Your Vision
+                Tell Us About Your Event
               </h2>
               <p className="text-muted-foreground font-ui text-sm">
-                Optional — the more detail you give, the better the result
+                Optional — the more detail you share, the more personalized the result
               </p>
             </div>
           </div>
 
           <div className="space-y-1.5">
             <Label className="font-ui text-foreground text-sm font-medium">
-              Any specific details?
+              Event details & personal notes
               <span className="text-muted-foreground ml-1.5 font-normal">(optional)</span>
             </Label>
             <Textarea
-              placeholder="e.g. Dark background, energetic music feel, 30 seconds long. Show the logo at the end with a call-to-action. Color palette: black and gold."
+              placeholder="e.g. Our wedding is on June 14th at a garden venue. Our theme is rustic gold and white. Names: Sarah & James. We'd love a warm, romantic tone with soft piano music. For the song, our story started in college — we'd love lyrics about that."
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              className="resize-none min-h-[110px] focus-visible:ring-[#b57e04] font-ui text-sm"
+              className="resize-none min-h-[130px] focus-visible:ring-[#b57e04] font-ui text-sm"
             />
             <p className="text-xs text-muted-foreground font-ui">
-              Include video length, tone, color palette, target platform, and any key messages. If left blank, we&apos;ll use your selected type and package automatically.
+              Include names, date, venue, theme, tone, music preferences, and any personal story details. The more you share, the more meaningful the final result.
             </p>
           </div>
         </section>
 
         {/* ── Step 4: Package Selection ─────────────────────────────────────── */}
-        <section className="space-y-4">
+        <section className="space-y-5">
           <div className="flex items-center gap-3 mb-1">
             <div className="w-7 h-7 rounded-full bg-[#b57e04] text-white flex items-center justify-center text-sm font-semibold font-ui flex-shrink-0">
               4
@@ -867,7 +874,7 @@ export default function CreateMotionAdContent() {
                 Choose Your Package
               </h2>
               <p className="text-muted-foreground font-ui text-sm">
-                Fixed price — no hidden fees
+                Fixed price — no hidden fees. Choose what fits your celebration.
               </p>
             </div>
           </div>
@@ -875,7 +882,7 @@ export default function CreateMotionAdContent() {
           {servicesLoading ? (
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 items-start">
               {[1, 2, 3].map((i) => (
-                <Skeleton key={i} className="h-48 rounded-2xl" />
+                <Skeleton key={i} className="h-64 rounded-2xl" />
               ))}
             </div>
           ) : servicesError || !services || services.length === 0 ? (
@@ -903,28 +910,28 @@ export default function CreateMotionAdContent() {
         {/* ── Submit ────────────────────────────────────────────────────────── */}
         <div className="space-y-3">
           <div className="w-full lg:max-w-[576px] lg:mx-auto">
-          <Button
-            onClick={handleSubmit}
-            disabled={submitting || !selectedService || !selectedAdType}
-            className={`w-full h-12 text-base gap-2 ${GOLD_BTN}`}
-          >
-            {submitting ? (
-              <>
-                <Loader2 className="w-5 h-5 animate-spin" />
-                {files.length > 0 ? "Uploading & placing order..." : "Placing order..."}
-              </>
-            ) : !selectedAdType ? (
-              "Select a Motion Ad Type to Continue"
-            ) : !selectedService ? (
-              "Select a Package to Continue"
-            ) : (
-              <>
-                <CreditCard className="w-5 h-5" />
-                Order {selectedAdType.name} — ${(selectedService.priceCents / 100).toFixed(0)}
-                <ArrowRight className="w-4 h-4" />
-              </>
-            )}
-          </Button>
+            <Button
+              onClick={handleSubmit}
+              disabled={submitting || !selectedService || !selectedEventType}
+              className={`w-full h-12 text-base gap-2 ${GOLD_BTN}`}
+            >
+              {submitting ? (
+                <>
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                  {files.length > 0 ? "Uploading & placing order..." : "Placing order..."}
+                </>
+              ) : !selectedEventType ? (
+                "Select Your Event Type to Continue"
+              ) : !selectedService ? (
+                "Select a Package to Continue"
+              ) : (
+                <>
+                  <CreditCard className="w-5 h-5" />
+                  Order {selectedEventType.name} — ${(selectedService.priceCents / 100).toFixed(0)}
+                  <ArrowRight className="w-4 h-4" />
+                </>
+              )}
+            </Button>
           </div>
           <p className="text-center text-xs text-muted-foreground font-ui">
             Fixed price · Escrow-protected · Revisions included · Pay only after delivery
@@ -935,36 +942,45 @@ export default function CreateMotionAdContent() {
         <section className="border-t border-border pt-12 space-y-8">
           <div className="max-w-2xl">
             <h2 className="text-foreground font-display font-bold text-2xl mb-3">
-              What Are Motion Graphic Ads?
+              What Is a Complete Wedding & Event Content Experience?
             </h2>
             <p className="text-muted-foreground font-ui leading-relaxed">
-              Motion graphic ads are professionally animated videos that combine design, typography,
-              and storytelling to promote your brand, product, or service. Unlike static images,
-              motion graphics capture attention, communicate ideas faster, and drive significantly
-              higher engagement on social media, landing pages, and ad campaigns. Our AI agents
-              deliver studio-quality motion videos at a fixed price — no lengthy back-and-forth,
-              no hidden fees.
+              A complete wedding or event content experience goes beyond a simple invitation. It
+              combines personalized digital invitations, cinematic photo and video montages, original
+              custom songs with lyrics written for your story, heartfelt speeches, and a beautiful
+              event microsite with an RSVP form and media gallery — all crafted specifically for you.
+              Our AI agents deliver everything at a fixed price, so you can focus on celebrating.
             </p>
           </div>
 
           <div className="grid sm:grid-cols-2 gap-8">
             <div>
               <h3 className="text-foreground font-display font-semibold text-lg mb-3">
-                Motion Ad Types We Create
+                What&apos;s Included Across Packages
               </h3>
-              <ul className="space-y-3">
-                {MOTION_AD_TYPES.map((adType) => (
-                  <li key={adType.slug} className="flex items-start gap-2 text-sm font-ui">
-                    <span className="text-[#b57e04] mt-1 flex-shrink-0">·</span>
-                    <span>
-                      <span className="text-foreground font-medium">{adType.name}</span>
-                      {" — "}
-                      <span className="text-muted-foreground">{adType.description}</span>
-                    </span>
+              <ul className="space-y-2">
+                {[
+                  "Custom digital invitation & RSVP card",
+                  "Image montage — photo slideshow",
+                  "Basic to cinematic video montage",
+                  "Invitation motion video (animated invite)",
+                  "Background music + smooth transitions",
+                  "Custom original song (personalized lyrics)",
+                  "Wedding or event speech writing",
+                  "Event microsite (static website)",
+                  "RSVP form integration",
+                  "Media gallery for photos & videos",
+                  "Enhanced personalization — names, dates, theme",
+                  "Warm, cinematic, or romantic tone — your choice",
+                ].map((item) => (
+                  <li key={item} className="flex items-start gap-2 text-sm font-ui">
+                    <CheckCircle className="w-3.5 h-3.5 text-[#b57e04] mt-0.5 flex-shrink-0" />
+                    <span className="text-muted-foreground">{item}</span>
                   </li>
                 ))}
               </ul>
             </div>
+
             <div className="space-y-5">
               <div>
                 <h3 className="text-foreground font-display font-semibold text-lg mb-3">
@@ -972,12 +988,12 @@ export default function CreateMotionAdContent() {
                 </h3>
                 <ol className="space-y-3">
                   {[
-                    { step: "1", title: "Select your video type", desc: "Choose from product launch, explainer, social media ad, and more." },
-                    { step: "2", title: "Upload brand assets", desc: "Share your logo, product images, or any creative references." },
-                    { step: "3", title: "Describe your vision", desc: "Tell us the tone, length, platform, and key messages you want." },
-                    { step: "4", title: "Pick a package", desc: "Choose a fixed-price package that matches your needs." },
-                    { step: "5", title: "Pay securely", desc: "Funds are held in escrow — released only when you approve." },
-                    { step: "6", title: "Get your video", desc: "Our AI agent delivers your custom motion graphic within the package's timeframe." },
+                    { step: "1", title: "Choose your event type", desc: "Select from wedding, birthday, anniversary, baby shower, graduation, or corporate event." },
+                    { step: "2", title: "Upload your photos", desc: "Share your favorite couple shots, venue photos, or cherished memories." },
+                    { step: "3", title: "Describe your vision", desc: "Tell us names, date, theme, tone, music preferences, and your personal story." },
+                    { step: "4", title: "Pick a package", desc: "Choose Essential Invite, Cinematic Experience, or Full Celebration Package." },
+                    { step: "5", title: "Pay securely", desc: "Funds are held in escrow — released only when you approve the delivery." },
+                    { step: "6", title: "Receive your content", desc: "Get beautiful, personalized event content delivered within days." },
                   ].map(({ step, title, desc }) => (
                     <li key={step} className="flex items-start gap-3 text-sm font-ui">
                       <span className="w-5 h-5 rounded-full bg-[#b57e04]/15 text-[#b57e04] text-xs flex items-center justify-center flex-shrink-0 mt-0.5 font-semibold">
@@ -992,6 +1008,7 @@ export default function CreateMotionAdContent() {
                   ))}
                 </ol>
               </div>
+
               <div>
                 <h3 className="text-foreground font-display font-semibold text-lg mb-3">
                   Why ActMyAgent?
@@ -999,11 +1016,11 @@ export default function CreateMotionAdContent() {
                 <ul className="space-y-2">
                   {[
                     "Fixed pricing — know exactly what you pay upfront",
-                    "Escrow-protected — pay only when satisfied with the delivery",
-                    "Fast turnaround — studio-quality videos delivered within days",
-                    "6 motion ad types from product launches to investor updates",
-                    "Revisions included in every package",
-                    "Perfect for startups, brands, agencies, and content creators",
+                    "Escrow-protected — pay only when you love the result",
+                    "Fast turnaround — content delivered within days",
+                    "Fully personalized — your names, story, and theme",
+                    "From invites to custom songs and event microsites",
+                    "Perfect for weddings, birthdays, anniversaries & more",
                   ].map((point) => (
                     <li key={point} className="flex items-start gap-2 text-sm font-ui">
                       <CheckCircle className="w-3.5 h-3.5 text-[#b57e04] mt-0.5 flex-shrink-0" />
