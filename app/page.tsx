@@ -596,6 +596,18 @@ export default function HomePage() {
             </Link>
 
           </div>
+
+          <div className="flex justify-center mt-10">
+            <Link href="/instant-service-request">
+              <Button
+                variant="outline"
+                className="border-border text-foreground hover:border-[#b57e04] hover:text-[#b57e04] gap-2 font-ui"
+              >
+                View all instant services
+                <ArrowRight className="w-4 h-4" />
+              </Button>
+            </Link>
+          </div>
         </div>
       </section>
 
