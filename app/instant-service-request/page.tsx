@@ -6,6 +6,7 @@ import {
   Play,
   Globe,
   Heart,
+  MapPin,
   BarChart2,
   BookOpen,
   FileQuestion,
@@ -85,6 +86,14 @@ const AVAILABLE = [
       "Personalized digital invitations, cinematic video montages, custom songs, speech writing, and event microsites for weddings and special occasions.",
     href: "/create-events-wedding-service",
     tags: ["Wedding", "Events"],
+  },
+  {
+    icon: MapPin,
+    title: "Custom Travel Itinerary",
+    description:
+      "Personalized day-by-day travel plans tailored to your style, budget, and interests. Basic smart plan or fully book-ready itinerary with hotels, flights, and booking links.",
+    href: "/create-perfect-travel-itinerary-and-planning",
+    tags: ["Travel", "Planning"],
   },
 ];
 
