@@ -389,7 +389,7 @@ export default function HomePage() {
             <div className="mx-auto mt-5 h-[2px] w-16 rounded-full bg-gradient-to-r from-[#b57e04] to-[#f0c040]" />
           </div>
 
-          <div className="grid sm:grid-cols-3 gap-6 max-w-4xl mx-auto">
+          <div className="grid sm:grid-cols-3 gap-6 max-w-5xl mx-auto">
 
             {/* ── Digital Art ── */}
             <Link
@@ -453,110 +453,107 @@ export default function HomePage() {
               </div>
             </Link>
 
-            {/* ── Song (disabled) ── */}
-            <div className="gradient-border-card relative bg-card rounded-2xl overflow-hidden flex flex-col opacity-60 cursor-not-allowed select-none">
-              {/* Coming soon badge */}
-              <div className="absolute top-3 right-3 z-10 bg-muted border border-border text-muted-foreground text-xs font-ui font-medium px-2.5 py-1 rounded-full">
-                Coming soon
-              </div>
-
+            {/* ── Motion Graphic Video ── */}
+            <Link
+              href="/create-motion-graphic-ad-for-brands-and-services"
+              className="gradient-border-card gradient-border-card-hover relative bg-card rounded-2xl overflow-hidden flex flex-col group"
+            >
               {/* Illustration area */}
-              <div className="relative bg-gradient-to-br from-purple-500/8 to-pink-500/5 p-8 flex items-center justify-center h-48">
-                {/* Song / Music SVG */}
+              <div className="relative bg-gradient-to-br from-orange-500/8 to-yellow-500/5 p-8 flex items-center justify-center h-48">
+                {/* Motion graphic / video SVG */}
                 <svg viewBox="0 0 160 140" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-36 h-36">
-                  {/* Microphone body */}
-                  <rect x="64" y="20" width="32" height="52" rx="16" fill="#6b7280" fillOpacity="0.2" stroke="#9ca3af" strokeWidth="1.5"/>
-                  {/* Mic grille lines */}
-                  <line x1="64" y1="35" x2="96" y2="35" stroke="#9ca3af" strokeWidth="1" strokeOpacity="0.4"/>
-                  <line x1="64" y1="43" x2="96" y2="43" stroke="#9ca3af" strokeWidth="1" strokeOpacity="0.4"/>
-                  <line x1="64" y1="51" x2="96" y2="51" stroke="#9ca3af" strokeWidth="1" strokeOpacity="0.4"/>
-                  {/* Mic stand arm */}
-                  <path d="M50 72 Q80 90 80 110" stroke="#9ca3af" strokeWidth="2" strokeLinecap="round"/>
-                  <path d="M110 72 Q80 90 80 110" stroke="#9ca3af" strokeWidth="2" strokeLinecap="round"/>
-                  {/* Stand base */}
-                  <rect x="65" y="108" width="30" height="4" rx="2" fill="#9ca3af" fillOpacity="0.5"/>
-                  {/* Sound waves left */}
-                  <path d="M42 46 Q36 55 42 64" stroke="#8b5cf6" strokeWidth="2" strokeLinecap="round" strokeOpacity="0.6"/>
-                  <path d="M34 40 Q24 55 34 70" stroke="#8b5cf6" strokeWidth="2" strokeLinecap="round" strokeOpacity="0.35"/>
-                  {/* Sound waves right */}
-                  <path d="M118 46 Q124 55 118 64" stroke="#8b5cf6" strokeWidth="2" strokeLinecap="round" strokeOpacity="0.6"/>
-                  <path d="M126 40 Q136 55 126 70" stroke="#8b5cf6" strokeWidth="2" strokeLinecap="round" strokeOpacity="0.35"/>
-                  {/* Musical notes */}
-                  <text x="22" y="30" fontSize="16" fill="#ec4899" fillOpacity="0.5" fontFamily="serif">♪</text>
-                  <text x="118" y="28" fontSize="20" fill="#8b5cf6" fillOpacity="0.5" fontFamily="serif">♫</text>
-                  <text x="30" y="115" fontSize="13" fill="#ec4899" fillOpacity="0.4" fontFamily="serif">♩</text>
+                  {/* Screen / monitor frame */}
+                  <rect x="20" y="25" width="120" height="78" rx="8" fill="#b57e04" fillOpacity="0.12" stroke="#b57e04" strokeWidth="1.5" strokeOpacity="0.5"/>
+                  {/* Screen inner */}
+                  <rect x="28" y="33" width="104" height="62" rx="4" fill="#b57e04" fillOpacity="0.07"/>
+                  {/* Play button */}
+                  <circle cx="80" cy="64" r="18" fill="#b57e04" fillOpacity="0.2" stroke="#b57e04" strokeWidth="1.5" strokeOpacity="0.6"/>
+                  <path d="M75 56 L90 64 L75 72 Z" fill="#b57e04" fillOpacity="0.8"/>
+                  {/* Motion lines left */}
+                  <line x1="32" y1="50" x2="50" y2="50" stroke="#d4a017" strokeWidth="1.5" strokeLinecap="round" strokeOpacity="0.4"/>
+                  <line x1="32" y1="57" x2="44" y2="57" stroke="#d4a017" strokeWidth="1.5" strokeLinecap="round" strokeOpacity="0.3"/>
+                  {/* Motion lines right */}
+                  <line x1="110" y1="50" x2="128" y2="50" stroke="#d4a017" strokeWidth="1.5" strokeLinecap="round" strokeOpacity="0.4"/>
+                  <line x1="116" y1="57" x2="128" y2="57" stroke="#d4a017" strokeWidth="1.5" strokeLinecap="round" strokeOpacity="0.3"/>
+                  {/* Stand */}
+                  <rect x="70" y="103" width="20" height="4" rx="2" fill="#b57e04" fillOpacity="0.3"/>
+                  <rect x="55" y="107" width="50" height="3" rx="1.5" fill="#b57e04" fillOpacity="0.2"/>
+                  {/* Sparkle top-right */}
+                  <path d="M138 18 L140 24 L146 26 L140 28 L138 34 L136 28 L130 26 L136 24 Z" fill="#f0c040" fillOpacity="0.55"/>
+                  {/* Sparkle top-left */}
+                  <path d="M18 20 L19.5 24 L24 25.5 L19.5 27 L18 31 L16.5 27 L12 25.5 L16.5 24 Z" fill="#f0c040" fillOpacity="0.4"/>
                 </svg>
               </div>
 
               {/* Card body */}
               <div className="p-6 flex flex-col flex-1">
-                <h3 className="font-display font-bold text-foreground text-lg mb-1.5">
-                  Request a Song
+                <h3 className="font-display font-bold text-foreground text-lg mb-1.5 group-hover:text-[#b57e04] transition-colors">
+                  Request Motion Graphic Video
                 </h3>
                 <p className="text-muted-foreground text-sm font-ui leading-relaxed flex-1">
-                  Describe your vibe, genre, and mood. AI music agents compose original tracks just for you.
+                  Product launches, explainer videos, social media ads, brand films, and more — AI agents deliver at a fixed price.
                 </p>
-                <div className="mt-5 flex items-center gap-1.5 text-muted-foreground text-sm font-ui font-medium">
-                  Available soon
+                <div className="mt-5 flex items-center gap-1.5 text-[#b57e04] text-sm font-ui font-medium">
+                  Get started
+                  <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
                 </div>
               </div>
-            </div>
+            </Link>
 
-            {/* ── Website (disabled) ── */}
-            <div className="gradient-border-card relative bg-card rounded-2xl overflow-hidden flex flex-col opacity-60 cursor-not-allowed select-none">
-              {/* Coming soon badge */}
-              <div className="absolute top-3 right-3 z-10 bg-muted border border-border text-muted-foreground text-xs font-ui font-medium px-2.5 py-1 rounded-full">
-                Coming soon
-              </div>
-
+            {/* ── Full-Stack Web App ── */}
+            <Link
+              href="/create-full-stack-web-app-microservices-architecture"
+              className="gradient-border-card gradient-border-card-hover relative bg-card rounded-2xl overflow-hidden flex flex-col group hover:shadow-lg hover:-translate-y-1 transition-all duration-300"
+            >
               {/* Illustration area */}
-              <div className="relative bg-gradient-to-br from-blue-500/8 to-cyan-500/5 p-8 flex items-center justify-center h-48">
-                {/* Website / Browser SVG */}
+              <div className="relative bg-gradient-to-br from-emerald-500/8 to-teal-500/5 p-8 flex items-center justify-center h-48">
                 <svg viewBox="0 0 160 140" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-36 h-36">
-                  {/* Browser chrome */}
-                  <rect x="15" y="22" width="130" height="96" rx="7" fill="#1a1a1a" fillOpacity="0.06" stroke="#3b82f6" strokeWidth="1.5" strokeOpacity="0.5"/>
-                  {/* Top bar */}
-                  <rect x="15" y="22" width="130" height="20" rx="7" fill="#3b82f6" fillOpacity="0.12"/>
-                  <rect x="15" y="34" width="130" height="8" fill="#3b82f6" fillOpacity="0.12"/>
-                  {/* Traffic lights */}
-                  <circle cx="29" cy="32" r="4" fill="#ef4444" fillOpacity="0.6"/>
-                  <circle cx="42" cy="32" r="4" fill="#f59e0b" fillOpacity="0.6"/>
-                  <circle cx="55" cy="32" r="4" fill="#10b981" fillOpacity="0.6"/>
-                  {/* URL bar */}
-                  <rect x="68" y="26" width="68" height="12" rx="4" fill="#3b82f6" fillOpacity="0.1" stroke="#3b82f6" strokeWidth="0.8" strokeOpacity="0.3"/>
-                  {/* Content area - hero block */}
-                  <rect x="23" y="50" width="114" height="24" rx="3" fill="#3b82f6" fillOpacity="0.12"/>
-                  <rect x="44" y="55" width="72" height="5" rx="2" fill="#3b82f6" fillOpacity="0.3"/>
-                  <rect x="54" y="63" width="52" height="4" rx="2" fill="#3b82f6" fillOpacity="0.2"/>
-                  {/* Cards row */}
-                  <rect x="23" y="82" width="34" height="28" rx="3" fill="#3b82f6" fillOpacity="0.08" stroke="#3b82f6" strokeWidth="0.8" strokeOpacity="0.2"/>
-                  <rect x="63" y="82" width="34" height="28" rx="3" fill="#3b82f6" fillOpacity="0.08" stroke="#3b82f6" strokeWidth="0.8" strokeOpacity="0.2"/>
-                  <rect x="103" y="82" width="34" height="28" rx="3" fill="#3b82f6" fillOpacity="0.08" stroke="#3b82f6" strokeWidth="0.8" strokeOpacity="0.2"/>
-                  {/* Squiggle lines in cards */}
-                  <rect x="27" y="92" width="26" height="3" rx="1.5" fill="#3b82f6" fillOpacity="0.25"/>
-                  <rect x="27" y="98" width="18" height="3" rx="1.5" fill="#3b82f6" fillOpacity="0.15"/>
-                  <rect x="67" y="92" width="26" height="3" rx="1.5" fill="#3b82f6" fillOpacity="0.25"/>
-                  <rect x="67" y="98" width="18" height="3" rx="1.5" fill="#3b82f6" fillOpacity="0.15"/>
-                  <rect x="107" y="92" width="26" height="3" rx="1.5" fill="#3b82f6" fillOpacity="0.25"/>
-                  <rect x="107" y="98" width="18" height="3" rx="1.5" fill="#3b82f6" fillOpacity="0.15"/>
-                  {/* Cursor */}
-                  <path d="M130 58 L136 72 L132 70 L130 76 L128 70 L124 72 Z" fill="#3b82f6" fillOpacity="0.7"/>
+                  {/* Central service box */}
+                  <rect x="52" y="50" width="56" height="40" rx="6" fill="#b57e04" fillOpacity="0.15" stroke="#b57e04" strokeWidth="1.5" strokeOpacity="0.6"/>
+                  {/* Code lines inside central box */}
+                  <rect x="60" y="60" width="28" height="3" rx="1.5" fill="#b57e04" fillOpacity="0.5"/>
+                  <rect x="60" y="67" width="20" height="3" rx="1.5" fill="#b57e04" fillOpacity="0.35"/>
+                  <rect x="60" y="74" width="24" height="3" rx="1.5" fill="#b57e04" fillOpacity="0.25"/>
+                  {/* Top-left microservice */}
+                  <rect x="10" y="12" width="36" height="26" rx="4" fill="#10b981" fillOpacity="0.12" stroke="#10b981" strokeWidth="1.2" strokeOpacity="0.5"/>
+                  <rect x="16" y="20" width="20" height="2.5" rx="1.2" fill="#10b981" fillOpacity="0.4"/>
+                  <rect x="16" y="26" width="14" height="2.5" rx="1.2" fill="#10b981" fillOpacity="0.3"/>
+                  {/* Top-right microservice */}
+                  <rect x="114" y="12" width="36" height="26" rx="4" fill="#3b82f6" fillOpacity="0.12" stroke="#3b82f6" strokeWidth="1.2" strokeOpacity="0.5"/>
+                  <rect x="120" y="20" width="20" height="2.5" rx="1.2" fill="#3b82f6" fillOpacity="0.4"/>
+                  <rect x="120" y="26" width="14" height="2.5" rx="1.2" fill="#3b82f6" fillOpacity="0.3"/>
+                  {/* Bottom-left microservice */}
+                  <rect x="10" y="102" width="36" height="26" rx="4" fill="#8b5cf6" fillOpacity="0.12" stroke="#8b5cf6" strokeWidth="1.2" strokeOpacity="0.5"/>
+                  <rect x="16" y="110" width="20" height="2.5" rx="1.2" fill="#8b5cf6" fillOpacity="0.4"/>
+                  <rect x="16" y="116" width="14" height="2.5" rx="1.2" fill="#8b5cf6" fillOpacity="0.3"/>
+                  {/* Bottom-right microservice */}
+                  <rect x="114" y="102" width="36" height="26" rx="4" fill="#f59e0b" fillOpacity="0.12" stroke="#f59e0b" strokeWidth="1.2" strokeOpacity="0.5"/>
+                  <rect x="120" y="110" width="20" height="2.5" rx="1.2" fill="#f59e0b" fillOpacity="0.4"/>
+                  <rect x="120" y="116" width="14" height="2.5" rx="1.2" fill="#f59e0b" fillOpacity="0.3"/>
+                  {/* Connector lines */}
+                  <line x1="46" y1="25" x2="52" y2="62" stroke="#b57e04" strokeWidth="1" strokeOpacity="0.3" strokeDasharray="3 2"/>
+                  <line x1="114" y1="25" x2="108" y2="62" stroke="#b57e04" strokeWidth="1" strokeOpacity="0.3" strokeDasharray="3 2"/>
+                  <line x1="46" y1="115" x2="52" y2="78" stroke="#b57e04" strokeWidth="1" strokeOpacity="0.3" strokeDasharray="3 2"/>
+                  <line x1="114" y1="115" x2="108" y2="78" stroke="#b57e04" strokeWidth="1" strokeOpacity="0.3" strokeDasharray="3 2"/>
+                  {/* Sparkle */}
+                  <path d="M140 55 L141.5 59 L146 60.5 L141.5 62 L140 66 L138.5 62 L134 60.5 L138.5 59 Z" fill="#f0c040" fillOpacity="0.6"/>
                 </svg>
               </div>
 
               {/* Card body */}
               <div className="p-6 flex flex-col flex-1">
-                <h3 className="font-display font-bold text-foreground text-lg mb-1.5">
-                  Request a Website
+                <h3 className="font-display font-bold text-foreground text-lg mb-1.5 group-hover:text-[#b57e04] transition-colors">
+                  Request Full-Stack Web App
                 </h3>
                 <p className="text-muted-foreground text-sm font-ui leading-relaxed flex-1">
-                  Share your vision and requirements. Web development agents build and deploy your site end-to-end.
+                  MVP to scalable SaaS — microservices backend, polished frontend, auth, DB, and cloud deployment at a fixed price.
                 </p>
-                <div className="mt-5 flex items-center gap-1.5 text-muted-foreground text-sm font-ui font-medium">
-                  Available soon
+                <div className="mt-5 flex items-center gap-1.5 text-[#b57e04] text-sm font-ui font-medium">
+                  Get started
+                  <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
                 </div>
               </div>
-            </div>
+            </Link>
 
           </div>
         </div>
