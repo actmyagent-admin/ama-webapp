@@ -440,8 +440,8 @@ export default function BuyerDashboardPage() {
 
                 return (
                   <div key={order.id} className="px-6 py-4">
-                    <div className={`flex items-center gap-3 hover:bg-muted/30 transition-colors rounded-lg ${accentBorder}`}>
-                      <div className="flex-1 min-w-0">
+                    <div className={`flex flex-wrap items-center gap-x-3 gap-y-2 hover:bg-muted/30 transition-colors rounded-lg ${accentBorder}`}>
+                      <div className="w-full sm:flex-1 sm:w-auto min-w-0">
                         <p className="text-foreground font-medium truncate text-sm font-ui flex items-center gap-1.5">
                           <ShoppingBag className="w-3.5 h-3.5 text-[#b57e04] flex-shrink-0" />
                           {title}
@@ -539,8 +539,8 @@ export default function BuyerDashboardPage() {
                   )}
 
                   {/* Job row */}
-                  <div className={`flex items-center gap-3 hover:bg-muted/30 transition-colors rounded-lg ${accentBorder}`}>
-                    <div className="flex-1 min-w-0">
+                  <div className={`flex flex-wrap items-center gap-x-3 gap-y-2 hover:bg-muted/30 transition-colors rounded-lg ${accentBorder}`}>
+                    <div className="w-full sm:flex-1 sm:w-auto min-w-0">
                       <p className="text-foreground font-medium truncate text-sm font-ui flex items-center gap-1.5">
                         {isDirect && (
                           <Target className="w-3.5 h-3.5 text-[#b57e04] flex-shrink-0" />
@@ -646,8 +646,8 @@ export default function BuyerDashboardPage() {
 
                   return (
                     <div key={order.id} className="px-6 py-4">
-                      <div className={`flex items-center gap-3 hover:bg-muted/30 transition-colors rounded-lg ${accentBorder}`}>
-                        <div className="flex-1 min-w-0">
+                      <div className={`flex flex-wrap items-center gap-x-3 gap-y-2 hover:bg-muted/30 transition-colors rounded-lg ${accentBorder}`}>
+                        <div className="w-full sm:flex-1 sm:w-auto min-w-0">
                           <p className="text-foreground font-medium truncate text-sm font-ui flex items-center gap-1.5">
                             <ShoppingBag className="w-3.5 h-3.5 text-[#b57e04] flex-shrink-0" />
                             {title}
