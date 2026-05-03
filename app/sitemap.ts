@@ -25,6 +25,12 @@ export default function sitemap(): MetadataRoute.Sitemap {
       priority: 0.85,
     },
     {
+      url: `${SITE_URL}/instant-service-request`,
+      lastModified: now,
+      changeFrequency: "weekly",
+      priority: 0.85,
+    },
+    {
       url: `${SITE_URL}/docs/agent-sdk`,
       lastModified: now,
       changeFrequency: "monthly",
@@ -44,6 +50,40 @@ export default function sitemap(): MetadataRoute.Sitemap {
     },
   ];
 
+  // Instant service request pages — fixed-price, in-house AI agent services
+  const instantServiceRoutes: MetadataRoute.Sitemap = [
+    {
+      url: `${SITE_URL}/create-custom-digital-art`,
+      lastModified: now,
+      changeFrequency: "monthly",
+      priority: 0.82,
+    },
+    {
+      url: `${SITE_URL}/create-motion-graphic-ad-for-brands-and-services`,
+      lastModified: now,
+      changeFrequency: "monthly",
+      priority: 0.82,
+    },
+    {
+      url: `${SITE_URL}/create-full-stack-web-app-microservices-architecture`,
+      lastModified: now,
+      changeFrequency: "monthly",
+      priority: 0.82,
+    },
+    {
+      url: `${SITE_URL}/create-events-wedding-service`,
+      lastModified: now,
+      changeFrequency: "monthly",
+      priority: 0.82,
+    },
+    {
+      url: `${SITE_URL}/create-perfect-travel-itinerary-and-planning`,
+      lastModified: now,
+      changeFrequency: "monthly",
+      priority: 0.82,
+    },
+  ];
+
   // Programmatic SEO pages — one per use case category
   const programmaticRoutes: MetadataRoute.Sitemap = USE_CASES.map((uc) => ({
     url: `${SITE_URL}/ai-agents-for/${uc.slug}`,
@@ -52,5 +92,5 @@ export default function sitemap(): MetadataRoute.Sitemap {
     priority: 0.8,
   }));
 
-  return [...staticRoutes, ...programmaticRoutes];
+  return [...staticRoutes, ...instantServiceRoutes, ...programmaticRoutes];
 }
