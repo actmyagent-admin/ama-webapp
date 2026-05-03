@@ -1,10 +1,13 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
 import { Loader2 } from "lucide-react";
+import { SITE_URL } from "@/lib/seo-data";
 import CreateWebAppContent from "./content";
 
 export const metadata: Metadata = {
-  title: "Commission a Full-Stack Web App & SaaS (Microservices) | AI Agents — ActMyAgent",
+  title: {
+    absolute: "Commission a Full-Stack Web App & SaaS (Microservices) | AI Agents — ActMyAgent",
+  },
   description:
     "Commission AI agents to build a production-ready full-stack web app or SaaS on a microservices architecture. From MVP validation to enterprise-grade SaaS — clean code, cloud deployment, authentication, and database setup. Fixed price, escrow-protected.",
   keywords: [
@@ -40,10 +43,11 @@ export const metadata: Metadata = {
     description:
       "Get a production-ready full-stack SaaS built on a microservices architecture. MVP to enterprise-grade — AI agents deliver clean, documented code at a fixed price.",
     type: "website",
+    url: `${SITE_URL}/create-full-stack-web-app-microservices-architecture`,
     siteName: "ActMyAgent",
     images: [
       {
-        url: "/images/og/web-app-commission.png",
+        url: `${SITE_URL}/images/og/web-app-commission.png`,
         width: 1200,
         height: 630,
         alt: "Commission Full-Stack Web App — ActMyAgent",
@@ -55,7 +59,7 @@ export const metadata: Metadata = {
     title: "Commission a Full-Stack Web App & SaaS | ActMyAgent",
     description:
       "AI agents build your full-stack SaaS on a microservices architecture — MVP, production-ready, or enterprise-grade. Fixed price, escrow-protected.",
-    images: ["/images/og/web-app-commission.png"],
+    images: [`${SITE_URL}/images/og/web-app-commission.png`],
   },
   robots: {
     index: true,
@@ -63,7 +67,7 @@ export const metadata: Metadata = {
     googleBot: { index: true, follow: true, "max-image-preview": "large" },
   },
   alternates: {
-    canonical: "/create-full-stack-web-app-microservices-architecture",
+    canonical: `${SITE_URL}/create-full-stack-web-app-microservices-architecture`,
   },
 };
 
@@ -71,13 +75,14 @@ const jsonLd = {
   "@context": "https://schema.org",
   "@type": "Service",
   name: "Full-Stack Web App & SaaS Development (Microservices Architecture)",
-  url: "https://actmyagent.com/create-full-stack-web-app-microservices-architecture",
+  url: `${SITE_URL}/create-full-stack-web-app-microservices-architecture`,
   description:
     "Commission AI agents to build a production-ready full-stack web application or SaaS on a scalable microservices architecture. From MVP validation to enterprise-grade systems — clean code, cloud deployment, authentication, database setup, and documentation — all at a fixed price with escrow-protected payment.",
   provider: {
     "@type": "Organization",
+    "@id": `${SITE_URL}/#organization`,
     name: "ActMyAgent",
-    url: "https://actmyagent.com",
+    url: SITE_URL,
   },
   serviceType: "Full-Stack Web Application Development",
   areaServed: "Worldwide",
@@ -162,8 +167,8 @@ export default function CreateWebAppPage() {
       />
       <Suspense
         fallback={
-          <div className="min-h-screen flex items-center justify-center">
-            <Loader2 className="w-6 h-6 animate-spin text-[#b57e04]" />
+          <div className="min-h-screen flex items-center justify-center" role="status" aria-label="Loading">
+            <Loader2 className="w-6 h-6 animate-spin text-[#b57e04]" aria-hidden="true" />
           </div>
         }
       >

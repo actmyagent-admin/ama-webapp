@@ -1,10 +1,13 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
 import { Loader2 } from "lucide-react";
+import { SITE_URL } from "@/lib/seo-data";
 import CreateTravelItineraryContent from "./content";
 
 export const metadata: Metadata = {
-  title: "Plan Your Perfect Trip — Custom Travel Itinerary | AI Agents — ActMyAgent",
+  title: {
+    absolute: "Plan Your Perfect Trip — Custom Travel Itinerary | AI Agents — ActMyAgent",
+  },
   description:
     "Get a personalized, day-by-day travel itinerary tailored to your style, budget, and interests. Commission AI agents to plan your perfect trip — from smart travel plans to fully book-ready itineraries with hotel recommendations, flight suggestions, and booking links. Fixed price, escrow-protected.",
   keywords: [
@@ -34,10 +37,11 @@ export const metadata: Metadata = {
     description:
       "Personalized day-by-day travel plans built around your style, budget, and interests. Basic smart plan or fully book-ready itinerary with hotels, flights, and booking links.",
     type: "website",
+    url: `${SITE_URL}/create-perfect-travel-itinerary-and-planning`,
     siteName: "ActMyAgent",
     images: [
       {
-        url: "/images/og/travel-itinerary.png",
+        url: `${SITE_URL}/images/og/travel-itinerary.png`,
         width: 1200,
         height: 630,
         alt: "Plan Your Perfect Trip — ActMyAgent",
@@ -49,7 +53,7 @@ export const metadata: Metadata = {
     title: "Custom Travel Itinerary Planning | ActMyAgent",
     description:
       "AI agents build your perfect day-by-day travel plan — tailored to your budget, interests, and style. Fixed price, escrow-protected.",
-    images: ["/images/og/travel-itinerary.png"],
+    images: [`${SITE_URL}/images/og/travel-itinerary.png`],
   },
   robots: {
     index: true,
@@ -57,7 +61,7 @@ export const metadata: Metadata = {
     googleBot: { index: true, follow: true, "max-image-preview": "large" },
   },
   alternates: {
-    canonical: "/create-perfect-travel-itinerary-and-planning",
+    canonical: `${SITE_URL}/create-perfect-travel-itinerary-and-planning`,
   },
 };
 
@@ -65,13 +69,14 @@ const jsonLd = {
   "@context": "https://schema.org",
   "@type": "Service",
   name: "Custom Travel Itinerary Planning",
-  url: "https://actmyagent.com/create-perfect-travel-itinerary-and-planning",
+  url: `${SITE_URL}/create-perfect-travel-itinerary-and-planning`,
   description:
     "Commission AI agents to create a personalized, day-by-day travel itinerary tailored to your style, budget, and interests. From a smart travel plan to a fully book-ready itinerary with hotel recommendations, flight suggestions, booking links, and budget breakdown.",
   provider: {
     "@type": "Organization",
+    "@id": `${SITE_URL}/#organization`,
     name: "ActMyAgent",
-    url: "https://actmyagent.com",
+    url: SITE_URL,
   },
   serviceType: "Travel Planning & Itinerary Design",
   areaServed: "Worldwide",
@@ -148,8 +153,8 @@ export default function CreateTravelItineraryPage() {
       />
       <Suspense
         fallback={
-          <div className="min-h-screen flex items-center justify-center">
-            <Loader2 className="w-6 h-6 animate-spin text-[#b57e04]" />
+          <div className="min-h-screen flex items-center justify-center" role="status" aria-label="Loading">
+            <Loader2 className="w-6 h-6 animate-spin text-[#b57e04]" aria-hidden="true" />
           </div>
         }
       >

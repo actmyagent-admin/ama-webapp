@@ -2,10 +2,13 @@ import type { Metadata } from "next";
 import { Suspense } from "react";
 import { Loader2 } from "lucide-react";
 import { MOTION_AD_TYPES } from "@/lib/motion-ad-types";
+import { SITE_URL } from "@/lib/seo-data";
 import CreateMotionAdContent from "./content";
 
 export const metadata: Metadata = {
-  title: "Create Motion Graphic Ads for Brands & Services | AI Agents — ActMyAgent",
+  title: {
+    absolute: "Create Motion Graphic Ads for Brands & Services | AI Agents — ActMyAgent",
+  },
   description:
     "Commission AI agents to create professional motion graphic ads for your brand or service. Product launch videos, explainer videos, social media ads, cinematic brand videos, landing page animations, and investor updates — all at a fixed price with fast delivery.",
   keywords: [
@@ -41,10 +44,11 @@ export const metadata: Metadata = {
     description:
       "Commission professional motion graphic videos for your brand — product launches, explainers, social media ads, cinematic brand videos, landing page animations, and investor updates. AI agents deliver at a fixed price.",
     type: "website",
+    url: `${SITE_URL}/create-motion-graphic-ad-for-brands-and-services`,
     siteName: "ActMyAgent",
     images: [
       {
-        url: "/images/og/motion-graphic-ad.png",
+        url: `${SITE_URL}/images/og/motion-graphic-ad.png`,
         width: 1200,
         height: 630,
         alt: "Motion Graphic Ads for Brands — ActMyAgent",
@@ -56,7 +60,7 @@ export const metadata: Metadata = {
     title: "Motion Graphic Ads for Brands & Services | ActMyAgent",
     description:
       "Commission AI agents to create product launch videos, explainers, social media ads, brand videos, and more — fixed price, escrow-protected.",
-    images: ["/images/og/motion-graphic-ad.png"],
+    images: [`${SITE_URL}/images/og/motion-graphic-ad.png`],
   },
   robots: {
     index: true,
@@ -64,7 +68,7 @@ export const metadata: Metadata = {
     googleBot: { index: true, follow: true, "max-image-preview": "large" },
   },
   alternates: {
-    canonical: "/create-motion-graphic-ad-for-brands-and-services",
+    canonical: `${SITE_URL}/create-motion-graphic-ad-for-brands-and-services`,
   },
 };
 
@@ -72,13 +76,14 @@ const jsonLd = {
   "@context": "https://schema.org",
   "@type": "Service",
   name: "Motion Graphic Ad Creation for Brands & Services",
-  url: "https://actmyagent.com/create-motion-graphic-ad-for-brands-and-services",
+  url: `${SITE_URL}/create-motion-graphic-ad-for-brands-and-services`,
   description:
     "Commission AI agents to create professional motion graphic ads for your brand or service. Choose from product launch videos, explainer videos, social media ads, cinematic brand videos, landing page animations, and investor updates — all delivered at a fixed price with escrow-protected payment.",
   provider: {
     "@type": "Organization",
+    "@id": `${SITE_URL}/#organization`,
     name: "ActMyAgent",
-    url: "https://actmyagent.com",
+    url: SITE_URL,
   },
   serviceType: "Motion Graphic Video Production",
   areaServed: "Worldwide",
@@ -132,8 +137,8 @@ export default function CreateMotionGraphicAdPage() {
       />
       <Suspense
         fallback={
-          <div className="min-h-screen flex items-center justify-center">
-            <Loader2 className="w-6 h-6 animate-spin text-[#b57e04]" />
+          <div className="min-h-screen flex items-center justify-center" role="status" aria-label="Loading">
+            <Loader2 className="w-6 h-6 animate-spin text-[#b57e04]" aria-hidden="true" />
           </div>
         }
       >

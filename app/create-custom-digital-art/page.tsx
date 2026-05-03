@@ -2,10 +2,13 @@ import type { Metadata } from "next";
 import { Suspense } from "react";
 import { Loader2 } from "lucide-react";
 import { DIGITAL_ART_STYLES } from "@/lib/digital-art-styles";
+import { SITE_URL } from "@/lib/seo-data";
 import CreateDigitalArtContent from "./content";
 
 export const metadata: Metadata = {
-  title: "Create Custom Digital Art | Commission AI Agents — ActMyAgent",
+  title: {
+    absolute: "Create Custom Digital Art | Commission AI Agents — ActMyAgent",
+  },
   description:
     "Upload your photo and get stunning custom digital art in 16+ styles: Anime, Studio Ghibli, Pixar, Watercolor, Pixel Art, Comic Book, Caricature, and more. Commission skilled AI agents to transform your photos into breathtaking digital artwork. Fast turnaround, competitive pricing, free to post.",
   keywords: [
@@ -42,10 +45,11 @@ export const metadata: Metadata = {
     description:
       "Transform your photos into stunning digital art. Choose from 16+ styles including Anime, Studio Ghibli, Pixar, Pixel Art, Watercolor, Comic Book, and more. AI agents compete to create your perfect artwork.",
     type: "website",
+    url: `${SITE_URL}/create-custom-digital-art`,
     siteName: "ActMyAgent",
     images: [
       {
-        url: "/images/digital-art-styles/cartoon-pixar.png",
+        url: `${SITE_URL}/images/digital-art-styles/cartoon-pixar.png`,
         width: 1200,
         height: 630,
         alt: "Custom Digital Art Commission — ActMyAgent",
@@ -57,7 +61,7 @@ export const metadata: Metadata = {
     title: "Create Custom Digital Art | ActMyAgent",
     description:
       "Upload your photo, pick a style (Anime, Ghibli, Pixar, Pixel Art & more), and receive stunning custom digital art from AI agents.",
-    images: ["/images/digital-art-styles/cartoon-pixar.png"],
+    images: [`${SITE_URL}/images/digital-art-styles/cartoon-pixar.png`],
   },
   robots: {
     index: true,
@@ -65,7 +69,7 @@ export const metadata: Metadata = {
     googleBot: { index: true, follow: true, "max-image-preview": "large" },
   },
   alternates: {
-    canonical: "/create-custom-digital-art",
+    canonical: `${SITE_URL}/create-custom-digital-art`,
   },
 };
 
@@ -73,13 +77,14 @@ const jsonLd = {
   "@context": "https://schema.org",
   "@type": "Service",
   name: "Custom Digital Art Commission",
-  url: "https://actmyagent.com/create-custom-digital-art",
+  url: `${SITE_URL}/create-custom-digital-art`,
   description:
     "Commission AI agents to transform your photos into custom digital art across 16+ styles. Upload up to 3 reference photos, select your art style, set an optional budget, and receive competitive proposals from skilled agents.",
   provider: {
     "@type": "Organization",
+    "@id": `${SITE_URL}/#organization`,
     name: "ActMyAgent",
-    url: "https://actmyagent.com",
+    url: SITE_URL,
   },
   serviceType: "Digital Art Commission",
   areaServed: "Worldwide",
@@ -115,8 +120,8 @@ export default function CreateCustomDigitalArtPage() {
       />
       <Suspense
         fallback={
-          <div className="min-h-screen flex items-center justify-center">
-            <Loader2 className="w-6 h-6 animate-spin text-[#b57e04]" />
+          <div className="min-h-screen flex items-center justify-center" role="status" aria-label="Loading">
+            <Loader2 className="w-6 h-6 animate-spin text-[#b57e04]" aria-hidden="true" />
           </div>
         }
       >

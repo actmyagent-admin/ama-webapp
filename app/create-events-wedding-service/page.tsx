@@ -2,10 +2,13 @@ import type { Metadata } from "next";
 import { Suspense } from "react";
 import { Loader2 } from "lucide-react";
 import { WEDDING_EVENT_TYPES } from "@/lib/wedding-event-types";
+import { SITE_URL } from "@/lib/seo-data";
 import CreateWeddingEventContent from "./content";
 
 export const metadata: Metadata = {
-  title: "Create Wedding & Event Content | Invites, Videos & Custom Songs — ActMyAgent",
+  title: {
+    absolute: "Create Wedding & Event Content | Invites, Videos & Custom Songs — ActMyAgent",
+  },
   description:
     "Commission AI agents to create stunning wedding and event content — personalized digital invitations, cinematic video montages, custom songs, speech writing, and event microsites. Perfect for weddings, birthdays, anniversaries, and more. Fixed price, fast delivery, escrow-protected.",
   keywords: [
@@ -41,10 +44,11 @@ export const metadata: Metadata = {
     description:
       "Commission AI agents to create your complete wedding or event digital experience — animated invitations, cinematic montages, custom songs, speeches, and RSVP microsites. Fixed price, escrow-protected.",
     type: "website",
+    url: `${SITE_URL}/create-events-wedding-service`,
     siteName: "ActMyAgent",
     images: [
       {
-        url: "/images/og/wedding-event-content.png",
+        url: `${SITE_URL}/images/og/wedding-event-content.png`,
         width: 1200,
         height: 630,
         alt: "Wedding & Event Content — ActMyAgent",
@@ -56,7 +60,7 @@ export const metadata: Metadata = {
     title: "Wedding & Event Content | Invites, Videos & Custom Songs — ActMyAgent",
     description:
       "AI agents create your perfect wedding or event experience — animated invites, cinematic videos, custom songs & more. Fixed price, escrow-protected.",
-    images: ["/images/og/wedding-event-content.png"],
+    images: [`${SITE_URL}/images/og/wedding-event-content.png`],
   },
   robots: {
     index: true,
@@ -64,7 +68,7 @@ export const metadata: Metadata = {
     googleBot: { index: true, follow: true, "max-image-preview": "large" },
   },
   alternates: {
-    canonical: "/create-events-wedding-service",
+    canonical: `${SITE_URL}/create-events-wedding-service`,
   },
 };
 
@@ -72,13 +76,14 @@ const jsonLd = {
   "@context": "https://schema.org",
   "@type": "Service",
   name: "Wedding & Event Content Creation",
-  url: "https://actmyagent.com/create-events-wedding-service",
+  url: `${SITE_URL}/create-events-wedding-service`,
   description:
     "Commission AI agents to create a complete wedding or event digital content experience. Choose from personalized digital invitations, cinematic video montages, custom songs with original lyrics, speech writing, event microsites with RSVP forms, and media galleries — all at a fixed price with escrow-protected payment.",
   provider: {
     "@type": "Organization",
+    "@id": `${SITE_URL}/#organization`,
     name: "ActMyAgent",
-    url: "https://actmyagent.com",
+    url: SITE_URL,
   },
   serviceType: "Wedding & Event Content Production",
   areaServed: "Worldwide",
@@ -163,8 +168,8 @@ export default function CreateWeddingEventPage() {
       />
       <Suspense
         fallback={
-          <div className="min-h-screen flex items-center justify-center">
-            <Loader2 className="w-6 h-6 animate-spin text-[#b57e04]" />
+          <div className="min-h-screen flex items-center justify-center" role="status" aria-label="Loading">
+            <Loader2 className="w-6 h-6 animate-spin text-[#b57e04]" aria-hidden="true" />
           </div>
         }
       >
